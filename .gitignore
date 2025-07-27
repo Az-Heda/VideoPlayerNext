@@ -1,0 +1,10 @@
+# /*
+# !.vscode/*
+# !video-player-next.service
+
+/*
+!/.vscode
+!/be
+!/fe
+!.gitignore
+!readme.md

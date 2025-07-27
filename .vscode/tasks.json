@@ -1,0 +1,81 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "BE - DEV",
+            "type": "shell",
+            "command": "go run . serve",
+            "options": {
+                "cwd": "${workspaceRoot}/be"
+            },
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+        {
+            "label": "BE - PROD",
+            "type": "shell",
+            "command": "go build -o LIN_VideoPlayerNext .",
+            "options": {
+                "cwd": "${workspaceRoot}/be"
+            },
+            "isBackground": false,
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+        {
+            "label": "FE - DEV",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceRoot}/fe"
+            },
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+        {
+            "label": "FE - PROD",
+            "type": "shell",
+            "command": "npm run build",
+            "options": {
+                "cwd": "${workspaceRoot}/fe",
+                "env": {
+                    "DIST_DIR": "../be/cmd/serve/website",
+                    "MODE": "prod"
+                }
+            },
+            "isBackground": false,
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+    ]
+}

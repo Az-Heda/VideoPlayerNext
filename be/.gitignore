@@ -1,0 +1,6 @@
+LIN_VideoPlayerNext
+
+*.sqlite3
+*.sh
+
+/cmd/serve/website
