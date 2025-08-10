@@ -32,8 +32,12 @@ export function Vp({ getter, setter, commands, allData, allDataSetter }: Props) 
         const video = document.querySelector<HTMLVideoElement>("video#video-stream");
         if (video == null) { return }
         video.addEventListener('keydown', (evt) => {
-            const incr = commands.AudioContext.Commands.EnableAudioContext.Updates.Getter ? 0.02 : 0.1;
-
+            // const total = commands.AudioContext.Commands.EnableAudioContext.Updates.Getter
+            //     ? +(commands.AudioContext.Commands.Limit.Updates.Getter || 100)
+            //     : 100;
+            // const incr = 0.1 / (total / 100);
+            // console.log({ total, incr, getter: commands.AudioContext.Commands.Limit.Updates.Getter, enabled: commands.AudioContext.Commands.EnableAudioContext.Updates.Getter });
+            const incr = 0.05;
             switch (evt.key) {
                 case 'ArrowUp':
                     video.volume = Math.min(Math.max(video.volume + incr, 0), 1);
@@ -48,7 +52,7 @@ export function Vp({ getter, setter, commands, allData, allDataSetter }: Props) 
         console.log(video);
     }, []);
     return (
-        <VideoPlayer className="overflow-hidden rounded-lg border max-w-200 mx-auto">
+        <VideoPlayer className="overflow-hidden rounded-lg border max-w-200 mx-auto" id="video-container">
             <VideoPlayerContent
                 crossOrigin=""
                 preload="auto"
@@ -60,7 +64,7 @@ export function Vp({ getter, setter, commands, allData, allDataSetter }: Props) 
                     if (document.fullscreenElement) {
                         document.exitFullscreen();
                     } else {
-                        const video = document.querySelector<HTMLVideoElement>("video#video-stream");
+                        const video = document.querySelector<HTMLVideoElement>("#video-container");
                         if (video != null) {
                             video.requestFullscreen();
                         }

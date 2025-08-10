@@ -22,9 +22,8 @@ export default function Page() {
     ApiRequest<ApiVideo>('GET', "/api/v1/videos", null, null).then((data) => {
       if (!data.error) {
         setData(data.results.sort((a: ApiVideo, b: ApiVideo): number => {
-          if (a.filePath.includes(Configs.PriorityFolder)) { return 1 }
-          if (b.filePath.includes(Configs.PriorityFolder)) { return -1 }
-
+          if (a.filePath.includes(Configs.PriorityFolder) && !b.filePath.includes(Configs.PriorityFolder)) { return -1 }
+          if (b.filePath.includes(Configs.PriorityFolder) && !a.filePath.includes(Configs.PriorityFolder)) { return 1 }
           return (a.filePath < b.filePath) ? -1 : 1;
         }));
       }
@@ -108,7 +107,7 @@ export default function Page() {
               </AlertDescription>
             </Alert>
           }
-          {videoData != undefined && <Vp getter={videoData} setter={setVideoData} allData={data} allDataSetter={setData} commands={commands}/>}
+          {videoData != undefined && <Vp getter={videoData} setter={setVideoData} allData={data} allDataSetter={setData} commands={commands} />}
           {data != undefined && <VideoTable data={data} videoData={videoData} videoSetter={setVideoData} />}
         </div>
       </SidebarInset>

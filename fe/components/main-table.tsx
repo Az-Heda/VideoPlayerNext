@@ -8,6 +8,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { ApiVideo } from "@/lib/api";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
+import { Check, X } from "lucide-react";
 
 type Props = {
     data: ApiVideo[]
@@ -23,6 +24,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
     const [filterFieldTitle, setFilterTitle] = useState<string>("");
     const [filterFieldDuration, setFilterDuration] = useState<string>("");
     const [filterFieldSize, setFilterSize] = useState<string>("");
+    const [filterFieldFolder, setFilterFolder] = useState<string>("");
 
     const filteredData = useMemo(() => {
         function ExecuteRegexOnField<T>(inputField: string, ...keys: Array<keyof T>) {
@@ -38,18 +40,22 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
         }
         return data
             .filter(i => {
-                const cond = filterFieldWatched.toLowerCase() == 'y';
+                // const cond = filterFieldWatched.toLowerCase() == 'y';
                 switch (filterFieldWatched.toLowerCase()) {
                     case 'y':
-                        return cond == i.attributes.watched
+                    case 's':
+                    case 't':
+                        return i.attributes.watched
                     case 'n':
-                        return cond == i.attributes.watched
+                    case 'f':
+                        return !i.attributes.watched
                     default:
                         return true;
                 }
             })
-            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldTitle, 'title', 'filePath'));
-    }, [data, filterFieldWatched, filterFieldTitle, filterFieldSize, filterFieldDuration])
+            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldTitle, 'title', 'id'))
+            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldFolder, 'filePath', 'folderId'));
+    }, [data, filterFieldWatched, filterFieldTitle, filterFieldSize, filterFieldDuration, filterFieldFolder])
 
     const [pageIndex, setPageIndex] = useState<number>(0);
     const page = useMemo(() => filteredData.slice(itemPerPage * pageIndex, (itemPerPage * pageIndex) + itemPerPage), [itemPerPage, pageIndex, filteredData]);
@@ -121,19 +127,19 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                 </TableRow>
                 <TableRow>
                     <TableHead className="w-[100px]">
-                        <Input value={filterFieldWatched} onChange={(i) => { setFilterFieldWatched(i.target.value) }} />
+                        <Input value={filterFieldWatched} onChange={(i) => { setFilterFieldWatched(i.target.value) }} placeholder="YTS/NF" />
                     </TableHead>
                     <TableHead>
-                        <Input value={filterFieldTitle} onChange={(i) => { setFilterTitle(i.target.value) }} />
+                        <Input value={filterFieldTitle} onChange={(i) => { setFilterTitle(i.target.value) }} placeholder="Video title" />
                     </TableHead>
                     <TableHead>
-                        <Input value={filterFieldDuration} onChange={(i) => { setFilterDuration(i.target.value) }} />
+                        <Input value={filterFieldFolder} onChange={(i) => { setFilterFolder(i.target.value) }} placeholder="Video path" />
                     </TableHead>
                     <TableHead>
-                        <Input />
+                        <Input disabled value={filterFieldDuration} onChange={(i) => { setFilterDuration(i.target.value) }} placeholder="Video duration" />
                     </TableHead>
                     <TableHead className="text-right">
-                        <Input value={filterFieldSize} onChange={(i) => setFilterSize(i.target.value)} />
+                        <Input disabled value={filterFieldSize} onChange={(i) => setFilterSize(i.target.value)} placeholder="Video size (MB)" />
                     </TableHead>
                 </TableRow>
             </TableHeader>
@@ -141,7 +147,11 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                 {
                     page.map(i => (
                         <TableRow key={`row-${i.id}`} className={cn(i.id == videoData?.id ? 'bg-muted/30' : '')}>
-                            <TableCell className="font-medium">{i.attributes.watched ? 'Y' : 'N'}</TableCell>
+                            <TableCell className="font-medium">{
+                                i.attributes.watched
+                                    ? <Check className="size-6 mx-auto text-emerald-600 dark:text-emerald-400" />
+                                    : <X className="size-6 mx-auto text-rose-500" />
+                            }</TableCell>
                             <TableCell className="hover:cursor-pointer" onClick={() => ShowVideo(i)}>{i.title}</TableCell>
                             <TableCell className="truncate text-muted-foreground">
                                 {i.filePath.replaceAll('\\', '/').split('/').slice(0, -1).filter((i, idx) => i.length > 0 || idx == 0).join('/')}
