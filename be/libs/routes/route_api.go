@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"full/libs/models"
+	"full/libs/utils"
 	"full/libs/webserver"
 	"net/http"
 	"strings"
@@ -70,7 +71,8 @@ func apiError(w http.ResponseWriter, err error, statusCode int) {
 	w.Write(b)
 }
 
-func reloadVideos(conn *gorm.DB, videos *[]models.Video) error {
+func reloadVideos(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
+	StartupVideos(conn)
 	var currentvideos []models.Video
 	if tx := conn.Find(&currentvideos, models.Video{Attributes: models.VideoAttributes{Exists: true}}); tx.Error != nil {
 		return tx.Error
@@ -82,7 +84,10 @@ func reloadVideos(conn *gorm.DB, videos *[]models.Video) error {
 		}
 	}
 
-	*videos = correctVideos
+	var before = len(videos.Getter)
+	videos.Setter <- correctVideos
+	var after = len(videos.Getter)
+	log.Debug().Int("before", before).Int("after", after).Msg("Video reloaded")
 	return nil
 }
 
@@ -129,11 +134,8 @@ func StartupVideos(conn *gorm.DB) error {
 }
 
 func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models.Video) *webserver.Mux {
-
-	StartupVideos(conn.WithContext(context.Background()))
-
-	var videos []models.Video
-	if err := reloadVideos(conn, &videos); err != nil {
+	var videos = utils.NewGetterSetter[[]models.Video](nil)
+	if err := reloadVideos(conn, videos); err != nil {
 		log.Err(err).Send()
 	}
 
@@ -144,9 +146,9 @@ func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models
 			case v1 := <-videoUpdated:
 				var mut sync.Mutex
 				mut.Lock()
-				for idx, v2 := range videos {
+				for idx, v2 := range videos.Getter {
 					if v1.Id == v2.Id {
-						videos[idx] = v1
+						videos.Getter[idx] = v1
 						log.Info().Str("id", v1.Id).Msg("Updated video")
 					}
 				}
@@ -171,13 +173,13 @@ func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models
 	})
 
 	apiv1.HandleFunc("GET /videos", func(w http.ResponseWriter, r *http.Request) {
-		if err := ApiResponseM(w, videos); err != nil {
+		if err := ApiResponseM(w, videos.Getter); err != nil {
 			apiError(w, err, http.StatusInternalServerError)
 		}
 	})
 
 	apiv1.HandleFunc("GET /reload-data", func(w http.ResponseWriter, r *http.Request) {
-		if err := reloadVideos(conn.WithContext(r.Context()), &videos); err != nil {
+		if err := reloadVideos(conn.WithContext(r.Context()), videos); err != nil {
 			// log.Err(err).Send()
 			apiError(w, err, http.StatusInternalServerError)
 			return
