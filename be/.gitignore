@@ -1,4 +1,5 @@
 LIN_VideoPlayerNext
+vp-setup
 
 *.sqlite3
 *.sh

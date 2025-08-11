@@ -106,7 +106,7 @@ func StartupVideos(conn *gorm.DB) error {
 				log.Err(tx.Error).Send()
 			}
 			if len(res) == 0 {
-				if err := v.GetDurationn(); err != nil {
+				if err := v.GetDuration(); err != nil {
 					log.Err(err).Str("file", v.FilePath).Str("id", v.Id).Send()
 				}
 				if tx := conn.Create(&v); tx.Error != nil {
@@ -190,7 +190,7 @@ func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models
 	go func() {
 		for {
 			time.Sleep(time.Minute * 30)
-			StartupVideos(conn.WithContext(context.Background()))
+			reloadVideos(conn.WithContext(context.Background()), videos)
 		}
 	}()
 	return apiv1

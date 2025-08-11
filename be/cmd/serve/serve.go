@@ -60,7 +60,11 @@ var (
 				Handler: cors.Handler(routes.WebServer),
 			}
 
-			routes.AddWebsite(fsys, "website", fileCounter)
+			routes.AddWebsite(fsys, "website", fileCounter, &routes.AdditionalConfigs{
+				EnableGraphql:             true,
+				GraphqlEndpoint:           "/gql/graphql",
+				GraphqlPlaygroundEndpoint: "/gql/playground",
+			})
 			routes.WebServer.Handle("/metrics", promhttp.Handler())
 
 			log.Info().Str("address", server.Addr).Msg("Server online")

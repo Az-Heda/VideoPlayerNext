@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/graphql-go/graphql"
 	"github.com/rs/zerolog/log"
 )
 
@@ -17,6 +18,14 @@ type Folder struct {
 
 func NewFolder(p string) *Folder {
 	return (&Folder{Path: p}).generateId()
+}
+
+func (f *Folder) AddOrigin() {
+	if len(f.Id) == 0 {
+		f.generateId()
+		return
+	}
+	f.originalId = f.Id
 }
 
 func (f *Folder) generateId() *Folder {
@@ -48,7 +57,12 @@ func (f *Folder) GetVideos() (vids []*Video) {
 	for _, e := range entries {
 		var fullpath = path.Join(f.Path, e.Name())
 		if e.IsDir() {
-			vids = append(vids, (*Folder).GetVideos(&Folder{Path: fullpath, originalId: f.originalId})...)
+			vids = append(vids, (*Folder).GetVideos(&Folder{
+				Id:         f.originalId,
+				Path:       fullpath,
+				originalId: f.originalId,
+			},
+			)...)
 			continue
 		}
 		if path.Ext(fullpath) != ".mp4" {
@@ -65,7 +79,7 @@ func (f *Folder) GetVideos() (vids []*Video) {
 			Title:    e.Name(),
 			FilePath: fullpath,
 			Size:     size,
-			FolderId: f.originalId,
+			Folder:   f,
 		}
 		v.GenerateId()
 		v.SetAttributes()
@@ -75,3 +89,17 @@ func (f *Folder) GetVideos() (vids []*Video) {
 
 	return
 }
+
+func (*Folder) GetGQLType() *graphql.Output {
+	return &gql_FolderType
+}
+
+var (
+	gql_FolderType graphql.Output = graphql.NewObject(graphql.ObjectConfig{
+		Name: "GQLFolder",
+		Fields: graphql.Fields{
+			"id":   &graphql.Field{Type: graphql.String, Description: "Folder id (Generated) follows pattern: f-%d"},
+			"path": &graphql.Field{Type: graphql.String, Description: "Folder path on the system"},
+		},
+	})
+)

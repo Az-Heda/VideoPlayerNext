@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"full/libs/db"
 	"full/libs/models"
+	"full/libs/routes/gql"
 	"full/libs/webserver"
 	"io/fs"
 	"net/http"
@@ -31,7 +32,13 @@ func init() {
 	}
 }
 
-func AddWebsite(fsys embed.FS, startDir string, fileCounter prometheus.Gauge) {
+type AdditionalConfigs struct {
+	EnableGraphql             bool
+	GraphqlEndpoint           string
+	GraphqlPlaygroundEndpoint string
+}
+
+func AddWebsite(fsys embed.FS, startDir string, fileCounter prometheus.Gauge, configs *AdditionalConfigs) {
 	conn, err := db.Connect()
 	if err != nil {
 		log.Panic().Err(err).Send()
@@ -136,6 +143,17 @@ func AddWebsite(fsys embed.FS, startDir string, fileCounter prometheus.Gauge) {
 	WebServer.HandleMux("/video", videoHandler)
 	WebServer.HandleMux("/actions", handleActions(webserver.NewMux(), conn))
 	WebServer.HandleMux("/api/v1", handleApiV1(webserver.NewMux(), conn, videoUpdated))
+
+	if configs != nil && configs.EnableGraphql {
+		WebServer.HandleFunc(configs.GraphqlEndpoint, gql.Handler(conn))
+		WebServer.HandleFunc(configs.GraphqlPlaygroundEndpoint, func(w http.ResponseWriter, r *http.Request) {
+			if err := gql.Playground(w, configs.GraphqlEndpoint); err != nil {
+				log.Err(err).Send()
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+	}
 
 	go func() {
 		for {
