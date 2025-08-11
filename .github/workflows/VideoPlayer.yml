@@ -59,12 +59,10 @@ jobs:
 
       - name: Build Binary
         run: |
-          ls
           cd be
-          ls
           mkdir dist
           GOOS=linux GOARCH=amd64 go build -o dist/video-player-linux-amd64 .
-          GOOS=windwos GOARCH=amd64 go build -o dist/video-player-windows-amd64 .
+          GOOS=windows GOARCH=amd64 go build -o dist/video-player-windows-amd64 .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
