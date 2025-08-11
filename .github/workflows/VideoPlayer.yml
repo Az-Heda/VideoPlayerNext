@@ -29,7 +29,6 @@ jobs:
       - name: Build with Next.js
         run: |
           cd fe
-          export DIST_DIR="../be/cmd/serve/website"
           export MODE="prod"
           npm run build
 
@@ -37,7 +36,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: static-website
-          path: ../be/cmd/serve/website
 
   build-go:
     name: Build Go
