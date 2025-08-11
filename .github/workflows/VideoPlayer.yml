@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checokout code
-        uses: actions/checkcout@v4
+        uses: actions/checkout@v4
 
       - name: Detect package manager
         id: detect-package-manager
