@@ -35,5 +35,6 @@ export type ApiVideo = {
     attributes: {
         exists: boolean;
         watched: boolean;
-    }
+    },
+    customUrl?: string;
 }

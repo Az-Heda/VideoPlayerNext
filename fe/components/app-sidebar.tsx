@@ -1,8 +1,8 @@
 "use client"
 
-import * as React from "react";
-import { useState, useEffect } from 'react';
-import { File, Link, Volume2, ChevronDown, AudioLines, RefreshCcw } from "lucide-react";
+import { useState, useEffect, useMemo } from 'react';
+import type { ComponentProps } from 'react';
+import { File, Link, Volume2, ChevronDown, AudioLines, RefreshCcw, RefreshCw } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenuBadge, SidebarMenuSub, SidebarRail } from "@/components/ui/sidebar";
 
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -16,17 +16,54 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Configs } from "@/lib/consts";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 
 type Props = {
   commands: ReturnType<typeof GetCommands>
-} & React.ComponentProps<typeof Sidebar>
+} & ComponentProps<typeof Sidebar>
 
 export function AppSidebar({ commands, ...props }: Props) {
-  // const commands = GetCommands();
   const [openCollapsableMenu1, setOpenCollapsableMenu1] = useState(false);
-
   const [open, setOpen] = useState(false);
+
+  const [resetAnimation, setResetAnimation] = useState(false);
+
+  const [videoFromUrlDialog, setVideoFromUrlDialog] = useState(false);
+  const [importVideoUrl, setImportVideoUrl] = useState<string>("");
+  const importVideoUrlValid = useMemo<boolean>(() => {
+    if (!importVideoUrl) return false;
+    try { new URL(importVideoUrl); }
+    catch { return false }
+    return true;
+  }, [importVideoUrl])
+
+  async function SetVideoFromUrl(url: string) {
+    commands.VideoPlayer.Commands.Video.Updates.Setter({
+      customUrl: url,
+      id: '', title: '',
+      filePath: '', folderId: '',
+      duration: -1, size: -1,
+      attributes: { exists: true, watched: true },
+    })
+  }
+
+  async function SetVideoFromFile(input: HTMLInputElement) {
+    let files = input.files;
+    if (!files) return;
+    let file = files[0];
+    console.log(file);
+    let url = URL.createObjectURL(file);
+    commands.VideoPlayer.Commands.Video.Updates.Setter({
+      customUrl: url,
+      id: '', title: file.name,
+      filePath: '', folderId: '',
+      duration: -1, size: -1,
+      attributes: { exists: true, watched: true },
+    })
+  }
+
   useEffect(() => {
     commands.AudioContext.Commands.Limit.Updates?.Setter(Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]);
     const down = (e: KeyboardEvent) => {
@@ -42,22 +79,77 @@ export function AppSidebar({ commands, ...props }: Props) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
+        <Dialog open={videoFromUrlDialog} onOpenChange={setVideoFromUrlDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>View video from link</DialogTitle>
+              <DialogDescription>
+                Import video from link<br />
+                [Note]: Audio Context doesn't work for videos imported from url
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="grid flex-1 gap-2">
+                <Label htmlFor="link" className="sr-only">
+                  Link
+                </Label>
+                <Input
+                  id="video-from-url"
+                  autoFocus
+                  autoComplete="off"
+                  placeholder="https://www.example.com"
+                  value={importVideoUrl}
+                  onChange={(e) => setImportVideoUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key.toUpperCase() == 'ENTER') {
+                      if (importVideoUrlValid) SetVideoFromUrl(importVideoUrl);
+                      setVideoFromUrlDialog(false)
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <DialogFooter className="justify-end">
+              <Button type="button" variant="secondary" onClick={(() => setVideoFromUrlDialog(false))}>
+                Cancel
+              </Button>
+              <Button type="button" variant="default" disabled={!importVideoUrlValid} onClick={() => {
+                if (importVideoUrlValid) SetVideoFromUrl(importVideoUrl);
+                setVideoFromUrlDialog(false)
+              }}>
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup >
           <SidebarGroupLabel>Input</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuButton >
+            <SidebarMenuButton className="hover:cursor-pointer" onClick={() => {
+              const input = document.querySelector<HTMLInputElement>('input#video-from-file[type="file"]');
+              if (!input) return;
+              input.click();
+            }}>
               <File />
               File
+              <Input
+                id="video-from-file"
+                type="file"
+                accept="video/mp4"
+                onChange={(e) => SetVideoFromFile(e.target)}
+                hidden
+              />
             </SidebarMenuButton >
-            <SidebarMenuButton >
+            <SidebarMenuButton className="hover:cursor-pointer" onClick={() => setVideoFromUrlDialog(true)}>
               <Link />
               Url
             </SidebarMenuButton >
             <SidebarMenuButton
               className="hover:cursor-pointer"
               onClick={() => {
+                setResetAnimation(true);
                 const url = new URL(Configs.ApiEndpoint);
                 url.pathname = '/api/v1/reload-data'
                 fetch(url)
@@ -65,7 +157,7 @@ export function AppSidebar({ commands, ...props }: Props) {
                   .catch(console.error);
               }}
             >
-              <RefreshCcw />
+              <RefreshCw className={resetAnimation ? "animate-spin" : ''} />
               Reload data
             </SidebarMenuButton >
           </SidebarMenu>

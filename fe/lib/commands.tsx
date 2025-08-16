@@ -3,6 +3,7 @@
 import { MonitorCog, Moon, PanelLeftIcon, Sun, Volume2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Dispatch, JSX, SetStateAction, useEffect, useState } from 'react';
+import { ApiVideo } from '@/lib/api';
 
 export type additionalKeyPressed = {
     isShiftPressed?: boolean;
@@ -37,6 +38,7 @@ export function GetCommands() {
     const [audioContext, setAudioContext] = useState(false);
     const [audioContextLimit, setAudioContextLimit] = useState<number | boolean>(false);
     const [gainNode, setGainNode] = useState<GainNode>();
+    const [videoData, setVideoData] = useState<ApiVideo | undefined>();
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -48,7 +50,7 @@ export function GetCommands() {
     }, [gainNode, audioContextLimit]);
 
     return {
-        'Theme': {
+        Theme: {
             Label: 'Theme',
             Visible: true,
             Commands: {
@@ -81,7 +83,7 @@ export function GetCommands() {
                 }
             }
         },
-        'AudioContext': {
+        AudioContext: {
             Label: 'Audio Context',
             Visible: true,
             Commands: {
@@ -130,7 +132,7 @@ export function GetCommands() {
                 } as Command<typeof audioContextLimit | boolean>
             }
         },
-        'Configs': {
+        Configs: {
             Label: 'Configurations',
             Visible: true,
             Commands: {
@@ -147,6 +149,22 @@ export function GetCommands() {
                     Enabled: true,
                     Visible: true,
                 }
+            }
+        },
+        VideoPlayer: {
+            Label: '',
+            Visible: false,
+            Commands: {
+                Video: {
+                    Name: 'Visible video',
+                    ShortCut: (key: string, params: additionalKeyPressed): boolean => false,
+                    Updates: {
+                        Getter: videoData,
+                        Setter: setVideoData,
+                    },
+                    Enabled: true,
+                    Visible: true
+                },
             }
         }
     } as const;

@@ -24,7 +24,10 @@
             "type": "shell",
             "command": "go build -o LIN_VideoPlayerNext .",
             "options": {
-                "cwd": "${workspaceRoot}/be"
+                "cwd": "${workspaceRoot}/be",
+                "env": {
+                    "NEXT_PUBLIC_MODE": "prod"
+                }
             },
             "isBackground": false,
             "problemMatcher": [],

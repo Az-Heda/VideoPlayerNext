@@ -10,8 +10,8 @@ import { MediaFullscreenButton, MediaVolumeRange } from "media-chrome/react";
 import { GetCommands } from "@/lib/commands";
 
 type Props = {
-    getter: ApiVideo | undefined;
-    setter: Dispatch<SetStateAction<ApiVideo | undefined>>
+    // getter: ApiVideo | undefined;
+    // setter: Dispatch<SetStateAction<ApiVideo | undefined>>
     commands: ReturnType<typeof GetCommands>;
     allData: ApiVideo[] | undefined;
     allDataSetter: Dispatch<SetStateAction<ApiVideo[] | undefined>>;
@@ -20,13 +20,13 @@ type Props = {
 export default dynamic(() => Promise.resolve(Vp), { ssr: false })
 // https://www.kibo-ui.com/components/video-player
 
-export function Vp({ getter, setter, commands, allData, allDataSetter }: Props) {
+export function Vp({ commands, allData, allDataSetter }: Props) {
     useEffect(() => {
-        if (getter) {
-            getter.attributes.watched = true;
-            allDataSetter(allData?.map(i => i.id == getter.id ? getter : i))
+        if (commands.VideoPlayer.Commands.Video.Updates.Getter && !commands.VideoPlayer.Commands.Video.Updates.Getter.attributes.watched) {
+            commands.VideoPlayer.Commands.Video.Updates.Getter.attributes.watched = true;
+            allDataSetter(allData?.map(i => i.id == commands.VideoPlayer.Commands.Video.Updates.Getter!.id ? commands.VideoPlayer.Commands.Video.Updates.Getter! : i))
         }
-    }, [getter]);
+    }, [commands.VideoPlayer.Commands.Video.Updates.Getter]);
 
     useEffect(() => {
         const video = document.querySelector<HTMLVideoElement>("video#video-stream");
@@ -59,7 +59,11 @@ export function Vp({ getter, setter, commands, allData, allDataSetter }: Props) 
                 muted={false}
                 slot="media"
                 id="video-stream"
-                src={`${Configs.ApiEndpoint}/video/stream/${getter?.id}`}
+                src={
+                    commands.VideoPlayer.Commands.Video.Updates.Getter?.customUrl == undefined
+                        ? `${Configs.ApiEndpoint}/video/stream/${commands.VideoPlayer.Commands.Video.Updates.Getter?.id}`
+                        : commands.VideoPlayer.Commands.Video.Updates.Getter.customUrl
+                }
                 onDoubleClick={() => {
                     if (document.fullscreenElement) {
                         document.exitFullscreen();

@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   distDir: process.env.DIST_DIR,
   eslint: {
     ignoreDuringBuilds: true
+  },
+  env: {
+    MODE: process.env.MODE
   }
 };
 

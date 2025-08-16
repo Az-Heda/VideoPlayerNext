@@ -15,7 +15,6 @@ import { useEffect, useState } from "react";
 
 export default function Page() {
   const commands = GetCommands();
-  const [videoData, setVideoData] = useState<ApiVideo | undefined>();
   const [data, setData] = useState<ApiVideo[]>();
 
   useEffect(() => {
@@ -82,16 +81,16 @@ export default function Page() {
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage
-                  className={videoData !== undefined ? "hover:cursor-pointer" : ''}
-                  onClick={() => setVideoData(undefined)}
+                  className={commands.VideoPlayer.Commands.Video.Updates.Getter !== undefined ? "hover:cursor-pointer" : ''}
+                  onClick={() => commands.VideoPlayer.Commands.Video.Updates.Setter(undefined)}
                 >
                   Video Player
                 </BreadcrumbPage>
               </BreadcrumbItem>
-              {videoData != undefined && <>
+              {commands.VideoPlayer.Commands.Video.Updates.Getter != undefined && <>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{videoData.title}</BreadcrumbPage>
+                  <BreadcrumbPage>{commands.VideoPlayer.Commands.Video.Updates.Getter.title}</BreadcrumbPage>
                 </BreadcrumbItem>
               </>}
             </BreadcrumbList>
@@ -107,8 +106,8 @@ export default function Page() {
               </AlertDescription>
             </Alert>
           }
-          {videoData != undefined && <Vp getter={videoData} setter={setVideoData} allData={data} allDataSetter={setData} commands={commands} />}
-          {data != undefined && <VideoTable data={data} videoData={videoData} videoSetter={setVideoData} />}
+          {commands.VideoPlayer.Commands.Video.Updates.Getter != undefined && <Vp allData={data} allDataSetter={setData} commands={commands} />}
+          {data != undefined && <VideoTable data={data} videoData={commands.VideoPlayer.Commands.Video.Updates.Getter} videoSetter={commands.VideoPlayer.Commands.Video.Updates.Setter} />}
         </div>
       </SidebarInset>
     </SidebarProvider>

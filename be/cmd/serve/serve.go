@@ -50,6 +50,7 @@ var (
 				AllowedOrigins: []string{
 					"http://localhost:3000",
 					"http://localhost:6004",
+					"http://vp.localhost",
 				},
 				// AllowedOrigins: []string{"*"},
 				AllowedHeaders: []string{"Content-Type", "Accept"},
