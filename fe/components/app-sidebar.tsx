@@ -2,22 +2,26 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { ComponentProps } from 'react';
-import { File, Link, Volume2, ChevronDown, AudioLines, RefreshCcw, RefreshCw } from "lucide-react";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenuBadge, SidebarMenuSub, SidebarRail } from "@/components/ui/sidebar";
+import { File, Link, Volume2, ChevronDown, AudioLines, RefreshCcw, RefreshCw, Settings } from "lucide-react";
+import { useTheme } from 'next-themes';
 
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenuBadge, SidebarMenuSub, SidebarRail } from "@/components/ui/sidebar";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
-import { Settings } from "lucide-react";
+import { GetCommands } from "@/lib/commands";
+import { Configs } from "@/lib/consts";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { GetCommands } from "@/lib/commands";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Configs } from "@/lib/consts";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+
+
 
 
 type Props = {
@@ -25,6 +29,8 @@ type Props = {
 } & ComponentProps<typeof Sidebar>
 
 export function AppSidebar({ commands, ...props }: Props) {
+  const { theme, themes, setTheme } = useTheme();
+  const [themeReady, setThemeReady] = useState(false);
   const [openCollapsableMenu1, setOpenCollapsableMenu1] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -76,6 +82,13 @@ export function AppSidebar({ commands, ...props }: Props) {
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, []);
+
+  useEffect(() => {
+    if (theme == undefined) return;
+    setThemeReady(true);
+  }, [theme])
+
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -205,6 +218,38 @@ export function AppSidebar({ commands, ...props }: Props) {
             </Collapsible>
           </SidebarMenu>
         </SidebarGroup>
+        {
+          themeReady && <SidebarGroup>
+            <SidebarGroupLabel>Themes</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Select value={theme} onValueChange={(v) => setTheme(v)}>
+                  <SelectTrigger className="w-full capitalize">
+                    <SelectValue placeholder="Select a fruit" className="capitalize"/>
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {
+                      ['light', 'dark'].sort((a, b): number => (theme?.endsWith(a)) ? -1 : 1).map(t => (
+                        <SelectGroup key={`theme-group-${t}`}>
+                          <SelectLabel className="first-letter:uppercase text-center">{t}</SelectLabel>
+                          {
+                            themes
+                              .filter(t => !t.startsWith('default'))
+                              .filter(th => th.toLowerCase().endsWith(t.toLowerCase()))
+                              .map(th => (
+                                <SelectItem value={th} key={`theme-${th}`} className="capitalize">{th.replace(/-(dark|light)$/, '').split('-').join(' ')}</SelectItem>
+                              ))
+                          }
+                        </SelectGroup>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        }
         <SidebarGroup >
           <SidebarGroupLabel>Pages</SidebarGroupLabel>
           <SidebarMenu>
