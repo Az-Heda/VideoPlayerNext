@@ -60,39 +60,39 @@ export function GetCommands() {
     }, []);
 
     return {
-        Theme: {
-            Label: 'Theme',
-            Visible: true,
-            Commands: {
-                LightTheme: {
-                    Name: 'Light theme',
-                    Icon: <Moon />,
-                    ShortCutHint: 'Shift+Alt+L',
-                    ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'L' && !!params.isAltPressed && !!params.isShiftPressed,
-                    Callback: () => { setTheme('light') },
-                    Enabled: true,
-                    Visible: true,
-                },
-                DarkTheme: {
-                    Name: 'Dark theme',
-                    Icon: <Sun />,
-                    ShortCutHint: 'Shift+Alt+D',
-                    ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'D' && !!params.isAltPressed && !!params.isShiftPressed,
-                    Callback: () => { setTheme('dark') },
-                    Enabled: true,
-                    Visible: true,
-                },
-                SystemTheme: {
-                    Name: 'System theme',
-                    Icon: <MonitorCog />,
-                    ShortCutHint: 'Shift+Alt+S',
-                    ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'S' && !!params.isAltPressed && !!params.isShiftPressed,
-                    Callback: () => { setTheme('system') },
-                    Enabled: true,
-                    Visible: true,
-                }
-            }
-        },
+        // Theme: {
+        //     Label: 'Theme',
+        //     Visible: true,
+        //     Commands: {
+        //         LightTheme: {
+        //             Name: 'Light theme',
+        //             Icon: <Moon />,
+        //             ShortCutHint: 'Shift+Alt+L',
+        //             ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'L' && !!params.isAltPressed && !!params.isShiftPressed,
+        //             Callback: () => { setTheme('light') },
+        //             Enabled: true,
+        //             Visible: true,
+        //         },
+        //         DarkTheme: {
+        //             Name: 'Dark theme',
+        //             Icon: <Sun />,
+        //             ShortCutHint: 'Shift+Alt+D',
+        //             ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'D' && !!params.isAltPressed && !!params.isShiftPressed,
+        //             Callback: () => { setTheme('dark') },
+        //             Enabled: true,
+        //             Visible: true,
+        //         },
+        //         SystemTheme: {
+        //             Name: 'System theme',
+        //             Icon: <MonitorCog />,
+        //             ShortCutHint: 'Shift+Alt+S',
+        //             ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'S' && !!params.isAltPressed && !!params.isShiftPressed,
+        //             Callback: () => { setTheme('system') },
+        //             Enabled: true,
+        //             Visible: true,
+        //         }
+        //     }
+        // },
         AudioContext: {
             Label: 'Audio Context',
             Visible: true,
