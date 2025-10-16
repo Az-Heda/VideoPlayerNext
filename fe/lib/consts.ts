@@ -1,7 +1,10 @@
+const host = "http://vp.localhost"
+
 export const Configs = {
     SiteName: "[NX] Video Player",
     EnableGoogleLogin: false,
-    ApiEndpoint: 'http://localhost:6004',
+    ApiEndpoint: host,
+    PictureEndpoint: `${host}/picture`,
     PriorityFolder: '_auto-delete',
     ProdEnv: true,
     VolumeLimits: [ 100, 200, 300, 400, 500, 600 ],

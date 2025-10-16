@@ -52,7 +52,6 @@ var (
 					"http://localhost:6004",
 					"http://vp.localhost",
 				},
-				// AllowedOrigins: []string{"*"},
 				AllowedHeaders: []string{"Content-Type", "Accept"},
 			})
 
@@ -65,6 +64,11 @@ var (
 				EnableGraphql:             true,
 				GraphqlEndpoint:           "/gql/graphql",
 				GraphqlPlaygroundEndpoint: "/gql/playground",
+
+				EnableOpenApi:         true,
+				OpenApiSpecEndpoint:   "/oapi/_specs",
+				OpenApiSpecFullUrl:    fmt.Sprintf("http://%s/oapi/_specs", server.Addr),
+				OpenApiScalarEndpoint: "/oapi/scalar",
 			})
 			routes.WebServer.Handle("/metrics", promhttp.Handler())
 

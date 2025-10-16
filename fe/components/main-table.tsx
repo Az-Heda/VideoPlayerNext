@@ -54,7 +54,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                 }
             })
             .filter(ExecuteRegexOnField<ApiVideo>(filterFieldTitle, 'title', 'id'))
-            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldFolder, 'filePath', 'folderId'));
+            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldFolder, 'filePath'));
     }, [data, filterFieldWatched, filterFieldTitle, filterFieldSize, filterFieldDuration, filterFieldFolder])
 
     const [pageIndex, setPageIndex] = useState<number>(0);

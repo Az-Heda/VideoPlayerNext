@@ -14,6 +14,8 @@ var (
 		&Session{},
 		&Folder{},
 		&Video{},
+		&Picture{},
+		&Page{},
 	}
 )
 
@@ -22,6 +24,18 @@ func Register(conn *gorm.DB) {
 		if err := conn.AutoMigrate(v); err != nil {
 			log.Err(err).Send()
 		}
+	}
+
+	var pages []Page = []Page{
+		NewPage("Login", "/login", false),
+		NewPage("Logout", "/logout", true),
+		NewPage("Gallery", "/gallery", true),
+		NewPage("OpenApi", "/oapi/scalar", true),
+		NewPage("GraphQL", "/gql/playground", true),
+	}
+
+	for _, p := range pages {
+		conn.FirstOrCreate(&p)
 	}
 }
 

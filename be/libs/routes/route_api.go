@@ -3,10 +3,14 @@ package routes
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"full/libs/models"
+	"full/libs/routes/oapi"
 	"full/libs/utils"
 	"full/libs/webserver"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -60,19 +64,18 @@ func apiError(w http.ResponseWriter, err error, statusCode int) {
 		When:    time.Now(),
 		Error:   err.Error(),
 	}
-	log.Err(err).Send()
 	b, err := json.MarshalIndent(apiData, "", strings.Repeat(" ", 2))
 	if err != nil {
 		apiError(w, err, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
 	w.Write(b)
 }
 
-func reloadVideos(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
-	StartupVideos(conn)
+func reload(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
+	Startup(conn)
 	var currentvideos []models.Video
 	if tx := conn.Find(&currentvideos, models.Video{Attributes: models.VideoAttributes{Exists: true}}); tx.Error != nil {
 		return tx.Error
@@ -84,6 +87,22 @@ func reloadVideos(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
 		}
 	}
 
+	go func() {
+		var pics []models.Picture
+		if tx := conn.Find(&pics); tx.Error != nil {
+			log.Err(tx.Error).Send()
+			return
+		}
+		for _, p := range pics {
+			if _, err := os.Lstat(p.FilePath); err != nil {
+				if tx := conn.Delete(&p); tx.Error != nil {
+					log.Err(tx.Error).Send()
+					continue
+				}
+			}
+		}
+	}()
+
 	var before = len(videos.Getter)
 	videos.Setter <- correctVideos
 	var after = len(videos.Getter)
@@ -91,8 +110,13 @@ func reloadVideos(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
 	return nil
 }
 
-func StartupVideos(conn *gorm.DB) error {
+func Startup(conn *gorm.DB) error {
 	var folders []models.Folder
+
+	if tx := conn.Delete(models.Video{}, map[string]any{"folder_id": ""}); tx.Error != nil {
+		log.Err(tx.Error).Send()
+		return tx.Error
+	}
 
 	if tx := conn.Find(&folders); tx.Error != nil {
 		log.Err(tx.Error).Send()
@@ -115,18 +139,26 @@ func StartupVideos(conn *gorm.DB) error {
 				}
 
 				log.Info().Str("id", v.Id).Str("title", v.Title).Msg("Created")
-				// } else {
-				// 	if err := v.GetDurationn(); err != nil {
-				// 		log.Err(err).Str("file", v.FilePath).Str("id", v.Id).Send()
-				// 		continue
-				// 	}
+			} else if !res[0].Attributes.Exists {
+				res[0].Attributes.Exists = true
+				if tx := conn.Model(&res[0]).UpdateColumns(map[string]any{"attr_exists": true}); tx.Error != nil {
+					log.Err(tx.Error).Send()
+					continue
+				}
+				log.Info().Bool("exists", res[0].Attributes.Exists).Str("id", res[0].Id).Msg("Updated video exist flag")
+			}
+		}
 
-				// 	if tx := conn.UpdateColumns(&v); tx.Error != nil {
-				// 		log.Err(tx.Error).Send()
-				// 		continue
-				// 	}
-
-				// 	log.Info().Str("id", v.Id).Str("title", v.Title).Msg("Updated")
+		for _, p := range f.GetPictures() {
+			var res []models.Picture
+			if tx := conn.Find(&res, models.Picture{Id: p.Id}); tx.Error != nil {
+				log.Err(tx.Error).Send()
+			}
+			if len(res) == 0 {
+				if tx := conn.Create(&p); tx.Error != nil {
+					log.Err(tx.Error).Send()
+					continue
+				}
 			}
 		}
 	}
@@ -135,7 +167,7 @@ func StartupVideos(conn *gorm.DB) error {
 
 func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models.Video) *webserver.Mux {
 	var videos = utils.NewGetterSetter[[]models.Video](nil)
-	if err := reloadVideos(conn, videos); err != nil {
+	if err := reload(conn, videos); err != nil {
 		log.Err(err).Send()
 	}
 
@@ -159,38 +191,414 @@ func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models
 		}
 	}()
 
-	apiv1.HandleFunc("GET /folders", func(w http.ResponseWriter, r *http.Request) {
-		var folders []models.Folder
+	apiv1.HandleFuncWithOApi("GET /folders", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
 
-		if tx := conn.WithContext(r.Context()).Find(&folders); tx.Error != nil {
-			apiError(w, tx.Error, http.StatusInternalServerError)
-			return
-		}
+		o.Paths.New("/api/v1/folders", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Folders"},
+				Summary: "Get folders",
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Type: "array",
+									Items: &oapi.OpenApiSchema{
+										Ref: o.GetRef("schemas", "folder"),
+									},
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
 
-		if err := ApiResponseM(w, folders); err != nil {
-			apiError(w, err, http.StatusInternalServerError)
+		return func(w http.ResponseWriter, req *http.Request) {
+			var folders []models.Folder
+
+			if tx := conn.WithContext(req.Context()).Find(&folders); tx.Error != nil {
+				apiError(w, tx.Error, http.StatusInternalServerError)
+				return
+			}
+
+			if err := ApiResponseM(w, folders); err != nil {
+				apiError(w, err, http.StatusInternalServerError)
+			}
 		}
 	})
 
-	apiv1.HandleFunc("GET /videos", func(w http.ResponseWriter, r *http.Request) {
-		if err := ApiResponseM(w, videos.Getter); err != nil {
-			apiError(w, err, http.StatusInternalServerError)
+	apiv1.HandleFuncWithOApi("GET /videos", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/api/v1/videos", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Videos"},
+				Summary: "Get videos",
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Type: "object",
+									Properties: oapi.SchemaCollection{
+										"when": oapi.GetSchema("string"),
+										"results": oapi.OpenApiSchema{
+											Type: "array",
+											Items: &oapi.OpenApiSchema{
+												Ref: o.GetRef("schemas", "video"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return CheckAuth(conn, func(w http.ResponseWriter, r *http.Request, user *models.User, err error) {
+			var logged bool = user != nil
+			var folders []models.Folder
+			if tx := conn.WithContext(r.Context()).Find(&folders); tx.Error != nil {
+				log.Err(tx.Error).Send()
+				apiError(w, tx.Error, http.StatusInternalServerError)
+			}
+
+			var vids []*models.Video
+			for _, v := range videos.Getter {
+				var correctFolder *models.Folder = nil
+				for _, f := range folders {
+					if v.Folder.Id == f.Id {
+						correctFolder = &f
+						break
+					}
+				}
+
+				if correctFolder != nil {
+					if !correctFolder.AuthRequired || (correctFolder.AuthRequired && logged) {
+						vids = append(vids, &v)
+					}
+				}
+			}
+
+			if err := ApiResponseM(w, vids); err != nil {
+				apiError(w, err, http.StatusInternalServerError)
+			}
+		})
+	})
+
+	apiv1.HandleFuncWithOApi("GET /reload-data", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/api/v1/reload-data", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Reload data"},
+				Summary: "Reload data",
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"text/plain": oapi.OpenApiMediaType{
+								Schema: oapi.GetSchema("string"),
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return func(w http.ResponseWriter, req *http.Request) {
+			if err := reload(conn.WithContext(req.Context()), videos); err != nil {
+				apiError(w, err, http.StatusInternalServerError)
+				return
+			}
+			w.Write([]byte("ok"))
 		}
 	})
 
-	apiv1.HandleFunc("GET /reload-data", func(w http.ResponseWriter, r *http.Request) {
-		if err := reloadVideos(conn.WithContext(r.Context()), videos); err != nil {
-			// log.Err(err).Send()
-			apiError(w, err, http.StatusInternalServerError)
-			return
+	apiv1.HandleFuncWithOApi("GET /pictures", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/api/v1/pictures", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Pictures"},
+				Summary: "Picture list",
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Type: "object",
+									Properties: oapi.SchemaCollection{
+										"when": oapi.GetSchema("string"),
+										"results": oapi.OpenApiSchema{
+											Type: "array",
+											Items: &oapi.OpenApiSchema{
+												Ref: o.GetRef("schemas", "picture"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return func(w http.ResponseWriter, r *http.Request) {
+			var pics []models.Picture
+			if tx := conn.Find(&pics); tx.Error != nil {
+				return
+			}
+			if err := ApiResponseM(w, pics); err != nil {
+				apiError(w, err, http.StatusInternalServerError)
+			}
 		}
-		w.Write([]byte("ok"))
+	})
+
+	apiv1.HandleFuncWithOApi("GET /pictures/info/{id}", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/api/v1/pictures/info/{id}", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Pictures"},
+				Summary: "Picture info",
+				Parameters: []oapi.OpenApiParameter{
+					{
+						Name:            "id",
+						In:              "path",
+						Required:        true,
+						AllowEmptyValue: false,
+						Deprecated:      false,
+						Schema:          oapi.GetSchema("string"),
+					},
+				},
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Type: "object",
+									Properties: oapi.SchemaCollection{
+										"when": oapi.GetSchema("string"),
+										"result": oapi.OpenApiSchema{
+											Ref: o.GetRef("schemas", "picture"),
+										},
+									},
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return func(w http.ResponseWriter, r *http.Request) {
+			var pics []models.Picture
+			var id = r.PathValue("id")
+			if tx := conn.Find(&pics, models.Picture{Id: id}); tx.Error != nil {
+				apiError(w, tx.Error, http.StatusInternalServerError)
+				return
+			}
+			switch len(pics) {
+			case 0:
+				apiError(w, fmt.Errorf("cannot find picture with id=`%s`", id), http.StatusNotFound)
+				return
+			case 1:
+				if err := ApiResponseS(w, &pics[0]); err != nil {
+					apiError(w, err, http.StatusInternalServerError)
+				}
+			default:
+				apiError(w, fmt.Errorf("found %d pictures with id=`%s`", len(pics), id), http.StatusInternalServerError)
+				return
+			}
+		}
+	})
+
+	apiv1.HandleFuncWithOApi("GET /whoami", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/api/v1/whoami", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"User"},
+				Summary: "User info",
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Type: "object",
+									Properties: oapi.SchemaCollection{
+										"when": oapi.GetSchema("string"),
+										"result": oapi.OpenApiSchema{
+											Type: "object",
+											Properties: oapi.SchemaCollection{
+												"user": oapi.OpenApiSchema{
+													Ref: o.GetRef("schemas", "user"),
+												},
+												"session": oapi.OpenApiSchema{
+													Ref: o.GetRef("schemas", "session"),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					http.StatusUnauthorized: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return CheckAuth(conn, func(w http.ResponseWriter, r *http.Request, user *models.User, err error) {
+			if err != nil {
+				apiError(w, err, http.StatusUnauthorized)
+				return
+			}
+			if user == nil {
+				apiError(w, errors.New("error while trying to get the logged user"), http.StatusInternalServerError)
+				return
+			}
+
+			var sessions []models.Session
+			if tx := conn.WithContext(r.Context()).Find(&sessions, models.Session{UserId: user.Id}); tx.Error != nil {
+				apiError(w, errors.New("error while trying to get the user session"), http.StatusInternalServerError)
+				return
+			}
+
+			var session *models.Session
+			if len(sessions) == 1 {
+				session = &sessions[0]
+			}
+
+			user.PasswordHashed = ""
+			if err := ApiResponseS(w, &map[string]any{
+				"user":    user,
+				"session": session,
+			}); err != nil {
+				apiError(w, err, http.StatusInternalServerError)
+			}
+		})
+	})
+
+	apiv1.HandleFuncWithOApi("GET /pages", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+		o.Paths.New("/api/v1/pages", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Pages"},
+				Summary: "Page list",
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Type: "object",
+									Properties: oapi.SchemaCollection{
+										"when": oapi.GetSchema("string"),
+										"result": oapi.OpenApiSchema{
+											Type: "object",
+											Properties: oapi.SchemaCollection{
+												"id":     oapi.GetSchema("string"),
+												"title":  oapi.GetSchema("title"),
+												"schema": oapi.GetSchema("schema"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return CheckAuth(conn, func(w http.ResponseWriter, r *http.Request, user *models.User, err error) {
+			var pages []models.Page
+
+			if tx := conn.Find(&pages, map[string]any{"auth_required": err == nil && user != nil}); tx.Error != nil {
+				log.Err(tx.Error).Send()
+				apiError(w, tx.Error, http.StatusInternalServerError)
+				return
+			}
+
+			if err := ApiResponseM(w, pages); err != nil {
+				apiError(w, err, http.StatusInternalServerError)
+			}
+		})
 	})
 
 	go func() {
 		for {
 			time.Sleep(time.Minute * 30)
-			reloadVideos(conn.WithContext(context.Background()), videos)
+			reload(conn.WithContext(context.Background()), videos)
 		}
 	}()
 	return apiv1

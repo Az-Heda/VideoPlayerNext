@@ -43,7 +43,7 @@ export function AppSidebar({ commands, ...props }: Props) {
     commands.VideoPlayer.Commands.Video.Updates.Setter({
       customUrl: url,
       id: '', title: '',
-      filePath: '', folderId: '',
+      filePath: '',
       duration: -1, size: -1,
       attributes: { exists: true, watched: true },
     })
@@ -58,7 +58,7 @@ export function AppSidebar({ commands, ...props }: Props) {
     commands.VideoPlayer.Commands.Video.Updates.Setter({
       customUrl: url,
       id: '', title: file.name,
-      filePath: '', folderId: '',
+      filePath: '',
       duration: -1, size: -1,
       attributes: { exists: true, watched: true },
     })
@@ -203,6 +203,16 @@ export function AppSidebar({ commands, ...props }: Props) {
                 </CollapsibleContent>
               </SidebarMenuItem>
             </Collapsible>
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup >
+          <SidebarGroupLabel>Pages</SidebarGroupLabel>
+          <SidebarMenu>
+            {commands.Configs.Commands.Navigation.Updates.Getter.map(p => (
+              <SidebarMenuButton key={`page-${p.id}`} className="hover:cursor-pointer" asChild>
+                <a href={p.url}>{p.title}</a>
+              </SidebarMenuButton >
+            ))}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

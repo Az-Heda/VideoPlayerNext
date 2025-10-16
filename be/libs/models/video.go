@@ -48,7 +48,7 @@ func (v *Video) CheckFile(conn *gorm.DB) bool {
 
 	if v.Attributes.Exists != newExists {
 		v.Attributes.Exists = newExists
-		if tx := conn.UpdateColumns(v); tx.Error != nil {
+		if tx := conn.Model(&v).UpdateColumns(map[string]any{"id": v.Id, "attr_exists": newExists}); tx.Error != nil {
 			log.Err(tx.Error).Send()
 			return false
 		}

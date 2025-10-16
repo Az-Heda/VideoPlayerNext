@@ -7,6 +7,7 @@ import (
 	"full/cmd/folder"
 	"full/cmd/serve"
 	"full/cmd/user"
+	"full/cmd/video"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -42,4 +43,5 @@ func init() {
 	rootCmd.AddCommand(user.UserCmd)
 	rootCmd.AddCommand(serve.ServeCmd)
 	rootCmd.AddCommand(folder.FolderCmd)
+	rootCmd.AddCommand(video.VideoCmd)
 }

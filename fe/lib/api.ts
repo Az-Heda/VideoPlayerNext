@@ -31,10 +31,30 @@ export type ApiVideo = {
     filePath: string;
     duration: number;
     size: number;
-    folderId: string;
+    folder?: {
+        id: string;
+        path: string;
+    }
     attributes: {
         exists: boolean;
         watched: boolean;
     },
     customUrl?: string;
+}
+
+export type ApiPicture = {
+    id: string;
+    filePath: string;
+    title: string;
+    size: number,
+    folder?: {
+        id: string;
+        path: string;
+    }
+}
+
+export type ApiPage = {
+    id: string;
+    title: string;
+    url: string;
 }

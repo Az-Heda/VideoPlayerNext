@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
+	"strings"
 
 	"github.com/graphql-go/graphql"
 	"github.com/rs/zerolog/log"
 )
 
 type Folder struct {
-	Id         string `json:"id,omitempty" gorm:"primaryKey"`
-	Path       string `json:"path" gorm:"unique,index"`
-	originalId string `json:"-" gorm:"-"`
+	Id           string `json:"id,omitempty" gorm:"primaryKey"`
+	Path         string `json:"path" gorm:"unique,index"`
+	AuthRequired bool   `json:"-"`
+	originalId   string `json:"-" gorm:"-"`
 }
 
 func NewFolder(p string) *Folder {
@@ -53,14 +56,19 @@ func (f *Folder) GetVideos() (vids []*Video) {
 	entries, err := os.ReadDir(f.Path)
 	if err != nil {
 		log.Err(err).Send()
+		return
 	}
 	for _, e := range entries {
 		var fullpath = path.Join(f.Path, e.Name())
 		if e.IsDir() {
+			var validId = f.originalId
+			if validId == "" {
+				validId = f.Id
+			}
 			vids = append(vids, (*Folder).GetVideos(&Folder{
-				Id:         f.originalId,
+				Id:         validId,
 				Path:       fullpath,
-				originalId: f.originalId,
+				originalId: validId,
 			},
 			)...)
 			continue
@@ -87,6 +95,33 @@ func (f *Folder) GetVideos() (vids []*Video) {
 		vids = append(vids, &v)
 	}
 
+	return
+}
+
+func (f *Folder) GetPictures() (pics []*Picture) {
+	entries, err := os.ReadDir(f.Path)
+	if err != nil {
+		log.Err(err).Send()
+		return
+	}
+
+	for _, e := range entries {
+		var fullpath = path.Join(f.Path, e.Name())
+		if e.IsDir() {
+			pics = append(pics, (*Folder).GetPictures(&Folder{
+				Id:         f.originalId,
+				Path:       fullpath,
+				originalId: f.originalId,
+			})...)
+			continue
+		}
+		if !slices.Contains([]string{".jpg", ".png", ".jpeg", ".gif"}, path.Ext(strings.ToLower(fullpath))) {
+			continue
+		}
+		var p = NewPicture(fullpath)
+		p.Folder = f
+		pics = append(pics, &p)
+	}
 	return
 }
 

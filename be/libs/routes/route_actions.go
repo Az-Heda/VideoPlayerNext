@@ -38,7 +38,6 @@ func handleActions(auth *webserver.Mux, conn *gorm.DB) *webserver.Mux {
 
 		var sessions []models.Session
 		conn.Find(&sessions, models.Session{UserId: user.Id})
-		// w.Write([]byte("Bye"))
 		http.Redirect(w, r, homepage, http.StatusFound)
 	}))
 
@@ -76,18 +75,15 @@ func handleActions(auth *webserver.Mux, conn *gorm.DB) *webserver.Mux {
 		var userSession = models.NewSession(&user, SessionDuration)
 
 		http.SetCookie(w, &http.Cookie{
-			Name:    AuthCookieName,
-			Value:   userSession.Id,
-			Expires: userSession.CreatedAt.Add(userSession.Lifespan),
-			// MaxAge:   int(userSession.Lifespan.Seconds()),
+			Name:     AuthCookieName,
+			Value:    userSession.Id,
+			Expires:  userSession.CreatedAt.Add(userSession.Lifespan),
 			Path:     "/",
 			HttpOnly: true,
 			Quoted:   false,
 		})
 
 		conn.Create(&userSession)
-
-		// w.Write([]byte("signin"))
 		http.Redirect(w, r, homepage, http.StatusFound)
 	})
 
@@ -138,18 +134,16 @@ func handleActions(auth *webserver.Mux, conn *gorm.DB) *webserver.Mux {
 		var userSession = models.NewSession(&user, SessionDuration)
 
 		http.SetCookie(w, &http.Cookie{
-			Name:    AuthCookieName,
-			Value:   userSession.Id,
-			Expires: userSession.CreatedAt.Add(userSession.Lifespan),
-			// MaxAge:   int(userSession.Lifespan.Seconds()),
+			Name:     AuthCookieName,
+			Value:    userSession.Id,
+			Expires:  userSession.CreatedAt.Add(userSession.Lifespan),
 			Path:     "/",
 			HttpOnly: true,
 			Quoted:   false,
+			SameSite: http.SameSiteNoneMode,
 		})
 
 		conn.Create(&userSession)
-
-		// w.Write([]byte("signup"))
 		http.Redirect(w, r, homepage, http.StatusFound)
 	})
 
