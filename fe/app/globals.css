@@ -1,15 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "./../themes/amethyst-haze.css";
-@import "./../themes/claymorphism.css";
-@import "./../themes/darkmatter.css";
+
 @import "./../themes/default.css";
-@import "./../themes/mono.css";
-@import "./../themes/northern-lights.css";
-@import "./../themes/notebook.css";
-@import "./../themes/solar-dusk.css";
-@import "./../themes/supabase.css";
-@import "./../themes/violet-bloom.css";
+
+@import "./../themes/shadcnstudio/caffeine.css";
+@import "./../themes/shadcnstudio/marshmallow.css";
+@import "./../themes/shadcnstudio/midnight-bloom.css";
+@import "./../themes/shadcnstudio/material-design.css";
+@import "./../themes/shadcnstudio/slack.css";
+@import "./../themes/shadcnstudio/spotify.css";
+@import "./../themes/shadcnstudio/vs-code.css";
+
+@import "./../themes/tweakcn/amethyst-haze.css";
+@import "./../themes/tweakcn/darkmatter.css";
+@import "./../themes/tweakcn/northern-lights.css";
+@import "./../themes/tweakcn/supabase.css";
+@import "./../themes/tweakcn/violet-bloom.css";
+
+
+
 
 @custom-variant dark (&:is(.dark *));
 

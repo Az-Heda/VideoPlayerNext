@@ -2,6 +2,7 @@
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { VideoTable } from "@/components/main-table";
+import { ThemeSelector } from "@/components/theme-selector";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
@@ -39,6 +40,7 @@ export default function Page() {
       };
       for (const cmds of Object.values(commands).flat(1)) {
         for (const cmd of Object.values(cmds.Commands)) {
+          if (cmd.ShortCut === undefined) continue;
           if (cmd.ShortCut(e.key, params)) {
             e.preventDefault();
             cmd.Callback();
@@ -97,6 +99,14 @@ export default function Page() {
           </Breadcrumb>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
+
+          <ThemeSelector
+            getter={commands.Preferences.Commands.ThemeSelector.Updates.Getter}
+            setter={commands.Preferences.Commands.ThemeSelector.Updates.Setter}
+            kind="drawer"
+            direction="bottom"
+          />
+
           {
             commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter && <Alert variant="default">
               <Volume2 />

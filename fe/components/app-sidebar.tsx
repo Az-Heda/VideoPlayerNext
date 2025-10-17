@@ -10,7 +10,6 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 
 import { GetCommands } from "@/lib/commands";
 import { Configs } from "@/lib/consts";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
@@ -29,8 +28,6 @@ type Props = {
 } & ComponentProps<typeof Sidebar>
 
 export function AppSidebar({ commands, ...props }: Props) {
-  const { theme, themes, setTheme } = useTheme();
-  const [themeReady, setThemeReady] = useState(false);
   const [openCollapsableMenu1, setOpenCollapsableMenu1] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -75,19 +72,13 @@ export function AppSidebar({ commands, ...props }: Props) {
     const down = (e: KeyboardEvent) => {
       if (e.key === "F1") {
         e.preventDefault()
-        setOpen((open) => !open)
+        commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
       }
     }
 
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, []);
-
-  useEffect(() => {
-    if (theme == undefined) return;
-    setThemeReady(true);
-  }, [theme])
-
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -218,39 +209,7 @@ export function AppSidebar({ commands, ...props }: Props) {
             </Collapsible>
           </SidebarMenu>
         </SidebarGroup>
-        {
-          themeReady && <SidebarGroup>
-            <SidebarGroupLabel>Themes</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <Select value={theme} onValueChange={(v) => setTheme(v)}>
-                  <SelectTrigger className="w-full capitalize">
-                    <SelectValue placeholder="Select a fruit" className="capitalize"/>
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {
-                      ['light', 'dark'].sort((a, b): number => (theme?.endsWith(a)) ? -1 : 1).map(t => (
-                        <SelectGroup key={`theme-group-${t}`}>
-                          <SelectLabel className="first-letter:uppercase text-center">{t}</SelectLabel>
-                          {
-                            themes
-                              .filter(t => !t.startsWith('default'))
-                              .filter(th => th.toLowerCase().endsWith(t.toLowerCase()))
-                              .map(th => (
-                                <SelectItem value={th} key={`theme-${th}`} className="capitalize">{th.replace(/-(dark|light)$/, '').split('-').join(' ')}</SelectItem>
-                              ))
-                          }
-                        </SelectGroup>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        }
-        <SidebarGroup >
+        {/* <SidebarGroup >
           <SidebarGroupLabel>Pages</SidebarGroupLabel>
           <SidebarMenu>
             {commands.Configs.Commands.Navigation.Updates.Getter.map(p => (
@@ -259,7 +218,7 @@ export function AppSidebar({ commands, ...props }: Props) {
               </SidebarMenuButton >
             ))}
           </SidebarMenu>
-        </SidebarGroup>
+        </SidebarGroup> */}
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -270,14 +229,19 @@ export function AppSidebar({ commands, ...props }: Props) {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg" onClick={() => { setOpen(!open) }}>
+                  <Avatar className="h-8 w-8 rounded-lg" onClick={() => {
+                    // setOpen(!open)
+                    commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
+                    }}>
                     <AvatarFallback className="rounded-lg"><Settings /></AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight" onClick={() => { setOpen(!open) }}>
+                  <div className="grid flex-1 text-left text-sm leading-tight" onClick={() => {
+                    commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
+                    }}>
                     Settings
                   </div>
 
-                  <CommandDialog open={open} onOpenChange={setOpen}>
+                  <CommandDialog open={commands.Configs.Commands.Settings.Updates.Getter} onOpenChange={commands.Configs.Commands.Settings.Updates.Setter}>
                     <CommandInput placeholder="Type a command or search..." />
                     <CommandList>
                       <CommandEmpty>No results found.</CommandEmpty>

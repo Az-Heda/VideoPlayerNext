@@ -1,14 +1,32 @@
 'use client';
 
-import { Dispatch, Fragment, SetStateAction, useEffect, useMemo, useState } from "react";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
+
+import { ApiVideo } from "@/lib/api";
+import { HumanReadableBytes } from "@/lib/utils";
+
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { ApiVideo } from "@/lib/api";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { cn } from "@/lib/utils";
-import { Check, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+
+import {
+    ColumnDef,
+    Column,
+    SortingState,
+    ColumnFiltersState,
+
+    flexRender,
+    useReactTable,
+
+    getCoreRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+} from '@tanstack/react-table';
 
 type Props = {
     data: ApiVideo[]
@@ -16,186 +34,246 @@ type Props = {
     videoData: ApiVideo | undefined
 }
 
+function SortableHeader(props: { header: string, column: Column<ApiVideo, unknown> }) {
+    return <Button
+        variant="ghost"
+        onClick={() => props.column.toggleSorting(props.column.getIsSorted() === 'asc')}
+    >
+        {props.header}
+        {
+            props.column.getIsSorted()
+                ? props.column.getIsSorted() === 'desc'
+                    ? <ArrowUp />
+                    : <ArrowDown />
+                : <></>
+        }
+    </Button>
+}
+
 export function VideoTable({ data, videoSetter, videoData }: Props) {
-    const validPagedItems = [10, 15, 20, 50, 100, 200, 500] as const;
-    const [itemPerPage, setItemPerPage] = useState<typeof validPagedItems[number]>(validPagedItems[1]);
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
+    const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
+    const [watchedFilter, setWatchedFilter] = useState(' ');
 
-    const [filterFieldWatched, setFilterFieldWatched] = useState<string>("");
-    const [filterFieldTitle, setFilterTitle] = useState<string>("");
-    const [filterFieldDuration, setFilterDuration] = useState<string>("");
-    const [filterFieldSize, setFilterSize] = useState<string>("");
-    const [filterFieldFolder, setFilterFolder] = useState<string>("");
-
-    const filteredData = useMemo(() => {
-        function ExecuteRegexOnField<T>(inputField: string, ...keys: Array<keyof T>) {
-            return function (d: T) {
-                if (inputField.length == 0) return true;
-                try {
-                    const match = keys.map(k => new RegExp('.*' + inputField + '.*', 'gi').test(d[k] as string))
-                    return match.some(Boolean);
-                } catch {
-                    return true;
-                }
-            }
-        }
-        return data
-            .filter(i => {
-                // const cond = filterFieldWatched.toLowerCase() == 'y';
-                switch (filterFieldWatched.toLowerCase()) {
-                    case 'y':
-                    case 's':
-                    case 't':
-                        return i.attributes.watched
-                    case 'n':
-                    case 'f':
-                        return !i.attributes.watched
-                    default:
-                        return true;
-                }
-            })
-            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldTitle, 'title', 'id'))
-            .filter(ExecuteRegexOnField<ApiVideo>(filterFieldFolder, 'filePath'));
-    }, [data, filterFieldWatched, filterFieldTitle, filterFieldSize, filterFieldDuration, filterFieldFolder])
-
-    const [pageIndex, setPageIndex] = useState<number>(0);
-    const page = useMemo(() => filteredData.slice(itemPerPage * pageIndex, (itemPerPage * pageIndex) + itemPerPage), [itemPerPage, pageIndex, filteredData]);
-    const lastPage = useMemo(() => Math.ceil(filteredData.length / itemPerPage) - 1, [filteredData, itemPerPage]);
-
-    useEffect(() => {
-        const down = (e: KeyboardEvent) => {
-            switch (e.key) {
-                case "ArrowLeft":
-                    if (e.altKey) {
-                        e.preventDefault()
-                        setPageIndex(Math.max(pageIndex - 1, 0))
-                    }
-                    break;
-                case "ArrowRight":
-                    if (e.altKey) {
-                        e.preventDefault()
-                        setPageIndex(Math.min(pageIndex + 1, lastPage));
-                    }
-                    break;
-                case "ArrowUp":
-                    if (e.altKey) {
-                        e.preventDefault()
-                        const idx = validPagedItems.findIndex(i => i == itemPerPage);
-                        if (idx + 1 < validPagedItems.length) {
-                            setItemPerPage(validPagedItems[idx + 1]);
-                        }
-                    }
-                    break;
-                case "ArrowDown":
-                    if (e.altKey) {
-                        e.preventDefault()
-                        const idx = validPagedItems.findIndex(i => i == itemPerPage);
-                        if (idx - 1 >= 0) {
-                            setItemPerPage(validPagedItems[idx - 1]);
-                        }
-                    }
-                    break;
-            }
-        }
-
-        document.addEventListener("keydown", down)
-        return () => document.removeEventListener("keydown", down)
-    }, [pageIndex, itemPerPage]);
-
-    // useEffect(() => {
-    //     commands.Pages.Commands.Last.Updates.Setter(lastPage)
-    // }, [lastPage])
+    const [filterBooleans, setFilterBooleans] = useState({
+        ' ': 'All',
+        'Y': 'Yes',
+        'N': 'No',
+    } as const)
 
     function ShowVideo(data: ApiVideo) {
         videoSetter(data);
     }
 
-    function fileSizePrettyPrint(bytes: number): string {
-        const exponent = Math.floor(Math.log(bytes) / Math.log(1024.0))
-        const decimal = (bytes / Math.pow(1024.0, exponent)).toFixed(exponent ? 2 : 0)
-        return `${decimal} ${exponent ? `${'kMGTPEZY'[exponent - 1]}B` : 'B'}`
-    }
-
-    return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[100px]">Watched</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Folder</TableHead>
-                    <TableHead className="text-right">Duration</TableHead>
-                    <TableHead className="text-right">Size</TableHead>
-                </TableRow>
-                <TableRow>
-                    <TableHead className="w-[100px]">
-                        <Input value={filterFieldWatched} onChange={(i) => { setFilterFieldWatched(i.target.value) }} placeholder="YTS/NF" />
-                    </TableHead>
-                    <TableHead>
-                        <Input value={filterFieldTitle} onChange={(i) => { setFilterTitle(i.target.value) }} placeholder="Video title" />
-                    </TableHead>
-                    <TableHead>
-                        <Input value={filterFieldFolder} onChange={(i) => { setFilterFolder(i.target.value) }} placeholder="Video path" />
-                    </TableHead>
-                    <TableHead>
-                        <Input disabled value={filterFieldDuration} onChange={(i) => { setFilterDuration(i.target.value) }} placeholder="Video duration" />
-                    </TableHead>
-                    <TableHead className="text-right">
-                        <Input disabled value={filterFieldSize} onChange={(i) => setFilterSize(i.target.value)} placeholder="Video size (MB)" />
-                    </TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {
-                    page.map(i => (
-                        <TableRow key={`row-${i.id}`} className={cn(i.id == videoData?.id ? 'bg-muted/30' : '')}>
-                            <TableCell className="font-medium">{
-                                i.attributes.watched
-                                    ? <Check className="size-6 mx-auto text-emerald-600 dark:text-emerald-400" />
-                                    : <X className="size-6 mx-auto text-rose-500" />
-                            }</TableCell>
-                            <TableCell className="hover:cursor-pointer" onClick={() => ShowVideo(i)}>{i.title}</TableCell>
-                            <TableCell className="truncate text-muted-foreground">
-                                {i.filePath.replaceAll('\\', '/').split('/').slice(0, -1).filter((i, idx) => i.length > 0 || idx == 0).join('/')}
-                            </TableCell>
-                            <TableCell className="text-right">{new Date(i.duration / 1000000).toISOString().substring(11, 19)}</TableCell>
-                            <TableCell className="text-right">{fileSizePrettyPrint(i.size)}</TableCell>
-                        </TableRow>
-                    ))
+    const VideoTableColumns: ColumnDef<ApiVideo>[] = [
+        {
+            id: 'col-watched',
+            accessorFn: (r) => r.attributes.watched,
+            header: 'Watched',
+            cell: ({ row }) => {
+                const val = row.getValue('col-watched') as boolean;
+                return <Checkbox defaultChecked={val} disabled />
+            },
+            filterFn: (row, columnId, filterValue) => {
+                switch (filterValue) {
+                    case " ":
+                        return true;
+                    case "Y":
+                        return Boolean(row.getValue(columnId)) === true
+                    case "N":
+                        return Boolean(row.getValue(columnId)) === false
                 }
-            </TableBody>
-            <TableFooter className="bg-muted/0">
-                <TableRow>
-                    <TableCell className="text-center">
-                        Items per page:
-                        <Select defaultValue={itemPerPage.toString()} value={itemPerPage.toString()} onValueChange={(v) => { setItemPerPage(parseInt(v) as typeof itemPerPage) }}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Pagination" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {
-                                    validPagedItems.map(i => (
-                                        <SelectItem key={`item-per-page-${i}`} value={i.toString()}>{i}</SelectItem>
-                                    ))
-                                }
-                            </SelectContent>
-                        </Select>
-                    </TableCell>
-                    <TableCell colSpan={4}>
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious className="select-none hover:cursor-pointer" onClick={() => { setPageIndex(Math.max(pageIndex - 1, 0)); }} />
-                                </PaginationItem>
-                                < PaginationItem>
-                                    {pageIndex + 1}/{lastPage + 1}
-                                </PaginationItem>
-                                <PaginationItem>
-                                    <PaginationNext className="select-none hover:cursor-pointer" onClick={() => { setPageIndex(Math.min(pageIndex + 1, lastPage)); }} />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
-                    </TableCell>
-                </TableRow>
-            </TableFooter>
-        </Table >
+                return true;
+            }
+        },
+        {
+            id: 'col-filename',
+            header: 'Filename',
+            accessorFn: (r) => r.filePath.replaceAll('\\', '/').split('/').at(-1),
+            // header: ({ column }) => <SortableHeader header="Filename" column={column} />,
+            cell: ({ row }) => {
+                const val = row.getValue('col-filename') as string;
+                return <div className="hover:cursor-pointer" onClick={() => ShowVideo(row.original)}>{val}</div>
+            }
+        },
+        {
+            id: 'col-folder',
+            header: 'Folder',
+            accessorFn: (r) => r.filePath.replaceAll('\\', '/').split('/').slice(0, -1).join('/'),
+            // header: ({ column }) => <SortableHeader header="Folder" column={column} />
+        },
+        {
+            id: 'col-duration',
+            header: 'Duration',
+            accessorFn: (r) => new Date(r.duration / 1000000).toISOString().substring(11, 19),
+            // header: ({ column }) => <SortableHeader header="Duration" column={column} />
+        },
+        {
+            id: 'col-size',
+            header: 'Size',
+            accessorFn: (r) => HumanReadableBytes(r.size),
+        },
+    ];
+
+    const tbl = useReactTable({
+        data: data,
+        columns: VideoTableColumns,
+
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+
+        onSortingChange: setSorting,
+        onColumnFiltersChange: setColumnFilters,
+
+        state: {
+            sorting,
+            columnFilters
+        }
+    })
+
+    useEffect(() => {
+        let validPage: number | null = null;
+        if (window !== undefined) {
+            const itemsPerPage = localStorage.getItem('items-per-page');
+            if (itemsPerPage !== null && !isNaN(+itemsPerPage)) {
+                validPage = +itemsPerPage;
+            }
+        }
+        tbl.setPageSize(validPage ?? defaultPage)
+    }, [])
+    return (
+        <div className="select-none">
+            <div className="flex items-center py-4 gap-10">
+                <Label>
+                    Items per page
+                    <Select
+                        value={`${tbl.getState().columnFilters}`}
+                        onValueChange={(value) => {
+                            localStorage.setItem('items-per-page', value);
+                            tbl.setPageSize(Number(value));
+                        }}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={tbl.getState().pagination.pageSize} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {nPerPage.map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </Label>
+            </div>
+            <div className="overflow-hidden rounded-md border">
+
+                <Table>
+                    <TableHeader>
+                        {tbl.getHeaderGroups().map((headerGroup) => (
+                            <TableRow key={headerGroup.id}>
+                                {headerGroup.headers.map(header => (
+                                    <TableHead key={header.id}>
+                                        {
+                                            header.isPlaceholder
+                                                ? null
+                                                : flexRender(header.column.columnDef.header, header.getContext())
+                                        }
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell>
+                                <Select
+                                    value={watchedFilter}
+                                    onValueChange={(value) => {
+                                        setWatchedFilter(value);
+                                        setColumnFilters([...columnFilters.filter(f => f.id != 'col-watched'), { id: 'col-watched', value: value }])
+
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 w-full">
+                                        <SelectValue placeholder={tbl.getState().pagination.pageSize} />
+                                    </SelectTrigger>
+                                    <SelectContent side="top">
+                                        {
+                                            Object.entries(filterBooleans).map(([k, v]) => (
+                                                <SelectItem value={k} key={k}>{v}</SelectItem>
+                                            ))
+                                        }
+                                    </SelectContent>
+                                </Select>
+                            </TableCell>
+                            <TableCell>
+                                <Input
+                                    placeholder="Type to search"
+                                    value={(tbl.getColumn("col-filename")?.getFilterValue() as string) ?? ""}
+                                    onChange={(event) =>
+                                        tbl.getColumn("col-filename")?.setFilterValue(event.target.value)
+                                    }
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <Input
+                                    placeholder="Type to search"
+                                    value={(tbl.getColumn("col-folder")?.getFilterValue() as string) ?? ""}
+                                    onChange={(event) =>
+                                        tbl.getColumn("col-folder")?.setFilterValue(event.target.value)
+                                    }
+                                />
+                            </TableCell>
+                        </TableRow>
+                        {tbl.getRowModel().rows.length ? (
+                            tbl.getRowModel().rows.map((row) => (
+                                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                                    {row.getVisibleCells().map(cell => (
+                                        <TableCell key={cell.id}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={VideoTableColumns.length} className="h-24 text-center">
+                                    No results.
+                                </TableCell>
+                            </TableRow>
+                        )
+
+                        }
+                    </TableBody>
+                </Table>
+
+                <div className="flex items-center justify-center space-x-2 py-4">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => tbl.previousPage()}
+                        disabled={!tbl.getCanPreviousPage()}
+                        className="cursor-pointer"
+                    >
+                        <ChevronLeft/>
+                    </Button>
+                    <span>{tbl.getState().pagination.pageIndex + 1}/{tbl.getPageCount()}</span>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => tbl.nextPage()}
+                        disabled={!tbl.getCanNextPage()}
+                        className="cursor-pointer"
+                    >
+                        <ChevronRight/>
+                    </Button>
+                </div>
+            </div>
+        </div>
     )
 }

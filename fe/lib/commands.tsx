@@ -1,6 +1,6 @@
 'use client';
 
-import { MonitorCog, Moon, PanelLeftIcon, Sun, User, Volume2 } from 'lucide-react';
+import { MonitorCog, Moon, Palette, PanelLeftIcon, Settings, Sun, User, Volume2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Dispatch, JSX, SetStateAction, useEffect, useMemo, useState } from 'react';
 import { ApiPage, ApiRequest, ApiVideo } from '@/lib/api';
@@ -40,6 +40,8 @@ export function GetCommands() {
     const [gainNode, setGainNode] = useState<GainNode>();
     const [videoData, setVideoData] = useState<ApiVideo | undefined>();
     const [allPages, setAllPages] = useState<ApiPage[]>([]);
+    const [themeSelector, setThemeSelector] = useState<boolean>(false);
+    const [settings, setSettings] = useState<boolean>(false);
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -60,39 +62,28 @@ export function GetCommands() {
     }, []);
 
     return {
-        // Theme: {
-        //     Label: 'Theme',
-        //     Visible: true,
-        //     Commands: {
-        //         LightTheme: {
-        //             Name: 'Light theme',
-        //             Icon: <Moon />,
-        //             ShortCutHint: 'Shift+Alt+L',
-        //             ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'L' && !!params.isAltPressed && !!params.isShiftPressed,
-        //             Callback: () => { setTheme('light') },
-        //             Enabled: true,
-        //             Visible: true,
-        //         },
-        //         DarkTheme: {
-        //             Name: 'Dark theme',
-        //             Icon: <Sun />,
-        //             ShortCutHint: 'Shift+Alt+D',
-        //             ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'D' && !!params.isAltPressed && !!params.isShiftPressed,
-        //             Callback: () => { setTheme('dark') },
-        //             Enabled: true,
-        //             Visible: true,
-        //         },
-        //         SystemTheme: {
-        //             Name: 'System theme',
-        //             Icon: <MonitorCog />,
-        //             ShortCutHint: 'Shift+Alt+S',
-        //             ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'S' && !!params.isAltPressed && !!params.isShiftPressed,
-        //             Callback: () => { setTheme('system') },
-        //             Enabled: true,
-        //             Visible: true,
-        //         }
-        //     }
-        // },
+        Preferences: {
+            Label: 'Preferences',
+            Visible: true,
+            Commands: {
+                ThemeSelector: {
+                    Name: 'Theme selector',
+                    Icon: <Palette />,
+                    ShortCutHint: "Shift+Alt+T",
+                    ShortCut: (key: string, params: additionalKeyPressed): boolean => key == 'T' && !!params.isShiftPressed && !!params.isAltPressed,
+                    Callback: () => {
+                        setSettings(false);
+                        setThemeSelector(!themeSelector);
+                    },
+                    Updates: {
+                        Getter: themeSelector,
+                        Setter: setThemeSelector
+                    },
+                    Enabled: true,
+                    Visible: true,
+                } as Command<boolean>
+            }
+        },
         AudioContext: {
             Label: 'Audio Context',
             Visible: true,
@@ -147,6 +138,19 @@ export function GetCommands() {
             Label: 'Configurations',
             Visible: true,
             Commands: {
+                Settings: {
+                    Name: 'Settings',
+                    Icon: <Settings />,
+                    Callback: () => {
+                        setSettings(!settings)
+                    },
+                    Updates: {
+                        Getter: settings,
+                        Setter: setSettings,
+                    },
+                    Enabled: true,
+                    Visible: true,
+                } as Command<boolean>,
                 TriggerSideBar: {
                     Name: 'Trigger sidebar',
                     Icon: <PanelLeftIcon />,
@@ -170,27 +174,27 @@ export function GetCommands() {
                     Enabled: false,
                     Visible: false,
                 },
-                Login: {
-                    Name: "Login",
-                    Icon: <User />,
-                    ShortCut: (key: string, params: additionalKeyPressed): boolean => false,
-                    Callback: () => {
-                        fetch('/actions/auth/signin', {
-                            method: 'POST',
-                            body: new URLSearchParams({
-                                'userName': 'admin',
-                                'password': 'admin',
-                            })
-                        }).then(res => {
-                            console.log(res);
-                            if (res.status == 200) {
-                                // document.location.reload();
-                            }
-                        });
-                    },
-                    Enabled: true,
-                    Visible: true,
-                }
+                // Login: {
+                //     Name: "Login",
+                //     Icon: <User />,
+                //     ShortCut: (key: string, params: additionalKeyPressed): boolean => false,
+                //     Callback: () => {
+                //         fetch('/actions/auth/signin', {
+                //             method: 'POST',
+                //             body: new URLSearchParams({
+                //                 'userName': 'admin',
+                //                 'password': 'admin',
+                //             })
+                //         }).then(res => {
+                //             console.log(res);
+                //             if (res.status == 200) {
+                //                 // document.location.reload();
+                //             }
+                //         });
+                //     },
+                //     Enabled: true,
+                //     Visible: true,
+                // }
             }
         },
         VideoPlayer: {

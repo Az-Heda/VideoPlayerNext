@@ -17,7 +17,8 @@
                 "panel": "shared",
                 "showReuseMessage": true,
                 "clear": true
-            }
+            },
+            "group": "test"
         },
         {
             "label": "BE - PROD",
@@ -56,7 +57,8 @@
                 "panel": "shared",
                 "showReuseMessage": true,
                 "clear": true
-            }
+            },
+            "group": "test"
         },
         {
             "label": "FE - PROD",
@@ -79,6 +81,35 @@
                 "showReuseMessage": true,
                 "clear": true
             }
+        },
+        {
+            "label": "Restart service",
+            "type": "shell",
+            "command": "sudo systemctl restart video-player-next",
+            "options": {
+                "cwd": "${workspaceRoot}",
+            },
+            "isBackground": false,
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "detail": "sudo is required",
+        },
+        {
+            "label": "Build all",
+            "dependsOn": [
+                "FE - PROD",
+                "BE - PROD",
+                "Restart service",
+            ],
+            "dependsOrder": "sequence",
+            "group": "build"
         },
     ]
 }

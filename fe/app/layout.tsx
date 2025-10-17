@@ -20,22 +20,29 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+
   const validThemes: string[] = [
-    '',
-    'amethyst-haze',
-    'claymorphism',
-    'darkmatter',
     'default',
-    'mono',
-    'northern-lights',
-    'notebook',
-    'solar-dusk',
-    'supabase',
-    'violet-bloom',
-  ].reduce((prev, curr) => {
-    prev.push(curr + '-light', curr + '-dark');
-    return prev;
-  }, [] as string[]).map(i => i.replace(/^-/g, ''))
+
+    ...[
+      'material-design',
+      'slack',
+      'spotify',
+      'vs-code',
+      'caffeine',
+      'marshmallow',
+      'midnight-bloom',
+    ],
+
+    ...[
+      'amethyst-haze',
+      'darkmatter',
+      'northern-lights',
+      'supabase',
+      'violet-bloom',
+    ],
+  ].sort();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -43,8 +50,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       >
         <ThemeProvider
           themes={validThemes}
-          enableSystem
           disableTransitionOnChange
+          enableSystem={false}
         >
           {children}
         </ThemeProvider>
