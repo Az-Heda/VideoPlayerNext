@@ -6,7 +6,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { VideoPlayer, VideoPlayerContent, VideoPlayerControlBar, VideoPlayerMuteButton, VideoPlayerPlayButton, VideoPlayerSeekBackwardButton, VideoPlayerSeekForwardButton, VideoPlayerTimeDisplay, VideoPlayerTimeRange, VideoPlayerVolumeRange } from '@/components/ui/video-player-full';
 import { ApiVideo } from "@/lib/api";
 import { Configs } from "@/lib/consts";
-import { MediaFullscreenButton, MediaVolumeRange } from "media-chrome/react";
+import { MediaFullscreenButton } from "media-chrome/react";
 import { GetCommands } from "@/lib/commands";
 
 type Props = {
@@ -41,9 +41,59 @@ export function Vp({ commands, allData, allDataSetter }: Props) {
             switch (evt.key) {
                 case 'ArrowUp':
                     video.volume = Math.min(Math.max(video.volume + incr, 0), 1);
+                    evt.preventDefault();
                     break;
                 case 'ArrowDown':
                     video.volume = Math.min(Math.max(video.volume - incr, 0), 1);
+                    evt.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    video.currentTime = Math.max(Math.min(video.currentTime + 5, video.duration), 0)
+                    evt.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    video.currentTime = Math.max(Math.min(video.currentTime - 5, video.duration), 0)
+                    evt.preventDefault();
+                    break;
+                case '0':
+                    video.currentTime = 0;
+                    evt.preventDefault();
+                    break;
+                case '1':
+                    video.currentTime = video.duration * 10 / 100;
+                    evt.preventDefault();
+                    break;
+                case '2':
+                    video.currentTime = video.duration * 20 / 100;
+                    evt.preventDefault();
+                    break;
+                case '3':
+                    video.currentTime = video.duration * 30 / 100;
+                    evt.preventDefault();
+                    break;
+                case '4':
+                    video.currentTime = video.duration * 40 / 100;
+                    evt.preventDefault();
+                    break;
+                case '5':
+                    video.currentTime = video.duration * 50 / 100;
+                    evt.preventDefault();
+                    break;
+                case '6':
+                    video.currentTime = video.duration * 60 / 100;
+                    evt.preventDefault();
+                    break;
+                case '7':
+                    video.currentTime = video.duration * 70 / 100;
+                    evt.preventDefault();
+                    break;
+                case '8':
+                    video.currentTime = video.duration * 80 / 100;
+                    evt.preventDefault();
+                    break;
+                case '9':
+                    video.currentTime = video.duration * 90 / 100;
+                    evt.preventDefault();
                     break;
                 default:
                     break;
@@ -51,6 +101,12 @@ export function Vp({ commands, allData, allDataSetter }: Props) {
         });
         console.log(video);
     }, []);
+
+    useEffect(() => {
+        if (commands.VideoPlayer.Commands.Video.Updates.Getter?.title === undefined) return;
+        document.title = commands.VideoPlayer.Commands.Video.Updates.Getter?.title;
+    }, [commands.VideoPlayer.Commands.Video.Updates.Getter])
+
     return (
         <VideoPlayer className="overflow-hidden rounded-lg border max-w-200 mx-auto" id="video-container">
             <VideoPlayerContent
@@ -75,10 +131,10 @@ export function Vp({ commands, allData, allDataSetter }: Props) {
                     }
                 }}
             />
-            <VideoPlayerControlBar className="*:bg-zinc-900">
+            <VideoPlayerControlBar className="*:bg-zinc-900/25 hover:bg-zinc-900">
                 <VideoPlayerPlayButton />
-                <VideoPlayerSeekBackwardButton seekOffset={5} />
-                <VideoPlayerSeekForwardButton seekOffset={5} />
+                <VideoPlayerSeekBackwardButton seekOffset={5} key={undefined} onKeyUp={(evt) => evt.preventDefault()} />
+                <VideoPlayerSeekForwardButton seekOffset={5} key={undefined} onKeyUp={(evt) => evt.preventDefault()} />
                 <VideoPlayerTimeRange />
                 <VideoPlayerTimeDisplay showDuration />
                 <VideoPlayerMuteButton />

@@ -18,7 +18,7 @@ export default function Page() {
   const commands = GetCommands();
   const [data, setData] = useState<ApiVideo[]>();
 
-  useEffect(() => {
+  function FetchData(timeout?: number) {
     ApiRequest<ApiVideo>('GET', "/api/v1/videos", null, null).then((data) => {
       if (!data.error) {
         setData(data.results.sort((a: ApiVideo, b: ApiVideo): number => {
@@ -28,6 +28,11 @@ export default function Page() {
         }));
       }
     })
+    if (timeout !== undefined) setTimeout(FetchData, timeout, timeout)
+  }
+
+  useEffect(() => {
+    FetchData(1000 * 60 * 10);
   }, [])
 
   useEffect(() => {
@@ -63,14 +68,14 @@ export default function Page() {
       onOpenChange={commands.Configs.Commands.TriggerSideBar.Callback}
       style={
         {
-          "--sidebar-width": "350px",
+          "--sidebar-width": "250px",
         } as React.CSSProperties
       }
     >
       <AppSidebar commands={commands} />
       <SidebarInset >
         <header className="bg-background sticky top-0 flex shrink-0 items-center gap-2 border-b p-4 z-1">
-          <SidebarTrigger className="-ml-1" />
+          <SidebarTrigger className="-ml-1 cursor-pointer" />
           <Separator
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"

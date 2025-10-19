@@ -149,7 +149,7 @@ export function GetCommands() {
                         Setter: setSettings,
                     },
                     Enabled: true,
-                    Visible: true,
+                    Visible: false,
                 } as Command<boolean>,
                 TriggerSideBar: {
                     Name: 'Trigger sidebar',

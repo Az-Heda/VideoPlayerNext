@@ -68,6 +68,18 @@ export function AppSidebar({ commands, ...props }: Props) {
   }
 
   useEffect(() => {
+    let sidebarState: boolean | null = null;
+    if (window !== undefined) {
+      const itemsPerPage = localStorage.getItem('sidebar-state');
+      if (itemsPerPage !== null && !isNaN(+itemsPerPage)) {
+        sidebarState = +itemsPerPage == 1;
+      }
+    }
+
+    if (typeof sidebarState == 'boolean' && sidebarState != commands.Configs.Commands.TriggerSideBar.Updates.Getter) {
+      commands.Configs.Commands.TriggerSideBar.Updates.Setter(sidebarState)
+    }
+
     commands.AudioContext.Commands.Limit.Updates?.Setter(Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]);
     const down = (e: KeyboardEvent) => {
       if (e.key === "F1") {
@@ -80,136 +92,145 @@ export function AppSidebar({ commands, ...props }: Props) {
     return () => document.removeEventListener("keydown", down)
   }, []);
 
+  useEffect(() => {
+    if (window !== undefined) {
+      localStorage.setItem('sidebar-state', (commands.Configs.Commands.TriggerSideBar.Updates.Getter ? 1 : 0).toString());
+    }
+  }, [commands.Configs.Commands.TriggerSideBar.Updates.Getter])
+
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <Dialog open={videoFromUrlDialog} onOpenChange={setVideoFromUrlDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>View video from link</DialogTitle>
-              <DialogDescription>
-                Import video from link<br />
-                [Note]: Audio Context doesn't work for videos imported from url
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="grid flex-1 gap-2">
-                <Label htmlFor="link" className="sr-only">
-                  Link
-                </Label>
-                <Input
-                  id="video-from-url"
-                  autoFocus
-                  autoComplete="off"
-                  placeholder="https://www.example.com"
-                  value={importVideoUrl}
-                  onChange={(e) => setImportVideoUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key.toUpperCase() == 'ENTER') {
-                      if (importVideoUrlValid) SetVideoFromUrl(importVideoUrl);
-                      setVideoFromUrlDialog(false)
-                    }
-                  }}
-                />
+    <>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <Dialog open={videoFromUrlDialog} onOpenChange={setVideoFromUrlDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>View video from link</DialogTitle>
+                <DialogDescription>
+                  Import video from link<br />
+                  [Note]: Audio Context doesn't work for videos imported from url
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center gap-2">
+                <div className="grid flex-1 gap-2">
+                  <Label htmlFor="link" className="sr-only">
+                    Link
+                  </Label>
+                  <Input
+                    id="video-from-url"
+                    autoFocus
+                    autoComplete="off"
+                    placeholder="https://www.example.com"
+                    value={importVideoUrl}
+                    onChange={(e) => setImportVideoUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key.toUpperCase() == 'ENTER') {
+                        if (importVideoUrlValid) SetVideoFromUrl(importVideoUrl);
+                        setVideoFromUrlDialog(false)
+                      }
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter className="justify-end">
-              <Button type="button" variant="secondary" onClick={(() => setVideoFromUrlDialog(false))}>
-                Cancel
-              </Button>
-              <Button type="button" variant="default" disabled={!importVideoUrlValid} onClick={() => {
-                if (importVideoUrlValid) SetVideoFromUrl(importVideoUrl);
-                setVideoFromUrlDialog(false)
+              <DialogFooter className="justify-end">
+                <Button type="button" variant="secondary" onClick={(() => setVideoFromUrlDialog(false))}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="default" disabled={!importVideoUrlValid} onClick={() => {
+                  if (importVideoUrlValid) SetVideoFromUrl(importVideoUrl);
+                  setVideoFromUrlDialog(false)
+                }}>
+                  Confirm
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup >
+            <SidebarGroupLabel>Input</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuButton className="hover:cursor-pointer" onClick={() => {
+                const input = document.querySelector<HTMLInputElement>('input#video-from-file[type="file"]');
+                if (!input) return;
+                input.click();
               }}>
-                Confirm
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup >
-          <SidebarGroupLabel>Input</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuButton className="hover:cursor-pointer" onClick={() => {
-              const input = document.querySelector<HTMLInputElement>('input#video-from-file[type="file"]');
-              if (!input) return;
-              input.click();
-            }}>
-              <File />
-              File
-              <Input
-                id="video-from-file"
-                type="file"
-                accept="video/mp4"
-                onChange={(e) => SetVideoFromFile(e.target)}
-                hidden
-              />
-            </SidebarMenuButton >
-            <SidebarMenuButton className="hover:cursor-pointer" onClick={() => setVideoFromUrlDialog(true)}>
-              <Link />
-              Url
-            </SidebarMenuButton >
-            <SidebarMenuButton
-              className="hover:cursor-pointer"
-              onClick={() => {
-                setResetAnimation(true);
-                const url = new URL(Configs.ApiEndpoint);
-                url.pathname = '/api/v1/reload-data'
-                fetch(url)
-                  .then(_ => location.reload())
-                  .catch(console.error);
-              }}
-            >
-              <RefreshCw className={resetAnimation ? "animate-spin" : ''} />
-              Reload data
-            </SidebarMenuButton >
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Audio Context</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuButton
-              onClick={() => { commands.AudioContext.Commands.EnableAudioContext.Callback() }}
-              disabled={commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter}
-              className="hover:cursor-pointer disabled:cursor-not-allowed"
-            >
-              <Volume2 />
-              Enable Audio Context
-            </SidebarMenuButton>
-          </SidebarMenu>
-          <SidebarMenu>
-            <Collapsible defaultOpen={openCollapsableMenu1} open={openCollapsableMenu1} onOpenChange={setOpenCollapsableMenu1} className="group/collapsible" disabled={!commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter}>
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton>
-                    <AudioLines />
-                    Limit
-                    <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    <SidebarMenuBadge className="pr-8">{commands.AudioContext.Commands.Limit.Updates?.Getter || Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}%</SidebarMenuBadge>
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    <RadioGroup defaultValue={`option-${Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}`} value={`option-${commands.AudioContext.Commands.Limit.Updates?.Getter}`} onValueChange={(v) => {
-                      const int = parseInt(v.split('-').at(-1)!);
-                      commands.AudioContext.Commands.Limit.Updates?.Setter(int);
-                      setOpenCollapsableMenu1(false);
-                    }}>
-                      {Configs.VolumeLimits.map(i => (
-                        <div className="flex items-center space-x-2 w-full" key={`key-volume-limit-${i}`}>
-                          <RadioGroupItem value={`option-${i}`} id={`option-${i}`} />
-                          <Label htmlFor={`option-${i}`} className="grow hover:cursor-pointer">{i}%</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          </SidebarMenu>
-        </SidebarGroup>
-        {/* <SidebarGroup >
+                <File />
+                File
+                <Input
+                  id="video-from-file"
+                  type="file"
+                  accept="video/mp4"
+                  onChange={(e) => SetVideoFromFile(e.target)}
+                  hidden
+                />
+              </SidebarMenuButton >
+              <SidebarMenuButton className="hover:cursor-pointer" onClick={() => setVideoFromUrlDialog(true)}>
+                <Link />
+                Url
+              </SidebarMenuButton >
+              <SidebarMenuButton
+                className="hover:cursor-pointer"
+                onClick={() => {
+                  setResetAnimation(true);
+                  const url = new URL(Configs.ApiEndpoint);
+                  url.pathname = '/api/v1/reload-data'
+                  fetch(url)
+                    .then(_ => location.reload())
+                    .catch(console.error);
+                }}
+              >
+                <RefreshCw className={resetAnimation ? "animate-spin" : ''} />
+                Reload data
+              </SidebarMenuButton >
+            </SidebarMenu>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Audio Context</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuButton
+                onClick={() => { commands.AudioContext.Commands.EnableAudioContext.Callback() }}
+                disabled={commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter}
+                className="hover:cursor-pointer disabled:cursor-not-allowed"
+              >
+                <Volume2 />
+                Enable Audio Context
+              </SidebarMenuButton>
+            </SidebarMenu>
+            {
+              commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter && <SidebarMenu>
+                <Collapsible defaultOpen={openCollapsableMenu1} open={openCollapsableMenu1} onOpenChange={setOpenCollapsableMenu1} className="group/collapsible" disabled={!commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton>
+                        <AudioLines />
+                        Limit
+                        <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        <SidebarMenuBadge className="pr-8">{commands.AudioContext.Commands.Limit.Updates?.Getter || Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}%</SidebarMenuBadge>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <RadioGroup defaultValue={`option-${Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}`} value={`option-${commands.AudioContext.Commands.Limit.Updates?.Getter}`} onValueChange={(v) => {
+                          const int = parseInt(v.split('-').at(-1)!);
+                          commands.AudioContext.Commands.Limit.Updates?.Setter(int);
+                          setOpenCollapsableMenu1(false);
+                        }}>
+                          {Configs.VolumeLimits.map(i => (
+                            <div className="flex items-center space-x-2 w-full" key={`key-volume-limit-${i}`}>
+                              <RadioGroupItem value={`option-${i}`} id={`option-${i}`} />
+                              <Label htmlFor={`option-${i}`} className="grow hover:cursor-pointer">{i}%</Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            }
+          </SidebarGroup>
+          {/* <SidebarGroup >
           <SidebarGroupLabel>Pages</SidebarGroupLabel>
           <SidebarMenu>
             {commands.Configs.Commands.Navigation.Updates.Getter.map(p => (
@@ -219,59 +240,58 @@ export function AppSidebar({ commands, ...props }: Props) {
             ))}
           </SidebarMenu>
         </SidebarGroup> */}
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <Avatar className="h-8 w-8 rounded-lg" onClick={() => {
-                    // setOpen(!open)
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton className="hover:cursor-pointer" onClick={() => {
                     commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
-                    }}>
-                    <AvatarFallback className="rounded-lg"><Settings /></AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight" onClick={() => {
-                    commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
-                    }}>
+                  }}>
+                    <Settings />
                     Settings
-                  </div>
-
-                  <CommandDialog open={commands.Configs.Commands.Settings.Updates.Getter} onOpenChange={commands.Configs.Commands.Settings.Updates.Setter}>
-                    <CommandInput placeholder="Type a command or search..." />
-                    <CommandList>
-                      <CommandEmpty>No results found.</CommandEmpty>
-                      {
-                        Object.entries(commands).map(([group, value]) => (
-                          value.Visible && <CommandGroup heading={value.Label} key={`command-${group}`}>
-                            {
-                              Object.values(value.Commands).filter(i => i.Visible).map(c => (
-                                <CommandItem key={`command-${group}-${c.Name}`} >
-                                  {c.Icon}
-                                  <Button variant="ghost" className="w-full pr-6 text-left" onClick={() => c.Callback()} disabled={c.Enabled != undefined && !c.Enabled}>
-                                    {c.Name}
-                                    <CommandShortcut>{c.ShortCutHint ?? ''}</CommandShortcut>
-                                  </Button>
-                                </CommandItem>
-                              ))
-                            }
-                          </CommandGroup>
-                        ))
-                      }
-                    </CommandList>
-                  </CommandDialog>
-
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar >
+                  </SidebarMenuButton >
+                  {/* <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                    onClick={() => {
+                      
+                    }}
+                  >
+                    <Settings />
+                    { commands.Configs.Commands.TriggerSideBar.Updates.Getter && <span>Settings</span>}
+                  </SidebarMenuButton> */}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar >
+      <CommandDialog open={commands.Configs.Commands.Settings.Updates.Getter} onOpenChange={commands.Configs.Commands.Settings.Updates.Setter}>
+        <CommandInput placeholder="Type a command or search..." />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          {
+            Object.entries(commands).map(([group, value]) => (
+              value.Visible && <CommandGroup heading={value.Label} key={`command-${group}`}>
+                {
+                  Object.values(value.Commands).filter(i => i.Visible).map(c => (
+                    <CommandItem key={`command-${group}-${c.Name}`} >
+                      {c.Icon}
+                      <Button variant="ghost" className="w-full pr-6 text-left" onClick={() => c.Callback()} disabled={c.Enabled != undefined && !c.Enabled}>
+                        {c.Name}
+                        <CommandShortcut>{c.ShortCutHint ?? ''}</CommandShortcut>
+                      </Button>
+                    </CommandItem>
+                  ))
+                }
+              </CommandGroup>
+            ))
+          }
+        </CommandList>
+      </CommandDialog>
+    </>
   )
 }

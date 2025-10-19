@@ -4,7 +4,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ApiVideo } from "@/lib/api";
-import { HumanReadableBytes } from "@/lib/utils";
+import { cn, HumanReadableBytes } from "@/lib/utils";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +26,8 @@ import {
     getPaginationRowModel,
     getSortedRowModel,
     getFilteredRowModel,
+    Header,
+    Row,
 } from '@tanstack/react-table';
 
 type Props = {
@@ -56,6 +58,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
     const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
     const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
     const [watchedFilter, setWatchedFilter] = useState(' ');
+    const [currentVideo, setCurrentVideo] = useState<ApiVideo>();
 
     const [filterBooleans, setFilterBooleans] = useState({
         ' ': 'All',
@@ -67,6 +70,11 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
         videoSetter(data);
     }
 
+    useEffect(() => {
+        if (currentVideo === undefined) return;
+        videoSetter(currentVideo);
+    }, [currentVideo]);
+
     const VideoTableColumns: ColumnDef<ApiVideo>[] = [
         {
             id: 'col-watched',
@@ -74,7 +82,14 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
             header: 'Watched',
             cell: ({ row }) => {
                 const val = row.getValue('col-watched') as boolean;
-                return <Checkbox defaultChecked={val} disabled />
+                return <div className="flex gap-2 !w-24 !max-w-24">
+                    <Checkbox
+                        defaultChecked={val}
+                        className="disabled:opacity-100"
+                        disabled
+                    />
+                    <span>{val ? 'Yes' : 'No'}</span>
+                </div>
             },
             filterFn: (row, columnId, filterValue) => {
                 switch (filterValue) {
@@ -95,20 +110,26 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
             // header: ({ column }) => <SortableHeader header="Filename" column={column} />,
             cell: ({ row }) => {
                 const val = row.getValue('col-filename') as string;
-                return <div className="hover:cursor-pointer" onClick={() => ShowVideo(row.original)}>{val}</div>
+                return <div className="hover:cursor-pointer" onClick={() => {
+                    setCurrentVideo(row.original)
+                }}>{val}</div>
             }
         },
         {
             id: 'col-folder',
-            header: 'Folder',
             accessorFn: (r) => r.filePath.replaceAll('\\', '/').split('/').slice(0, -1).join('/'),
-            // header: ({ column }) => <SortableHeader header="Folder" column={column} />
+            header: ({ column }) => { return <div>Folder</div> },
+            cell: ({ row }) => {
+                const val = row.getValue('col-folder') as string;
+                return <div className="truncate w-96" title={val}>{val}</div>
+            }
         },
         {
             id: 'col-duration',
-            header: 'Duration',
             accessorFn: (r) => new Date(r.duration / 1000000).toISOString().substring(11, 19),
-            // header: ({ column }) => <SortableHeader header="Duration" column={column} />
+            header: ({ column }) => {
+                return <div className="truncate max-w-26 w-26">Duration</div>
+            }
         },
         {
             id: 'col-size',
@@ -144,7 +165,50 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
             }
         }
         tbl.setPageSize(validPage ?? defaultPage)
-    }, [])
+    }, []);
+
+    useEffect(() => {
+        const down = (e: KeyboardEvent) => {
+            if (!e.altKey) return;
+            if (e.currentTarget === null) return;
+            if ((e.target as HTMLElement).tagName === 'VIDEO') return;
+
+            const totalPages = tbl.getPageCount();
+            const currentPage = tbl.getState().pagination.pageIndex;
+            switch (e.key) {
+                case 'ArrowLeft':
+                    if (currentPage - 1 >= 0) tbl.setPageIndex(currentPage - 1);
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    if (currentPage + 1 < totalPages) tbl.setPageIndex(currentPage + 1)
+                    e.preventDefault();
+                    break;
+                default:
+            }
+        };
+
+        document.addEventListener("keydown", down)
+        return () => document.removeEventListener("keydown", down)
+    }, []);
+
+    function GetColumnSize(data: Header<ApiVideo, unknown> | Row<ApiVideo>): string {
+        switch (data.id) {
+            case 'col-watched':
+                return "w-24";
+            case 'col-filename':
+                return 'w-full'
+            case 'col-folder':
+                return "w-96";
+            case 'col-duration':
+                return "w-26";
+            case 'col-size':
+                return "w-26";
+            default:
+                return "";
+        }
+    }
+
     return (
         <div className="select-none">
             <div className="flex items-center py-4 gap-10">
@@ -177,7 +241,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                         {tbl.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map(header => (
-                                    <TableHead key={header.id}>
+                                    <TableHead key={header.id} className={cn(GetColumnSize(header))}>
                                         {
                                             header.isPlaceholder
                                                 ? null
@@ -192,7 +256,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                         <TableRow>
                             <TableCell>
                                 <Select
-                                    value={watchedFilter}
+                                    value={(columnFilters.find(f => f.id == 'col-watched')?.value as string) ?? ''}
                                     onValueChange={(value) => {
                                         setWatchedFilter(value);
                                         setColumnFilters([...columnFilters.filter(f => f.id != 'col-watched'), { id: 'col-watched', value: value }])
@@ -232,7 +296,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                         </TableRow>
                         {tbl.getRowModel().rows.length ? (
                             tbl.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className={cn(row.original.id == currentVideo?.id ? 'bg-muted' : '')}>
                                     {row.getVisibleCells().map(cell => (
                                         <TableCell key={cell.id}>
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -260,7 +324,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                         disabled={!tbl.getCanPreviousPage()}
                         className="cursor-pointer"
                     >
-                        <ChevronLeft/>
+                        <ChevronLeft />
                     </Button>
                     <span>{tbl.getState().pagination.pageIndex + 1}/{tbl.getPageCount()}</span>
                     <Button
@@ -270,7 +334,7 @@ export function VideoTable({ data, videoSetter, videoData }: Props) {
                         disabled={!tbl.getCanNextPage()}
                         className="cursor-pointer"
                     >
-                        <ChevronRight/>
+                        <ChevronRight />
                     </Button>
                 </div>
             </div>

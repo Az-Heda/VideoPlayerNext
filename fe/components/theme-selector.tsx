@@ -34,7 +34,7 @@ export function ThemeSelector(props: Props) {
 
     const staticText = {
         title: 'Themes',
-        description: 'Choose the theme your prefer',
+        description: <>Choose the theme your prefer. Current theme: {theme}</>,
         btn: {
             confirm: 'Save theme',
             cancel: 'Cancel'
@@ -107,11 +107,11 @@ export function ThemeSelector(props: Props) {
                             <SheetDescription>{staticText.description}</SheetDescription>
                         </SheetHeader>
                         {MainContent}
-                        <SheetFooter>
-                            <Button onClick={() => ConfirmTheme()} disabled={themeSelected === undefined || themeSelected == theme}>{staticText.btn.confirm}</Button>
+                        <SheetFooter className={cn(['top', 'bottom'].includes(props.side ?? '') ? "grid grid-cols-2" : '')}>
                             <SheetClose asChild>
                                 <Button variant="outline">{staticText.btn.cancel}</Button>
                             </SheetClose>
+                            <Button onClick={() => ConfirmTheme()} disabled={themeSelected === undefined || themeSelected == theme}>{staticText.btn.confirm}</Button>
                         </SheetFooter>
                     </SheetContent>
                 </Sheet>
@@ -119,8 +119,4 @@ export function ThemeSelector(props: Props) {
         default:
             return <></>
     }
-}
-
-type ThemePlaceholderProps = {
-    theme: string;
 }
