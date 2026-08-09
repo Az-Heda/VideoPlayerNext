@@ -16,7 +16,7 @@ import (
 )
 
 //go:embed website
-//go:embed website/*
+//go:embed all:website/*
 var fsys embed.FS
 
 const (

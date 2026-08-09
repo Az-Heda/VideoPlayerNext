@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { ComponentProps } from 'react';
-import { File, Link, Volume2, ChevronDown, AudioLines, RefreshCcw, RefreshCw, Settings } from "lucide-react";
+import { File, Link, Volume2, ChevronDown, AudioLines, RefreshCcw, RefreshCw, Settings, X, Check } from "lucide-react";
 import { useTheme } from 'next-themes';
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenuBadge, SidebarMenuSub, SidebarRail } from "@/components/ui/sidebar";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
-import { GetCommands } from "@/lib/commands";
+import { CallCallback, GetCommands, GetCommands2, GetGroups } from "@/lib/commands";
 import { Configs } from "@/lib/consts";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,19 +19,25 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Config } from '@/lib/config';
+import { Spinner } from './ui/spinner';
+import { KeyKeyboard } from './key-binds';
 
 
 
 
 type Props = {
-  commands: ReturnType<typeof GetCommands>
+  commands: ReturnType<typeof GetCommands2>
 } & ComponentProps<typeof Sidebar>
 
 export function AppSidebar({ commands, ...props }: Props) {
   const [openCollapsableMenu1, setOpenCollapsableMenu1] = useState(false);
-  const [open, setOpen] = useState(false);
 
-  const [resetAnimation, setResetAnimation] = useState(false);
+  const resetAnimation = useMemo(() => {
+    if (['string', 'boolean'].includes(typeof commands.ReloadDataStatus.Getter)) return false;
+    if (commands.ReloadData.Getter) return true;
+    return false;
+  }, [commands.ReloadData.Getter, commands.ReloadDataStatus.Getter])
 
   const [videoFromUrlDialog, setVideoFromUrlDialog] = useState(false);
   const [importVideoUrl, setImportVideoUrl] = useState<string>("");
@@ -43,12 +49,12 @@ export function AppSidebar({ commands, ...props }: Props) {
   }, [importVideoUrl])
 
   async function SetVideoFromUrl(url: string) {
-    commands.VideoPlayer.Commands.Video.Updates.Setter({
+    commands.VideoPlayer.Setter!({
       customUrl: url,
       id: '', title: '',
       filePath: '',
       duration: -1, size: -1,
-      attributes: { exists: true, watched: true },
+      attributes: { exists: true, watched: true, favorite: false },
     })
   }
 
@@ -58,12 +64,12 @@ export function AppSidebar({ commands, ...props }: Props) {
     let file = files[0];
     console.log(file);
     let url = URL.createObjectURL(file);
-    commands.VideoPlayer.Commands.Video.Updates.Setter({
+    commands.VideoPlayer.Setter!({
       customUrl: url,
       id: '', title: file.name,
       filePath: '',
       duration: -1, size: -1,
-      attributes: { exists: true, watched: true },
+      attributes: { exists: true, watched: true, favorite: false },
     })
   }
 
@@ -76,15 +82,15 @@ export function AppSidebar({ commands, ...props }: Props) {
       }
     }
 
-    if (typeof sidebarState == 'boolean' && sidebarState != commands.Configs.Commands.TriggerSideBar.Updates.Getter) {
-      commands.Configs.Commands.TriggerSideBar.Updates.Setter(sidebarState)
+    if (typeof sidebarState == 'boolean' && sidebarState != commands.SidebarTrigger.Getter) {
+      commands.SidebarTrigger.Setter!(sidebarState)
     }
 
-    commands.AudioContext.Commands.Limit.Updates?.Setter(Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]);
+    commands.AudioContextLimits.Setter!(Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]);
     const down = (e: KeyboardEvent) => {
       if (e.key === "F1") {
         e.preventDefault()
-        commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
+        commands.Settings.Setter!(!commands.Settings.Getter);
       }
     }
 
@@ -94,9 +100,37 @@ export function AppSidebar({ commands, ...props }: Props) {
 
   useEffect(() => {
     if (window !== undefined) {
-      localStorage.setItem('sidebar-state', (commands.Configs.Commands.TriggerSideBar.Updates.Getter ? 1 : 0).toString());
+      localStorage.setItem('sidebar-state', (commands.SidebarTrigger.Getter ? 1 : 0).toString());
     }
-  }, [commands.Configs.Commands.TriggerSideBar.Updates.Getter])
+  }, [commands.SidebarTrigger.Getter]);
+
+  const groups = GetGroups();
+  const groupedCommands = useMemo(() => {
+    const getCommandsFromIds = (...ids: (keyof typeof commands)[]) => {
+      const out = [];
+      for (const id of ids) {
+        out.push(commands[id]);
+      }
+      return out;
+    }
+    const otherKey = 'Others';
+    const output: { [key: string]: (typeof commands[keyof typeof commands])[] } = {};
+    let allKeys = Object.keys(commands) as (keyof typeof commands)[];
+    for (const k of Object.keys(groups)) {
+      if (Object.keys(output).includes(k)) {
+        output[k].push(...getCommandsFromIds(...groups[k]));
+        allKeys = allKeys.filter(a => !groups[k].includes(a));
+      }
+      else {
+        output[k] = getCommandsFromIds(...groups[k]);
+        allKeys = allKeys.filter(a => !groups[k].includes(a));
+      }
+    }
+    if (allKeys.length > 0) {
+      output[otherKey] = getCommandsFromIds(...allKeys);
+    }
+    return output;
+  }, [commands, groups]);
 
   return (
     <>
@@ -172,12 +206,7 @@ export function AppSidebar({ commands, ...props }: Props) {
               <SidebarMenuButton
                 className="hover:cursor-pointer"
                 onClick={() => {
-                  setResetAnimation(true);
-                  const url = new URL(Configs.ApiEndpoint);
-                  url.pathname = '/api/v1/reload-data'
-                  fetch(url)
-                    .then(_ => location.reload())
-                    .catch(console.error);
+                  commands.ReloadData.Setter!(true)
                 }}
               >
                 <RefreshCw className={resetAnimation ? "animate-spin" : ''} />
@@ -189,8 +218,8 @@ export function AppSidebar({ commands, ...props }: Props) {
             <SidebarGroupLabel>Audio Context</SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuButton
-                onClick={() => { commands.AudioContext.Commands.EnableAudioContext.Callback() }}
-                disabled={commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter}
+                onClick={() => CallCallback(commands.AudioContext)}
+                disabled={commands.AudioContext.Getter}
                 className="hover:cursor-pointer disabled:cursor-not-allowed"
               >
                 <Volume2 />
@@ -198,22 +227,22 @@ export function AppSidebar({ commands, ...props }: Props) {
               </SidebarMenuButton>
             </SidebarMenu>
             {
-              commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter && <SidebarMenu>
-                <Collapsible defaultOpen={openCollapsableMenu1} open={openCollapsableMenu1} onOpenChange={setOpenCollapsableMenu1} className="group/collapsible" disabled={!commands.AudioContext.Commands.EnableAudioContext.Updates?.Getter}>
+              commands.AudioContext.Getter && <SidebarMenu>
+                <Collapsible defaultOpen={openCollapsableMenu1} open={openCollapsableMenu1} onOpenChange={setOpenCollapsableMenu1} className="group/collapsible" disabled={!commands.AudioContext.Getter}>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton>
                         <AudioLines />
                         Limit
                         <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                        <SidebarMenuBadge className="pr-8">{commands.AudioContext.Commands.Limit.Updates?.Getter || Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}%</SidebarMenuBadge>
+                        <SidebarMenuBadge className="pr-8">{commands.AudioContextLimits.Getter || Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}%</SidebarMenuBadge>
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        <RadioGroup defaultValue={`option-${Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}`} value={`option-${commands.AudioContext.Commands.Limit.Updates?.Getter}`} onValueChange={(v) => {
+                        <RadioGroup defaultValue={`option-${Configs.VolumeLimits[Configs.VolumeLimitsDefaultIdx]}`} value={`option-${commands.AudioContextLimits.Getter}`} onValueChange={(v) => {
                           const int = parseInt(v.split('-').at(-1)!);
-                          commands.AudioContext.Commands.Limit.Updates?.Setter(int);
+                          commands.AudioContextLimits.Setter!(int);
                           setOpenCollapsableMenu1(false);
                         }}>
                           {Configs.VolumeLimits.map(i => (
@@ -247,7 +276,7 @@ export function AppSidebar({ commands, ...props }: Props) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton className="hover:cursor-pointer" onClick={() => {
-                    commands.Configs.Commands.Settings.Updates.Setter(!commands.Configs.Commands.Settings.Updates.Getter);
+                    commands.Settings.Setter!(!commands.Settings.Getter);
                   }}>
                     <Settings />
                     Settings
@@ -269,7 +298,10 @@ export function AppSidebar({ commands, ...props }: Props) {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar >
-      <CommandDialog open={commands.Configs.Commands.Settings.Updates.Getter} onOpenChange={commands.Configs.Commands.Settings.Updates.Setter}>
+      {/* <CommandDialog
+        open={commands.Settings.Getter}
+        onOpenChange={commands.Settings.Setter}
+      >
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
@@ -291,7 +323,85 @@ export function AppSidebar({ commands, ...props }: Props) {
             ))
           }
         </CommandList>
+      </CommandDialog> */}
+
+      <CommandDialog open={commands.Settings.Getter} onOpenChange={() => CallCallback(commands.Settings)}>
+        <CommandInput placeholder="Type a command or search..." />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          {
+            Object.entries(groupedCommands).map(([group, cmd]) => (
+              <CommandGroup heading={group} key={`command-${group}`}>
+                {cmd.filter(c => c.Visible).map(c => (
+                  <CommandItem key={`cmd-${group}-${c.Id}`}>
+                    {c.Icon}
+                    <Button variant="ghost" className="w-full pr-6 text-left" onClick={() => CallCallback(c)}>
+                      {c.Label}
+                      <CommandShortcut>
+                        {c.HasKeybind && <KeyKeyboard {...(c.CustomStorage ?? c.DefaultStorage)} />}
+                      </CommandShortcut>
+                    </Button>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))
+          }
+        </CommandList>
       </CommandDialog>
+
+
+      <DataReloader commands={commands} />
     </>
+  )
+}
+
+
+
+function DataReloader({ commands }: { commands: ReturnType<typeof GetCommands2> }) {
+  useEffect(() => {
+    if (!commands.ReloadData.Getter) return;
+    Config.Api.Handler.Get_ApiV1ReloadData()
+      .then(x => { commands.ReloadDataStatus.Setter!(x) })
+      .catch(err => commands.ReloadDataStatus.Setter!(err))
+  }, [commands.ReloadData.Getter])
+
+  return (
+    <Dialog
+      open={commands.ReloadData.Getter}
+      onOpenChange={commands.ReloadData.Setter}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reloading data</DialogTitle>
+          <DialogDescription></DialogDescription>
+        </DialogHeader>
+        {commands.ReloadDataStatus.Getter == undefined && (
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <div className="col-span-3">The server is reloading the data...</div>
+          </div>
+        )}
+        {typeof commands.ReloadData.Getter == 'string' && (
+          <div className="flex items-center gap-3">
+            <X className="text-destructive" />
+            <div className="col-span-3">{commands.ReloadDataStatus.Getter}</div>
+          </div>
+        )}
+        {typeof commands.ReloadDataStatus.Getter == 'boolean' && (
+          <div className="flex items-center gap-3">
+            {
+              commands.ReloadDataStatus.Getter
+                ? <Check className="text-emerald-500" />
+                : <X className="text-destructive" />
+            }
+            <div className="col-span-3">{
+              commands.ReloadDataStatus.Getter
+                ? 'Data updated correctly'
+                : 'Cannot update data'
+            }</div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

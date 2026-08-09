@@ -1,12 +1,15 @@
 const host = "http://vp.localhost"
 
 export const Configs = {
-    SiteName: "[NX] Video Player",
-    EnableGoogleLogin: false,
-    ApiEndpoint: host,
-    PictureEndpoint: `${host}/picture`,
-    PriorityFolder: '_auto-delete',
-    ProdEnv: true,
-    VolumeLimits: [ 100, 200, 300, 400, 500, 600 ],
-    VolumeLimitsDefaultIdx: 2,
+  SiteName: "[NX] Video Player",
+  EnableGoogleLogin: false,
+  ApiEndpoint: host,
+  PictureEndpoint: `${host}/picture`,
+  PriorityFolder: '_auto-delete',
+  ProdEnv: true,
+  VolumeLimits: [100, 200, 300, 400, 500, 600],
+  VolumeLimitsDefaultIdx: 2,
+  IsSerie: [
+    /^(?<name>.*?)\.(?<season>\d{1,2})x(?<episode>\d{1,2})\.(?<rest>.*)$/gi,
+  ]
 } as const;

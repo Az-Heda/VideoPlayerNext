@@ -10,7 +10,6 @@ import (
 	"full/libs/utils"
 	"full/libs/webserver"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -74,34 +73,69 @@ func apiError(w http.ResponseWriter, err error, statusCode int) {
 	w.Write(b)
 }
 
+func reloadVideoInFolder(wg *sync.WaitGroup, conn *gorm.DB, input chan []models.Video, output chan models.Video) {
+	for {
+		if len(input) == 0 {
+			break
+		}
+		var videos = <-input
+		for _, v := range videos {
+			if v.CheckFile(conn) {
+				output <- v
+			}
+		}
+	}
+	wg.Done()
+}
+
 func reload(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
 	Startup(conn)
 	var currentvideos []models.Video
 	if tx := conn.Find(&currentvideos, models.Video{Attributes: models.VideoAttributes{Exists: true}}); tx.Error != nil {
 		return tx.Error
 	}
-	var correctVideos []models.Video = []models.Video{}
-	for _, v := range currentvideos {
-		if v.CheckFile(conn) {
-			correctVideos = append(correctVideos, v)
-		}
+
+	var parts = utils.GroupBy(currentvideos, func(item models.Video, idx int) string {
+		return item.Folder.Path
+	})
+
+	var groupByKeys []string
+	for k := range parts {
+		groupByKeys = append(groupByKeys, k)
+	}
+	var inputs chan []models.Video = make(chan []models.Video, len(groupByKeys))
+	for _, k := range groupByKeys {
+		inputs <- parts[k]
 	}
 
-	go func() {
-		var pics []models.Picture
-		if tx := conn.Find(&pics); tx.Error != nil {
-			log.Err(tx.Error).Send()
-			return
+	var output chan models.Video = make(chan models.Video, len(currentvideos))
+	var wg sync.WaitGroup
+
+	var tx = conn.Begin()
+	var start = time.Now()
+	for range 5 {
+		wg.Add(1)
+		go reloadVideoInFolder(&wg, tx, inputs, output)
+	}
+	wg.Wait()
+	var end = time.Now()
+	if txOut := tx.Commit(); txOut.Error != nil {
+		log.Err(txOut.Error).Send()
+	}
+
+	log.Info().
+		Int("count", len(output)).
+		Str("duration", end.Sub(start).String()).
+		Msg("Processed videos")
+
+	var correctVideos = []models.Video{}
+	for {
+		if len(output) == 0 {
+			break
 		}
-		for _, p := range pics {
-			if _, err := os.Lstat(p.FilePath); err != nil {
-				if tx := conn.Delete(&p); tx.Error != nil {
-					log.Err(tx.Error).Send()
-					continue
-				}
-			}
-		}
-	}()
+		v := <-output
+		correctVideos = append(correctVideos, v)
+	}
 
 	var before = len(videos.Getter)
 	videos.Setter <- correctVideos
@@ -109,6 +143,44 @@ func reload(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
 	log.Debug().Int("before", before).Int("after", after).Msg("Video reloaded")
 	return nil
 }
+
+// func reload(conn *gorm.DB, videos *utils.GS[[]models.Video]) error {
+// 	Startup(conn)
+// 	var currentvideos []models.Video
+// 	if tx := conn.Find(&currentvideos, models.Video{Attributes: models.VideoAttributes{Exists: true}}); tx.Error != nil {
+// 		return tx.Error
+// 	}
+// 	tx := conn.Begin()
+// 	var correctVideos []models.Video = []models.Video{}
+// 	for _, v := range currentvideos {
+// 		if v.CheckFile(tx) {
+// 			correctVideos = append(correctVideos, v)
+// 		}
+// 	}
+// 	tx.Commit()
+
+// 	// go func() {
+// 	// 	var pics []models.Picture
+// 	// 	if tx := conn.Find(&pics); tx.Error != nil {
+// 	// 		log.Err(tx.Error).Send()
+// 	// 		return
+// 	// 	}
+// 	// 	for _, p := range pics {
+// 	// 		if _, err := os.Lstat(p.FilePath); err != nil {
+// 	// 			if tx := conn.Delete(&p); tx.Error != nil {
+// 	// 				log.Err(tx.Error).Send()
+// 	// 				continue
+// 	// 			}
+// 	// 		}
+// 	// 	}
+// 	// }()
+
+// 	var before = len(videos.Getter)
+// 	videos.Setter <- correctVideos
+// 	var after = len(videos.Getter)
+// 	log.Debug().Int("before", before).Int("after", after).Msg("Video reloaded")
+// 	return nil
+// }
 
 func Startup(conn *gorm.DB) error {
 	var folders []models.Folder
@@ -334,7 +406,7 @@ func handleApiV1(apiv1 *webserver.Mux, conn *gorm.DB, videoUpdated <-chan models
 		})
 
 		return func(w http.ResponseWriter, req *http.Request) {
-			if err := reload(conn.WithContext(req.Context()), videos); err != nil {
+			if err := reload(conn.WithContext(context.Background()), videos); err != nil {
 				apiError(w, err, http.StatusInternalServerError)
 				return
 			}

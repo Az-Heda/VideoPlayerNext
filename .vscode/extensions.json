@@ -1,6 +1,6 @@
 {
-    "recommendations": [
-        "golang.go",
-        "bradlc.vscode-tailwindcss"
-    ]
+  "recommendations": [
+    "golang.go",
+    "bradlc.vscode-tailwindcss"
+  ]
 }

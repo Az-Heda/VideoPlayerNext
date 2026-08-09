@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,6 +146,230 @@ func AddWebsite(fsys embed.FS, startDir string, fileCounter prometheus.Gauge, co
 			http.ServeFile(w, r, vid.FilePath)
 		} else {
 			apiError(w, fmt.Errorf("cannot find video with id=\"%s\"", id), http.StatusNotFound)
+		}
+	})
+
+	videoHandler.HandleFuncWithOApi("GET /set/{id}/watched", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/video/set/{id}/watched", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Videos"},
+				Summary: "Change video watched attribute",
+				Parameters: []oapi.OpenApiParameter{
+					{
+						In:     "path",
+						Name:   "id",
+						Schema: oapi.GetSchema("string"),
+					},
+					{
+						In:     "query",
+						Name:   "value",
+						Schema: oapi.GetSchema("string"),
+					},
+				},
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "video"),
+								},
+							},
+						},
+					},
+					http.StatusBadRequest: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return func(w http.ResponseWriter, r *http.Request) {
+			var id = r.PathValue("id")
+			var target = r.URL.Query().Get("value")
+
+			var data []models.Video
+			if tx := conn.WithContext(r.Context()).Find(&data, models.Video{Id: id}); tx.Error != nil {
+				apiError(w, tx.Error, http.StatusInternalServerError)
+				return
+			}
+
+			if len(data) == 0 {
+				apiError(w, fmt.Errorf("cannot find video with id=\"%s\"", id), http.StatusNotFound)
+				return
+			}
+			if len(data) > 1 {
+				apiError(w, fmt.Errorf("found multiple videos with id=\"%s\"", id), http.StatusNotFound)
+				return
+			}
+
+			var vid = data[0]
+
+			var trueValues = []string{"T", "Y", "1"}
+			var falseValues = []string{"F", "N", "0"}
+
+			switch {
+			case slices.Contains(trueValues, target):
+				if !vid.Attributes.Watched {
+					vid.Attributes.Watched = true
+					if tx := conn.Save(vid); tx.Error != nil {
+						log.Err(tx.Error).Send()
+						apiError(w, tx.Error, http.StatusInternalServerError)
+					}
+				}
+				videoUpdated <- vid
+				if err := ApiResponseS(w, &vid); err != nil {
+					apiError(w, err, http.StatusInternalServerError)
+				}
+				return
+
+			case slices.Contains(falseValues, target):
+				if vid.Attributes.Watched {
+					vid.Attributes.Watched = false
+					if tx := conn.Save(vid); tx.Error != nil {
+						log.Err(tx.Error).Send()
+						apiError(w, tx.Error, http.StatusInternalServerError)
+					}
+				}
+				videoUpdated <- vid
+				if err := ApiResponseS(w, &vid); err != nil {
+					apiError(w, err, http.StatusInternalServerError)
+				}
+				return
+
+			default:
+				apiError(w, fmt.Errorf("Value '%s' is invalid", target), http.StatusBadRequest)
+				return
+			}
+			// if slices.Contains(trueValues, target) {
+			// watched = true
+			// } else if {}
+
+		}
+	})
+
+	videoHandler.HandleFuncWithOApi("GET /set/{id}/favorite", func(o *oapi.OpenApi, responses oapi.ResponsesCollection) func(w http.ResponseWriter, req *http.Request) {
+
+		o.Paths.New("/video/set/{id}/favorite", oapi.OpenApiPathItem{
+			Get: &oapi.OpenApiOperation{
+				Tags:    []string{"Videos"},
+				Summary: "Change video favorite attribute",
+				Parameters: []oapi.OpenApiParameter{
+					{
+						In:     "path",
+						Name:   "id",
+						Schema: oapi.GetSchema("string"),
+					},
+					{
+						In:     "query",
+						Name:   "value",
+						Schema: oapi.GetSchema("string"),
+					},
+				},
+				Responses: oapi.ResponsesCollection{
+					http.StatusOK: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "video"),
+								},
+							},
+						},
+					},
+					http.StatusBadRequest: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+					http.StatusInternalServerError: oapi.OpenApiResponse{
+						Content: oapi.MediaTypeCollection{
+							"application/json": oapi.OpenApiMediaType{
+								Schema: oapi.OpenApiSchema{
+									Ref: o.GetRef("schemas", "api-error"),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		return func(w http.ResponseWriter, r *http.Request) {
+			var id = r.PathValue("id")
+			var target = r.URL.Query().Get("value")
+
+			var data []models.Video
+			if tx := conn.WithContext(r.Context()).Find(&data, models.Video{Id: id}); tx.Error != nil {
+				apiError(w, tx.Error, http.StatusInternalServerError)
+				return
+			}
+
+			if len(data) == 0 {
+				apiError(w, fmt.Errorf("cannot find video with id=\"%s\"", id), http.StatusNotFound)
+				return
+			}
+			if len(data) > 1 {
+				apiError(w, fmt.Errorf("found multiple videos with id=\"%s\"", id), http.StatusNotFound)
+				return
+			}
+
+			var vid = data[0]
+
+			var trueValues = []string{"T", "Y", "1"}
+			var falseValues = []string{"F", "N", "0"}
+
+			switch {
+			case slices.Contains(trueValues, target):
+				if !vid.Attributes.Favorite {
+					vid.Attributes.Favorite = true
+					if tx := conn.Save(vid); tx.Error != nil {
+						log.Err(tx.Error).Send()
+						apiError(w, tx.Error, http.StatusInternalServerError)
+					}
+				}
+				videoUpdated <- vid
+				if err := ApiResponseS(w, &vid); err != nil {
+					apiError(w, err, http.StatusInternalServerError)
+				}
+				return
+
+			case slices.Contains(falseValues, target):
+				if vid.Attributes.Favorite {
+					vid.Attributes.Favorite = false
+					if tx := conn.Save(vid); tx.Error != nil {
+						log.Err(tx.Error).Send()
+						apiError(w, tx.Error, http.StatusInternalServerError)
+					}
+				}
+				videoUpdated <- vid
+				if err := ApiResponseS(w, &vid); err != nil {
+					apiError(w, err, http.StatusInternalServerError)
+				}
+				return
+
+			default:
+				apiError(w, fmt.Errorf("Value '%s' is invalid", target), http.StatusBadRequest)
+				return
+			}
 		}
 	})
 

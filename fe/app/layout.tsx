@@ -25,22 +25,34 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     'default',
 
     ...[
-      'material-design',
+      'blush-pink',
+      'claude',
+      // 'marshmallow',
+      // 'material-design',
+      // 'midnight-bloom',
       'slack',
+      'seo-katana',
+      'caffeine',
       'spotify',
       'vs-code',
-      'caffeine',
-      'marshmallow',
-      'midnight-bloom',
     ],
 
     ...[
-      'amethyst-haze',
+      'cosmic-night',
       'darkmatter',
-      'northern-lights',
+
+      // 'amethyst-haze',
+      // 'northern-lights',
       'supabase',
-      'violet-bloom',
+      // 'violet-bloom',
     ],
+
+    ...[
+      // "sakura-blossom-neon",
+      "sakura",
+      "cyberpunk-2077",
+      "twitter",
+    ]
   ].sort();
 
   return (

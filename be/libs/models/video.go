@@ -23,8 +23,9 @@ type Video struct {
 }
 
 type VideoAttributes struct {
-	Exists  bool `json:"exists" gorm:"index"`
-	Watched bool `json:"watched"`
+	Exists   bool `json:"exists" gorm:"index"`
+	Watched  bool `json:"watched"`
+	Favorite bool `json:"favorite,omitempty"`
 }
 
 func (v *Video) GenerateId() {

@@ -1,115 +1,187 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "BE - DEV",
-            "type": "shell",
-            "command": "go run . serve",
-            "options": {
-                "cwd": "${workspaceRoot}/be"
-            },
-            "isBackground": true,
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": true
-            },
-            "group": "test"
-        },
-        {
-            "label": "BE - PROD",
-            "type": "shell",
-            "command": "go build -o LIN_VideoPlayerNext .",
-            "options": {
-                "cwd": "${workspaceRoot}/be",
-                "env": {
-                    "NEXT_PUBLIC_MODE": "prod"
-                }
-            },
-            "isBackground": false,
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": true
-            }
-        },
-        {
-            "label": "FE - DEV",
-            "type": "shell",
-            "command": "npm run dev",
-            "options": {
-                "cwd": "${workspaceRoot}/fe"
-            },
-            "isBackground": true,
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": true
-            },
-            "group": "test"
-        },
-        {
-            "label": "FE - PROD",
-            "type": "shell",
-            "command": "npm run build",
-            "options": {
-                "cwd": "${workspaceRoot}/fe",
-                "env": {
-                    "DIST_DIR": "../be/cmd/serve/website",
-                    "MODE": "prod"
-                }
-            },
-            "isBackground": false,
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": true
-            }
-        },
-        {
-            "label": "Restart service",
-            "type": "shell",
-            "command": "sudo systemctl restart video-player-next",
-            "options": {
-                "cwd": "${workspaceRoot}",
-            },
-            "isBackground": false,
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": true
-            },
-            "detail": "sudo is required",
-        },
-        {
-            "label": "Build all",
-            "dependsOn": [
-                "FE - PROD",
-                "BE - PROD",
-                "Restart service",
-            ],
-            "dependsOrder": "sequence",
-            "group": "build"
-        },
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "BE - RUN DEV",
+      "detail": "Run the backend in development mode",
+      "type": "shell",
+      "command": "go run . serve",
+      "options": {
+        "cwd": "${workspaceRoot}/be"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": true,
+        "group": "DEV"
+      },
+      "group": "test",
+      "icon": {
+        "id": "server",
+        "color": "terminal.ansiRed"
+      }
+    },
+    {
+      "label": "BE - BUILD PROD",
+      "detail": "Build the backend for production",
+      "type": "shell",
+      "command": "go build -o LIN_VideoPlayerNext .",
+      "options": {
+        "cwd": "${workspaceRoot}/be",
+        "env": {
+          "NEXT_PUBLIC_MODE": "prod"
+        }
+      },
+      "isBackground": false,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true,
+        "close": true
+      },
+      "promptOnClose": false,
+      "icon": {
+        "id": "server",
+        "color": "terminal.ansiGreen"
+      }
+    },
+    {
+      "label": "FE - RUN DEV",
+      "detail": "Run the frontend in development mode",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceRoot}/fe"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": true,
+        "group": "DEV"
+      },
+      "group": "test",
+      "icon": {
+        "id": "globe",
+        "color": "terminal.ansiRed"
+      }
+    },
+    {
+      "label": "FE - BUILD PROD",
+      "detail": "Build the frontend for production",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceRoot}/fe",
+        "env": {
+          "DIST_DIR": "../be/cmd/serve/website",
+          "MODE": "prod"
+        }
+      },
+      "isBackground": false,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true,
+        "close": true
+      },
+      "promptOnClose": true,
+      "icon": {
+        "id": "globe",
+        "color": "terminal.ansiGreen"
+      }
+    },
+    {
+      "label": "[SystemD] Restart service",
+      "detail": "Restart systemd service (sudo is required)",
+      "type": "shell",
+      "command": "sudo systemctl restart video-player-next",
+      "options": {
+        "cwd": "${workspaceRoot}"
+      },
+      "isBackground": false,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true,
+        "close": true
+      },
+      "promptOnClose": true,
+      "icon": {
+        "id": "code",
+        "color": "terminal.ansiYellow"
+      }
+    },
+    {
+      "label": "[SystemD] Service log",
+      "detail": "View systemd log for running service",
+      "type": "shell",
+      "command": "journalctl -f -u video-player-next.service",
+      "isBackground": false,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "icon": {
+        "id": "tree-filter-on-type-off",
+        "color": "terminal.ansiCyan"
+      }
+    },
+    {
+      "label": "Build all",
+      "detail": "Build frontend, backend and then restart systemd service",
+      "dependsOn": [
+        "FE - BUILD PROD",
+        "BE - BUILD PROD",
+        "[SystemD] Restart service"
+      ],
+      "dependsOrder": "sequence",
+      "group": "build",
+      "icon": {
+        "id": "terminal-debian",
+        "color": "terminal.ansiMagenta"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run dev",
+      "detail": "Run both BE and FE in development mode (shared terminals)",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "BE - RUN DEV",
+        "FE - RUN DEV"
+      ],
+      "problemMatcher": [],
+      "icon": {
+        "id": "debug-console",
+        "color": "terminal.ansiWhite"
+      }
+    }
+  ]
 }

@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ApiPicture, ApiRequest } from "@/lib/api";
+import { Config } from "@/lib/config";
 import { Configs } from "@/lib/consts";
 import { useEffect, useState } from "react"
 
@@ -9,7 +10,7 @@ export function Gallery () {
     const [images, setImages] = useState<ApiPicture[]>([]);
 
     useEffect(() => {
-        ApiRequest<ApiPicture>('GET', "/api/v1/pictures", null, null).then(data => setImages(data.results))
+      Config.Api.Handler.Get_ApiV1Pictures().then(setImages)
     }, []);
 
     return (

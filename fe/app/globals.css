@@ -3,19 +3,28 @@
 
 @import "./../themes/default.css";
 
+@import "./../themes/shadcnstudio/blush-pink.css";
 @import "./../themes/shadcnstudio/caffeine.css";
+@import "./../themes/shadcnstudio/claude.css";
 @import "./../themes/shadcnstudio/marshmallow.css";
 @import "./../themes/shadcnstudio/midnight-bloom.css";
 @import "./../themes/shadcnstudio/material-design.css";
+@import "./../themes/shadcnstudio/seo-katana.css";
 @import "./../themes/shadcnstudio/slack.css";
 @import "./../themes/shadcnstudio/spotify.css";
 @import "./../themes/shadcnstudio/vs-code.css";
 
 @import "./../themes/tweakcn/amethyst-haze.css";
+@import "./../themes/tweakcn/cosmic-night.css";
 @import "./../themes/tweakcn/darkmatter.css";
 @import "./../themes/tweakcn/northern-lights.css";
 @import "./../themes/tweakcn/supabase.css";
 @import "./../themes/tweakcn/violet-bloom.css";
+
+@import "./../themes/shadcnthemer/sakura-blossom-neon.css";
+@import "./../themes/shadcnthemer/sakura.css";
+@import "./../themes/shadcnthemer/cyberpunk-2077.css";
+@import "./../themes/shadcnthemer/twitter.css";
 
 
 
