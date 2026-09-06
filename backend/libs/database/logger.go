@@ -16,12 +16,14 @@ type GormLogger struct {
 	logger.Config
 }
 
-func NewGormLogger() logger.Interface {
+func NewGormLogger(config logger.Config) logger.Interface {
+	var zl = log.Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, message string) {
+		e.Str("source", "_gorm")
+	}))
 
 	return &GormLogger{
-		zl: log.Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, message string) {
-			e.Str("source", "_gorm")
-		})),
+		Config: config,
+		zl:     zl,
 	}
 }
 

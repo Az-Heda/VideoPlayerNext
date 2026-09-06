@@ -2,3 +2,6 @@
 *.sqlite
 *.db
 .backup
+*.http
+
+tmp

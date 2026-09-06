@@ -2,15 +2,22 @@ package models
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 )
 
+func init() {
+	validate(&Playlist{})
+}
+
 type Playlist struct {
 	Id        string     `json:"id" gorm:"primaryKey"`
 	Name      string     `json:"name" gorm:"index"`
-	Videos    []*Video   `json:"videos" gorm:"many2many:playlist_videos"`
+	Videos    *[]*Video  `json:"videos,omitempty" gorm:"many2many:video_playlists"`
+	Thumbnail []byte     `json:"thumbnail,omitempty"`
 	CreatedAt *time.Time `json:"createdAt"`
 	UpdatedAt *time.Time `json:"updatedAt"`
 }
@@ -75,4 +82,34 @@ func (p *Playlist) Validate(op ValidationOP, tx *gorm.DB) error {
 	case Before | Update:
 	}
 	return errors.Join(errs...)
+}
+
+func (Playlist) Preload(conn *gorm.DB, preloadVideos bool, preloadVideosFolder bool) *gorm.DB {
+	var newConn *gorm.DB = conn
+	if preloadVideos || preloadVideosFolder {
+		newConn = newConn.Preload("Videos")
+	}
+	if preloadVideosFolder {
+		newConn = newConn.Preload("Videos.Folder")
+	}
+	return newConn
+}
+
+func (p Playlist) String() string {
+	var sb strings.Builder
+	const eol = "\n"
+
+	sb.WriteString("#EXTM3U" + eol)
+
+	for _, v := range *p.Videos {
+		var title = v.Filename
+		var duration = v.Attributes.Duration.Seconds()
+		if duration == 0 {
+			duration = -1
+		}
+		fmt.Fprintf(&sb, "#EXTINF:%f,%s"+eol, duration, title)
+		fmt.Fprintf(&sb, "/stream/%s"+eol, v.Id)
+	}
+
+	return sb.String()
 }

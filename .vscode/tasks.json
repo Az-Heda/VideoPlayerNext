@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "[BE] Run dev",
+      "detail": "Run the backend in development mode",
+      "type": "shell",
+      "command": "go run -tags='sqlite' . --cors.enable --cors.allowOrigin='http://localhost:3000'",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest",
+      },
+      "icon": {
+        "id": "server",
+        "color": "terminal.ansiCyan"
+      }
+    },
+    {
+      "label": "[FE] Run dev",
+      "detail": "Run the frontend in development mode",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "icon": {
+        "id": "globe",
+        "color": "terminal.ansiGreen"
+      }
+    }
+  ]
+}

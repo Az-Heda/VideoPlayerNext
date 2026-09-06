@@ -1,4 +1,4 @@
-package apiplaylist
+package apirule
 
 import (
 	"net/http"
@@ -9,142 +9,151 @@ import (
 )
 
 var data = []IApi{
-	&ApiDefinition[NewPlaylistRequest, NewPlaylistResponse]{
-		Callback: CB_NewPlaylist,
+	&ApiDefinition[NewRuleRequest, NewRuleResponse]{
+		Callback: CB_NewRule,
 		Operation: huma.Operation{
-			OperationID: "playlist-new",
+			OperationID: "rule-new",
 			Method:      http.MethodPost,
 			Path:        "/",
-			Summary:     "Add a new playlist",
-			Description: "Create a playlist with some videos",
+			Summary:     "Create a new rule",
+			Description: "Create a new automatic rule, use to assign playlist and tags automatically",
 			Errors: []int{
 				http.StatusBadRequest,
-				http.StatusNotFound,
 				http.StatusInternalServerError,
 			},
 		},
 	},
-	&ApiDefinition[ListPlaylistRequest, ListPlaylistResponse]{
-		Callback: CB_ListPlaylist,
+	&ApiDefinition[ListRuleRequest, ListRuleResponse]{
+		Callback: CB_ListRule,
 		Operation: huma.Operation{
-			OperationID: "playlist-list",
+			OperationID: "rule-list",
 			Method:      http.MethodGet,
 			Path:        "/",
-			Summary:     "Playlist list",
-			Description: "Get the list of playlists. Optional: you can filter them",
+			Summary:     "Rule list",
+			Description: "Get the list of rules. Optional: You can filter them",
 			Errors: []int{
 				http.StatusInternalServerError,
 			},
 		},
 	},
-	&ApiDefinition[GetPlaylistRequest, GetPlaylistResponse]{
-		Callback: CB_GetPlaylist,
+	&ApiDefinition[GetRuleRequest, GetRuleResponse]{
+		Callback: CB_GetRule,
 		Operation: huma.Operation{
-			OperationID: "playlist-get",
+			OperationID: "rule-get",
 			Method:      http.MethodGet,
 			Path:        "/{id}",
-			Summary:     "Get Playlist",
-			Description: "Get the specified playlist",
+			Summary:     "Get rule",
+			Description: "Get the specific rule",
 			Parameters: []*huma.Param{
 				{
 					In:          "path",
 					Name:        "id",
-					Description: "Playlist id",
+					Description: "Rule id",
 					Required:    true,
 				},
 			},
 			Errors: []int{
-				http.StatusBadRequest,
 				http.StatusNotFound,
 				http.StatusConflict,
 				http.StatusInternalServerError,
 			},
 		},
 	},
-	&ApiDefinition[GetPlaylistM3URequest, GetPlaylistM3UResponse]{
-		Callback: CB_GetPlaylistM3U,
+	&ApiDefinition[DeleteRuleRequest, DeleteRuleResponse]{
+		Callback: CB_DeleteRule,
 		Operation: huma.Operation{
-			OperationID: "playlist-get-m3u",
-			Method:      http.MethodGet,
-			Path:        "/{id}/m3u",
-			Summary:     "Get Playlist in M3U format",
-			Description: "Get the specified playlist in M3U Format",
-			Parameters: []*huma.Param{
-				{
-					In:          "path",
-					Name:        "id",
-					Description: "Playlist id",
-					Required:    true,
-				},
-			},
-			Errors: []int{
-				http.StatusBadRequest,
-				http.StatusNotFound,
-				http.StatusConflict,
-				http.StatusInternalServerError,
-			},
-		},
-	},
-	&ApiDefinition[DeletePlaylistRequest, DeletePlaylistResponse]{
-		Callback: CB_DeletePlaylist,
-		Operation: huma.Operation{
-			OperationID: "playlist-delete",
+			OperationID: "rule-delete",
 			Method:      http.MethodDelete,
 			Path:        "/{id}",
-			Summary:     "Delete playlist",
-			Description: "Delete a specific playlist",
+			Summary:     "Remove a rule",
+			Description: "Remove the specified rule",
 			Parameters: []*huma.Param{
 				{
 					In:          "path",
 					Name:        "id",
-					Description: "Playlist id",
+					Description: "Rule id",
 					Required:    true,
 				},
 			},
 			Errors: []int{
-				http.StatusBadRequest,
 				http.StatusNotFound,
 				http.StatusConflict,
 				http.StatusInternalServerError,
 			},
 		},
 	},
-	&ApiDefinition[UpdatePlaylistRequest, UpdatePlaylistResponse]{
-		Callback: CB_PatchPlaylist,
+	&ApiDefinition[AddPlaylistToRuleRequest, AddPlaylistToRuleResponse]{
+		Callback: CB_AddPlaylistToRule,
 		Operation: huma.Operation{
-			OperationID: "playlist-patch",
+			OperationID: "rule-add-playlist",
 			Method:      http.MethodPatch,
-			Path:        "/{id}",
-			Summary:     "Patch a playlist",
-			Description: "Update some informations about the playlist",
+			Path:        "/{ruleId}/playlist/{playlistId}",
+			Summary:     "Add a playlist to rule",
+			Description: "Add the specific playlist to the selected rule",
 			Parameters: []*huma.Param{
 				{
 					In:          "path",
-					Name:        "id",
-					Description: "Playlist id",
+					Name:        "ruleId",
+					Description: "Rule id",
 					Required:    true,
 				},
-			},
-			Errors: []int{
-				http.StatusBadRequest,
-				http.StatusNotFound,
-				http.StatusConflict,
-				http.StatusInternalServerError,
-			},
-		},
-	},
-	&ApiDefinition[AddVideoToPlaylistRequest, AddVideoToPlaylistResponse]{
-		Callback: CB_AddVideoToPlaylist,
-		Operation: huma.Operation{
-			OperationID: "playlist-add-video",
-			Method:      http.MethodPatch,
-			Path:        "/{playlistId}/video/{videoId}",
-			Summary:     "Add a video to playlist",
-			Description: "Add the specified video to the selected playlist",
-			Parameters: []*huma.Param{
 				{
 					In:          "path",
 					Name:        "playlistId",
+					Description: "Playlist id",
+					Required:    true,
+				},
+			},
+			Errors: []int{
+				http.StatusBadRequest,
+				http.StatusNotFound,
+				http.StatusConflict,
+				http.StatusInternalServerError,
+			},
+		},
+	},
+	&ApiDefinition[AddTagToRuleRequest, AddTagToRuleResponse]{
+		Callback: CB_AddTagToRule,
+		Operation: huma.Operation{
+			OperationID: "rule-add-tag",
+			Method:      http.MethodPatch,
+			Path:        "/{ruleId}/tag/{tagId}",
+			Summary:     "Add a tag to rule",
+			Description: "Add the specific tag to the selected rule",
+			Parameters: []*huma.Param{
+				{
+					In:          "path",
+					Name:        "ruleId",
+					Description: "Rule id",
+					Required:    true,
+				},
+				{
+					In:          "path",
+					Name:        "tagId",
+					Description: "Tag id",
+					Required:    true,
+				},
+			},
+			Errors: []int{
+				http.StatusBadRequest,
+				http.StatusNotFound,
+				http.StatusConflict,
+				http.StatusInternalServerError,
+			},
+		},
+	},
+	&ApiDefinition[DeletePlaylistToRuleRequest, DeletePlaylistToRuleResponse]{
+		Callback: CB_DeletePlaylistToRule,
+		Operation: huma.Operation{
+			OperationID: "rule-delete-playlist",
+			Method:      http.MethodDelete,
+			Path:        "/{ruleId}/playlist/{playlistId}",
+			Summary:     "Remove a playlist from rule",
+			Description: "Remove the specified playlist from the selected rule",
+			Parameters: []*huma.Param{
+				{
+					In:          "path",
+					Name:        "ruleId",
 					Description: "Playlist id",
 					Required:    true,
 				},
@@ -163,19 +172,19 @@ var data = []IApi{
 			},
 		},
 	},
-	&ApiDefinition[DeleteVideoFromPlaylistRequest, DeleteVideoFromPlaylistResponse]{
-		Callback: CB_DeleteVideoToPlaylist,
+	&ApiDefinition[DeleteTagToRuleRequest, DeleteTagToRuleResponse]{
+		Callback: CB_DeleteTagToRule,
 		Operation: huma.Operation{
-			OperationID: "playlist-delete-video",
+			OperationID: "rule-delete-tag",
 			Method:      http.MethodDelete,
-			Path:        "/{playlistId}/video/{videoId}",
-			Summary:     "Remove a video from playlist",
-			Description: "Remove the specified video from the selected playlist",
+			Path:        "/{ruleId}/tag/{tagId}",
+			Summary:     "Remove a tag from rule",
+			Description: "Remove the specified tag from the selected rule",
 			Parameters: []*huma.Param{
 				{
 					In:          "path",
-					Name:        "playlistId",
-					Description: "Playlist id",
+					Name:        "ruleId",
+					Description: "Tag id",
 					Required:    true,
 				},
 				{
@@ -197,7 +206,7 @@ var data = []IApi{
 
 func Setup(g *huma.Group, conn *gorm.DB) {
 	var additionalTags map[string][]string = map[string][]string{}
-	var tags []string = []string{"Playlist"}
+	var tags []string = []string{"Automatic rules"}
 	for _, iapi := range data {
 		iapi.AddTags(tags...)
 		iapi.AddTags(additionalTags[iapi.ID()]...)

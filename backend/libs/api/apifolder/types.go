@@ -3,6 +3,9 @@ package apifolder
 import "vp/libs/models"
 
 type (
+	Preload struct {
+		PreloadVideos bool `query:"preloadVideos"`
+	}
 	NewFolderRequest struct {
 		Body struct {
 			Path string `json:"path"`
@@ -12,24 +15,24 @@ type (
 		Body models.Folder
 	}
 	ListFolderRequest struct {
-		Id            string `query:"id"`
-		Path          string `query:"path"`
-		PreloadVideos bool   `query:"preloadVideos"`
+		Ids  []string `query:"id,explode"`
+		Path string   `query:"path"`
+		Preload
 	}
 	ListFolderResponse struct {
 		Body []models.Folder
 	}
 	GetFolderRequest struct {
-		Id            string `path:"id"`
-		Scan          bool   `query:"scan"`
-		PreloadVideos bool   `query:"preloadVideos"`
+		Id   string `path:"id"`
+		Scan bool   `query:"scan"`
+		Preload
 	}
 	GetFolderResponse struct {
 		Body models.Folder
 	}
 	GetFolderStreamingRequest struct {
-		Id            string `path:"id"`
-		PreloadVideos bool   `query:"preloadVideos"`
+		Id string `path:"id"`
+		Preload
 	}
 	DeleteFolderRequest struct {
 		Id string `path:"id"`
@@ -39,6 +42,7 @@ type (
 	}
 	CleanupFolderRequest struct {
 		DoDelete bool `query:"doDelete"`
+		Preload
 	}
 	CleanupFolderResponse struct {
 		Body struct {

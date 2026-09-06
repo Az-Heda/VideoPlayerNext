@@ -1,0 +1,68 @@
+{
+    // Place your video-player workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+    // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+    // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+    // used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+    // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+    // Placeholders with the same ids are connected.
+    // Example:
+    // "Print to console": {
+    // 	"scope": "javascript,typescript",
+    // 	"prefix": "log",
+    // 	"body": [
+    // 		"console.log('$1');",
+    // 		"$2"
+    // 	],
+    // 	"description": "Log output to console"
+    // }
+    //
+    // You can also restrict snippets to specific files using include/exclude patterns:
+    // "Test snippet": {
+    // 	"scope": "javascript,typescript",
+    // 	"prefix": "test",
+    // 	"body": "test('$1', () => {\n\t$0\n});",
+    // 	"include": ["**/*.test.ts", "*.spec.ts"],
+    // 	"exclude": ["**/temp/*.ts"],
+    // 	"description": "Insert test block"
+    // }
+    "Bubbletea Model": {
+        "scope": "go",
+        "body": [
+            "import tea \"charm.land/bubbletea/v2\"",
+            "",
+            "type $1Model struct {",
+            "\twidth  int",
+            "\theight int",
+            "}",
+            "",
+            "func New$1Model($0) $1Model {",
+            "\treturn $1Model{}",
+            "}",
+            "",
+            "func (m $1Model) Init() tea.Cmd {",
+            "\treturn nil",
+            "}",
+            "",
+            "func (m $1Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {",
+            "\tvar cmds []tea.Cmd",
+            "\tswitch msg := msg.(type) {",
+            "\tcase tea.WindowSizeMsg:",
+            "\t\tm.width = msg.Width",
+            "\t\tm.height = msg.Height",
+            "\tcase tea.KeyPressMsg:",
+            "\t\tswitch msg.String() {",
+            "\t\t}",
+            "\t}",
+            "",
+            "\treturn m, tea.Batch(cmds...)",
+            "}",
+            "",
+            "func (m $1Model) View() tea.View {",
+            "\tvar content string = \"$1Model\"",
+            "\tvar view = tea.NewView(content)",
+            "\treturn view",
+            "}",
+            "",
+        ]
+    }
+}

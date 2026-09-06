@@ -28,6 +28,24 @@ type (
 	}
 )
 
+func ApiExchangeDatabaseError[T any](err error, overWriteMessage ...string) ApiExchange[T] {
+	if len(overWriteMessage) == 0 {
+		overWriteMessage = append(overWriteMessage, "Database Error")
+	}
+	return ApiExchange[T]{
+		StatusCode: http.StatusInternalServerError,
+		ErrorTitle: overWriteMessage[0],
+		Errors:     []error{err},
+	}
+}
+func ConvertApiExchange[A, B any](in ApiExchange[A]) ApiExchange[B] {
+	return ApiExchange[B]{
+		StatusCode: in.StatusCode,
+		ErrorTitle: in.ErrorTitle,
+		Errors:     in.Errors,
+	}
+}
+
 func (a *ApiExchange[T]) Init() *ApiExchange[T] {
 	if a.StatusCode == 0 {
 		a.StatusCode = http.StatusOK

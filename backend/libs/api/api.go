@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"vp/libs/api/apifolder"
 	"vp/libs/api/apiplaylist"
+	"vp/libs/api/apirule"
+	"vp/libs/api/apitag"
 	"vp/libs/api/apivideo"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -22,9 +24,13 @@ func Setup(mux *http.ServeMux, conn *gorm.DB) {
 		apiFolder   = huma.NewGroup(apiGroup, "/folder")
 		apiVideo    = huma.NewGroup(apiGroup, "/video")
 		apiPlaylist = huma.NewGroup(apiGroup, "/playlist")
+		apiTag      = huma.NewGroup(apiGroup, "/tag")
+		apiRule     = huma.NewGroup(apiGroup, "/automatic-rule")
 	)
 
 	apifolder.Setup(apiFolder, conn)
 	apivideo.Setup(apiVideo, conn)
 	apiplaylist.Setup(apiPlaylist, conn)
+	apitag.Setup(apiTag, conn)
+	apirule.Setup(apiRule, conn)
 }

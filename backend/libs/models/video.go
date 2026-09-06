@@ -8,9 +8,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	. "vp/libs/utility"
 
 	"gorm.io/gorm"
 )
+
+func init() {
+	validate(&Video{})
+}
 
 type Video struct {
 	Id         string      `json:"id" gorm:"primaryKey"`
@@ -18,7 +23,8 @@ type Video struct {
 	Filename   string      `json:"filename" gorm:"index"`
 	FolderId   string      `json:"folderId"`
 	Attributes Attributes  `json:"attributes" gorm:"embedded;embeddedPrefix:attrib_"`
-	Playlists  []*Playlist `json:"playlists" gorm:"many2many:playlist_videos"`
+	Playlists  []*Playlist `json:"playlists,omitempty" gorm:"many2many:video_playlists"`
+	Tags       []*Tag      `json:"tags,omitempty" gorm:"many2many:video_tags"`
 	Folder     *Folder     `json:"folder" gorm:"foreignKey:FolderId;references:Id"`
 	CreatedAt  *time.Time  `json:"createdAt"`
 	UpdatedAt  *time.Time  `json:"updatedAt"`
@@ -67,6 +73,15 @@ func (f *Video) Validate(op ValidationOP, tx *gorm.DB) error {
 	case After | Create:
 	case After | Delete:
 	case After | Find:
+		_, err := os.Stat(f.Fullpath)
+		if err != nil && errors.Is(err, os.ErrNotExist) {
+			f.Attributes.Exists = Ptr(false)
+			if tx2 := tx.Save(&f); tx2.Error != nil {
+				errs = append(errs, tx2.Error)
+			}
+		} else {
+			f.Attributes.Exists = Ptr(true)
+		}
 	case After | Save:
 	case After | Update:
 	case Before | Create:
@@ -84,10 +99,13 @@ func (f *Video) Validate(op ValidationOP, tx *gorm.DB) error {
 		if f.UpdatedAt == nil || f.UpdatedAt.IsZero() {
 			f.UpdatedAt = &now
 		}
-		if f.Attributes.Exists {
-			if _, err := os.Lstat(f.Fullpath); err == nil {
-				f.Attributes.Exists = false
+		if f.Attributes.Exists != nil && *f.Attributes.Exists {
+			if _, err := os.Stat(f.Fullpath); err == nil {
+				f.Attributes.Exists = Ptr(false)
 			}
+		}
+		if f.Attributes.Watched == nil {
+			f.Attributes.Watched = Ptr(false)
 		}
 	case Before | Update:
 	}
@@ -118,4 +136,18 @@ func (v *Video) ReadDuration() error {
 
 	v.Attributes.Duration = time.Duration(seconds * float64(time.Second))
 	return nil
+}
+
+func (Video) Preload(conn *gorm.DB, preloadFolder, preloadPlaylist, preloadTags bool) *gorm.DB {
+	var newConn *gorm.DB = conn
+	if preloadPlaylist {
+		newConn = newConn.Preload("Playlists")
+	}
+	if preloadFolder {
+		newConn = newConn.Preload("Folder")
+	}
+	if preloadTags {
+		newConn = newConn.Preload("Tags")
+	}
+	return newConn
 }

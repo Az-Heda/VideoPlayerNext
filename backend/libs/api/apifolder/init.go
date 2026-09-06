@@ -3,10 +3,13 @@ package apifolder
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+	"vp/libs/api/apivideo"
+	"vp/libs/array"
 	. "vp/libs/definitions"
 	"vp/libs/models"
 
@@ -127,6 +130,7 @@ func Setup(g *huma.Group, conn *gorm.DB) {
 		Path:        "/{id}/stream",
 		Summary:     "Scan stream",
 		Description: "Scan all files in the folder and stream the results via SSE",
+		Tags:        append(tags, additionalTags["folder-scan-stream"]...),
 		Parameters: []*huma.Param{
 			{
 				In:          "path",
@@ -141,9 +145,9 @@ func Setup(g *huma.Group, conn *gorm.DB) {
 			http.StatusInternalServerError,
 		},
 	}, func(ctx context.Context, i *GetFolderStreamingRequest) (*huma.StreamResponse, error) {
-		var out = CB_GetFolder(conn, &GetFolderRequest{Id: i.Id, PreloadVideos: i.PreloadVideos})
+		var out = CB_GetFolder(conn, &GetFolderRequest{Id: i.Id, Preload: i.Preload})
 		out.Init()
-		if out.StatusCode != 200 {
+		if out.StatusCode != http.StatusOK {
 			return nil, huma.NewError(out.StatusCode, out.ErrorTitle, out.Errors...)
 		}
 		var folder = out.Value.Body
@@ -155,10 +159,22 @@ func Setup(g *huma.Group, conn *gorm.DB) {
 					template string             = "event: %s\ndata: %s\n\n"
 					ch       chan *models.Video = make(chan *models.Video, 1)
 					nextIter bool               = true
-					ticker                      = time.NewTicker(timeout)
+					ticker   *time.Ticker       = time.NewTicker(timeout)
 				)
 
-				go folder.ScanStream(ch)
+				hctx.SetHeader("Content-Type", "text/event-stream")
+				hctx.SetHeader("Cache-Control", "no-cache")
+
+				var videoRequest = apivideo.CB_ListVideo(conn, &apivideo.ListVideoRequest{Path: folder.Fullpath})
+				videoRequest.Init()
+				if videoRequest.StatusCode != http.StatusOK {
+					fmt.Fprintf(writer, template, "error", fmt.Sprintf("%s\n%s", videoRequest.ErrorTitle, errors.Join(videoRequest.Errors...).Error()))
+				}
+				var existingVideos []*models.Video = array.Map[[]models.Video, []*models.Video](videoRequest.Value.Body, func(v models.Video, _ int) *models.Video {
+					return &v
+				})
+
+				go folder.ScanStream(ch, existingVideos)
 				for nextIter {
 					ticker.Reset(timeout)
 					select {
@@ -167,10 +183,31 @@ func Setup(g *huma.Group, conn *gorm.DB) {
 							nextIter = false
 							fmt.Fprintf(writer, template, "end", "end 1")
 						} else {
-							if tx := conn.Create(&v); tx.Error != nil {
+							var newV models.Video
+							if tx := conn.FirstOrInit(&newV, models.Video{Fullpath: v.Fullpath}).Attrs(v); tx.Error != nil {
 								fmt.Fprintf(writer, template, "error", tx.Error.Error())
+							}
+							newV.Attributes = v.Attributes
+							newV.Playlists = v.Playlists
+							newV.Tags = v.Tags
+							newV.Folder = v.Folder
+
+							if tx := conn.Save(&newV); tx.Error != nil {
+								if errors.Is(tx.Error, gorm.ErrDuplicatedKey) {
+									var currentOne models.Video
+									if tx := conn.Where(models.Video{Fullpath: newV.Fullpath}).First(&currentOne); tx.Error != nil {
+										fmt.Fprintf(writer, template, "error", tx.Error.Error())
+									} else {
+										newV.Id = currentOne.Id
+										if b, err := json.Marshal(newV); err != nil {
+											fmt.Fprintf(writer, template, "error", err.Error())
+										} else {
+											fmt.Fprintf(writer, template, "video", string(b))
+										}
+									}
+								}
 							} else {
-								if b, err := json.Marshal(v); err != nil {
+								if b, err := json.Marshal(newV); err != nil {
 									fmt.Fprintf(writer, template, "error", err.Error())
 								} else {
 									fmt.Fprintf(writer, template, "video", string(b))

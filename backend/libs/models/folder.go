@@ -6,16 +6,21 @@ import (
 	"path/filepath"
 	"slices"
 	"time"
+	"vp/libs/utility"
 
 	"gorm.io/gorm"
 )
+
+func init() {
+	validate(&Folder{})
+}
 
 type Folder struct {
 	Id        string     `json:"id" gorm:"primaryKey"`
 	Fullpath  string     `json:"fullpath" gorm:"uniqueIndex"`
 	CreatedAt *time.Time `json:"createdAt"`
 	UpdatedAt *time.Time `json:"updatedAt"`
-	Videos    []*Video   `json:"videos" gorm:"foreignKey:FolderId;references:Id"`
+	Videos    []*Video   `json:"videos,omitempty" gorm:"foreignKey:FolderId;references:Id"`
 }
 
 func (f *Folder) AfterCreate(tx *gorm.DB) error {
@@ -80,15 +85,25 @@ func (f *Folder) Validate(op ValidationOP, tx *gorm.DB) error {
 	return errors.Join(errs...)
 }
 
-func (f *Folder) Scan() ([]*Video, error) {
-	return f.readFilesRecursive(f.Fullpath, nil, true)
+func (f *Folder) Scan(existingVideos []*Video) ([]*Video, error) {
+	var videoMap map[string]*Video = make(map[string]*Video)
+	for _, e := range existingVideos {
+		videoMap[e.Fullpath] = e
+	}
+
+	return f.readFilesRecursive(f.Fullpath, nil, true, videoMap)
 }
 
-func (f *Folder) ScanStream(ch chan *Video) ([]*Video, error) {
-	return f.readFilesRecursive(f.Fullpath, ch, true)
+func (f *Folder) ScanStream(ch chan *Video, existingVideos []*Video) ([]*Video, error) {
+	var videoMap map[string]*Video = make(map[string]*Video)
+	for _, e := range existingVideos {
+		videoMap[e.Fullpath] = e
+	}
+
+	return f.readFilesRecursive(f.Fullpath, ch, true, videoMap)
 }
 
-func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot bool) (files []*Video, err error) {
+func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot bool, existingVideos map[string]*Video) (files []*Video, err error) {
 	items, err := os.ReadDir(startPath)
 	if err != nil {
 		return nil, err
@@ -97,7 +112,7 @@ func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot boo
 	for _, item := range items {
 		var fullpath = filepath.Join(startPath, item.Name())
 		if item.IsDir() {
-			f, err := f.readFilesRecursive(fullpath, ch, false)
+			f, err := f.readFilesRecursive(fullpath, ch, false, existingVideos)
 			if err != nil {
 				return nil, err
 			}
@@ -111,7 +126,7 @@ func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot boo
 
 		info, err := item.Info()
 		if err != nil {
-			return nil, err
+			continue
 		}
 		var v *Video = &Video{
 			Fullpath: fullpath,
@@ -120,12 +135,18 @@ func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot boo
 			Folder:   f,
 			Attributes: Attributes{
 				Size:   info.Size(),
-				Exists: true,
+				Exists: utility.Ptr(true),
 			},
 		}
-		if err := v.ReadDuration(); err != nil {
-			return nil, err
+
+		if ev, ok := existingVideos[fullpath]; ok {
+			v.Attributes.Duration = ev.Attributes.Duration
+		} else {
+			if err := v.ReadDuration(); err != nil {
+				continue
+			}
 		}
+
 		if ch != nil {
 			ch <- v
 		}

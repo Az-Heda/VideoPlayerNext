@@ -23,6 +23,26 @@ var data = []IApi{
 			},
 		},
 	},
+	&ApiDefinition[GetVideoRequest, GetVideoResponse]{
+		Callback: CB_GetVideo,
+		Operation: huma.Operation{
+			OperationID: "video-get",
+			Method:      http.MethodGet,
+			Path:        "/{id}",
+			Summary:     "Get video info",
+			Description: "Get the desired video informations",
+			Parameters: []*huma.Param{
+				{
+					In:          "path",
+					Name:        "id",
+					Description: "Video id",
+				},
+			},
+			Errors: []int{
+				http.StatusInternalServerError,
+			},
+		},
+	},
 }
 
 func Setup(g *huma.Group, conn *gorm.DB) {

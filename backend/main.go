@@ -17,7 +17,9 @@ func init() {
 			TimeFormat:   "15:04:05 02/01/2006",
 			TimeLocation: loc,
 		},
-	)).With().Timestamp().Logger()
+	)).
+		// With().Caller().Logger().
+		With().Timestamp().Logger()
 }
 
 func main() {
