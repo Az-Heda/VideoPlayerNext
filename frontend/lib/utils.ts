@@ -1,0 +1,16 @@
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export function SortArrayObject<T extends object>(list: T[], property: (item: T) => any, order: 'asc' | 'desc' = 'asc'): T[] {
+  return list.toSorted((a, b): number => {
+    var valA = property(a);
+    var valB = property(b);
+    if (valA < valB) return { asc: -1, desc: 1 }[order];
+    if (valA > valB) return { asc: 1, desc: -1 }[order];
+    return 0;
+  })
+}
