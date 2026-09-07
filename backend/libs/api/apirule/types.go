@@ -73,4 +73,11 @@ type (
 	DeleteTagToRuleResponse struct {
 		Body models.Rule
 	}
+
+	ApplyRuleRequest struct {
+		Ids []string `query:"id,explode"`
+	}
+	ApplyRuleResponse struct {
+		Body []models.Video
+	}
 )

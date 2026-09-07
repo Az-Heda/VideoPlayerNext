@@ -3,8 +3,11 @@ package apirule
 import (
 	"net/http"
 	"regexp"
+	"slices"
 	"vp/libs/api/apiplaylist"
 	"vp/libs/api/apitag"
+	"vp/libs/api/apivideo"
+	"vp/libs/array"
 	. "vp/libs/definitions"
 	"vp/libs/models"
 
@@ -314,4 +317,91 @@ func CB_DeleteTagToRule(conn *gorm.DB, i *DeleteTagToRuleRequest) ApiExchange[De
 		Value:      &DeleteTagToRuleResponse{Body: rule},
 		StatusCode: http.StatusOK,
 	}
+}
+
+// 200 OK
+//
+// 400 Bad Request
+//
+// 500 Internal Server Error
+func CB_ApplyRuleStream(conn *gorm.DB, i *ApplyRuleRequest) ApiExchange[ApplyRuleResponse] {
+	var ruleRequest = CB_ListRule(conn, &ListRuleRequest{Ids: i.Ids, Preload: Preload{PreloadPlaylist: true, PreloadTags: true}})
+	ruleRequest.Init()
+	if ruleRequest.StatusCode != http.StatusOK {
+		return ConvertApiExchange[ListRuleResponse, ApplyRuleResponse](ruleRequest)
+	}
+
+	var videoRequest = apivideo.CB_ListVideo(conn, &apivideo.ListVideoRequest{Preload: apivideo.Preload{PreloadPlaylist: true, PreloadFolder: true, PreloadTags: true}})
+	videoRequest.Init()
+	if videoRequest.StatusCode != http.StatusOK {
+		return ConvertApiExchange[apivideo.ListVideoResponse, ApplyRuleResponse](videoRequest)
+	}
+	var rules = ruleRequest.Value.Body
+	var videos = videoRequest.Value.Body
+
+	rules = array.Map[[]models.Rule, []models.Rule](rules, func(r models.Rule, idx int) models.Rule {
+		if r.Playlists == nil {
+			r.Playlists = &[]*models.Playlist{}
+		}
+		if r.Tags == nil {
+			r.Tags = &[]*models.Tag{}
+		}
+
+		r.Regex, r.RegexError = regexp.Compile(r.RegexRaw)
+		return r
+	})
+	rules = array.Filter(rules, func(r models.Rule, idx int) bool {
+		if r.Regex == nil {
+			return false
+		}
+		return true
+	})
+
+	var updatedVideos []models.Video
+	for _, vid := range videos {
+		var updates int
+		for _, r := range rules {
+			if matches := r.Regex.FindAllString(vid.Fullpath, -1); len(matches) > 0 {
+				var existingPlaylists []string = array.Map[[]*models.Playlist, []string](vid.Playlists, func(item *models.Playlist, _ int) string {
+					return item.Id
+				})
+				var existingTags []string = array.Map[[]*models.Tag, []string](vid.Tags, func(item *models.Tag, _ int) string {
+					return item.Id
+				})
+
+				for _, p := range *r.Playlists {
+					if !slices.Contains(existingPlaylists, p.Id) {
+						updates += 1
+						vid.Playlists = append(vid.Playlists, p)
+					}
+				}
+
+				for _, t := range *r.Tags {
+					if !slices.Contains(existingTags, t.Id) {
+						updates += 1
+						vid.Tags = append(vid.Tags, t)
+					}
+				}
+			}
+		}
+		if updates > 0 {
+			updatedVideos = append(updatedVideos, vid)
+		}
+	}
+
+	if len(updatedVideos) > 0 {
+		if tx := conn.Save(&updatedVideos); tx.Error != nil {
+			return ApiExchangeDatabaseError[ApplyRuleResponse](tx.Error)
+		}
+
+		return ApiExchange[ApplyRuleResponse]{
+			Value:      &ApplyRuleResponse{Body: updatedVideos},
+			StatusCode: http.StatusOK,
+		}
+	}
+	return ApiExchange[ApplyRuleResponse]{
+		StatusCode: http.StatusOK,
+		Value:      &ApplyRuleResponse{Body: make([]models.Video, 0)},
+	}
+
 }

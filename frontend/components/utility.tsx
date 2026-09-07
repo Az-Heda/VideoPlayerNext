@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 import { Component, ComponentProps, JSX, ReactNode } from "react"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 
 type ShowIfProps = {

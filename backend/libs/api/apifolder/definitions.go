@@ -1,15 +1,22 @@
 package apifolder
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"vp/libs/api/apivideo"
 	"vp/libs/array"
 	. "vp/libs/definitions"
 	"vp/libs/models"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -219,5 +226,120 @@ func CB_CleanupFolders(conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[Clean
 	return ApiExchange[CleanupFolderResponse]{
 		Value:      &retValue,
 		StatusCode: http.StatusOK,
+	}
+}
+
+// 200 OK
+//
+// 404 Not Found
+//
+// 409 Conflict
+//
+// 500 Internal Server Error
+func CB_ScanFolderStream(conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchange[huma.StreamResponse] {
+	var out = CB_GetFolder(conn, &GetFolderRequest{Id: i.Id, Preload: i.Preload})
+	out.Init()
+	if out.StatusCode != http.StatusOK {
+		return ConvertApiExchange[GetFolderResponse, huma.StreamResponse](out)
+	}
+
+	var folder = out.Value.Body
+	return ApiExchange[huma.StreamResponse]{
+		StatusCode: http.StatusOK,
+		Value: &huma.StreamResponse{
+			Body: func(hctx huma.Context) {
+				var (
+					timeout  time.Duration      = time.Second * 5
+					writer   io.Writer          = hctx.BodyWriter()
+					template string             = "event: %s\ndata: %s\n\n"
+					ch       chan *models.Video = make(chan *models.Video, 1)
+					nextIter bool               = true
+					ticker   *time.Ticker       = time.NewTicker(timeout)
+				)
+
+				hctx.SetHeader("Content-Type", "text/event-stream")
+				hctx.SetHeader("Cache-Control", "no-cache")
+
+				var videoRequest = apivideo.CB_ListVideo(conn, &apivideo.ListVideoRequest{Path: folder.Fullpath})
+				videoRequest.Init()
+				if videoRequest.StatusCode != http.StatusOK {
+					fmt.Fprintf(writer, template, "error", fmt.Sprintf("%s\n%s", videoRequest.ErrorTitle, errors.Join(videoRequest.Errors...).Error()))
+				}
+				var existingVideos []*models.Video = array.Map[[]models.Video, []*models.Video](videoRequest.Value.Body, func(v models.Video, _ int) *models.Video {
+					return &v
+				})
+				var existingVideoMap = array.Reduce[[]*models.Video, *models.Video, map[string]*models.Video](existingVideos, make(map[string]*models.Video), func(prev map[string]*models.Video, curr *models.Video, idx int) map[string]*models.Video {
+					prev[curr.Fullpath] = curr
+					return prev
+				})
+
+				go folder.ScanStream(ch, existingVideos)
+				for nextIter {
+					ticker.Reset(timeout)
+					select {
+					case v := <-ch:
+						if v.Folder == nil {
+							nextIter = false
+							fmt.Fprintf(writer, template, "end", "end 1")
+						} else {
+							var newV models.Video = models.Video{Fullpath: v.Fullpath}
+							if tx := conn.FirstOrInit(&newV, models.Video{Fullpath: v.Fullpath}).Attrs(v); tx.Error != nil {
+								fmt.Fprintf(writer, template, "error", tx.Error.Error())
+							}
+							newV.Attributes = v.Attributes
+							newV.Playlists = v.Playlists
+							newV.Tags = v.Tags
+							newV.Folder = v.Folder
+
+							if existing, ok := existingVideoMap[v.Fullpath]; ok {
+								log.Debug().
+									Bool("watched", *existing.Attributes.Watched).
+									Msg(existing.Filename)
+								newV.Attributes = existing.Attributes
+								newV.Playlists = existing.Playlists
+								newV.Tags = existing.Tags
+							}
+
+							if tx := conn.Save(&newV); tx.Error != nil {
+								if errors.Is(tx.Error, gorm.ErrDuplicatedKey) {
+									var currentOne models.Video
+									if tx := conn.Where(models.Video{Fullpath: newV.Fullpath}).First(&currentOne); tx.Error != nil {
+										fmt.Fprintf(writer, template, "error", tx.Error.Error())
+									} else {
+										newV.Id = currentOne.Id
+										if b, err := json.Marshal(newV); err != nil {
+											fmt.Fprintf(writer, template, "error", err.Error())
+										} else {
+											fmt.Fprintf(writer, template, "video", string(b))
+										}
+									}
+								}
+							} else {
+								if b, err := json.Marshal(newV); err != nil {
+									fmt.Fprintf(writer, template, "error", err.Error())
+								} else {
+									fmt.Fprintf(writer, template, "video", string(b))
+								}
+							}
+						}
+						if flusher, ok := writer.(http.Flusher); ok {
+							flusher.Flush()
+						}
+					case <-hctx.Context().Done():
+						nextIter = false
+						fmt.Fprintf(writer, template, "end", "end 2")
+						if flusher, ok := writer.(http.Flusher); ok {
+							flusher.Flush()
+						}
+					case <-ticker.C:
+						nextIter = false
+						fmt.Fprintf(writer, template, "end", "end 3")
+						if flusher, ok := writer.(http.Flusher); ok {
+							flusher.Flush()
+						}
+					}
+				}
+			},
+		},
 	}
 }

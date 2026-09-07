@@ -26,4 +26,12 @@ type (
 	GetVideoResponse struct {
 		Body models.Video
 	}
+
+	PatchVideoWatchedRequest struct {
+		Id      string `path:"id"`
+		Watched bool   `query:"attr,required"`
+	}
+	PatchVideoWatchedResponse struct {
+		Body models.Video
+	}
 )

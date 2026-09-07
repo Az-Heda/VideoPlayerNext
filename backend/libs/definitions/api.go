@@ -18,7 +18,6 @@ type (
 	}
 	ApiDefinition[In, Out any] struct {
 		Operation huma.Operation
-		Fn        ApiFn
 		Callback  func(conn *gorm.DB, input *In) ApiExchange[Out]
 	}
 	IApi interface {

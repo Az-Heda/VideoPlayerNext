@@ -1,6 +1,6 @@
 "use client";
 
-import { ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
+import { ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
 import { Explore } from "@/components/explore";
 import { AppSidebar } from "@/components/sidebar"
 import { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from "@/components/ui/attachment";
@@ -78,7 +78,7 @@ export default function Page() {
                                     <Film />
                                   </AttachmentMedia>
                                   <AttachmentContent>
-                                    <AttachmentTitle>{p.name}</AttachmentTitle>
+                                    <AttachmentTitle className="overflow-x-clip text-ellipsis">{p.name}</AttachmentTitle>
                                     <AttachmentDescription>{config.Api.Data.Videos.Getter?.filter(x => x.playlists?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
                                   </AttachmentContent>
                                   <AttachmentActions>
@@ -140,6 +140,7 @@ export default function Page() {
         <ModalKeybinds Config={config} />
         <ModalSettings Config={config} />
         <ModalSyncData Config={config} />
+        <ModalApplyAutomaticRules Config={config} />
 
         <PlaylistSelector Config={config} />
         <TagSelector Config={config} />

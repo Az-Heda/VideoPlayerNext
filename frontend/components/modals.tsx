@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Marker, MarkerContent } from "@/components/ui/marker";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { CommandShortcut } from "@/components/ui/command";
+import { Spinner } from "@/components/ui/spinner";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 type CommonProps = {
   Config: GlobalConfigType;
@@ -44,6 +47,7 @@ type ModalThemeSelectorProps = CommonProps & {};
 type ModalKeybindsProps = CommonProps & {};
 type ModalSettingsProps = CommonProps & {};
 type ModalSyncDataProps = CommonProps & {};
+type ModalApplyAutomaticRules = CommonProps & {};
 type PlaylistSelectorProps = CommonProps & {};
 type TagSelectorProps = CommonProps & {};
 
@@ -186,7 +190,6 @@ export function ModalAudioContext(props: ModalAudioContextProps) {
   </GeneralModal>
 }
 
-
 export function ModalThemeSelector(props: ModalThemeSelectorProps) {
   return <GeneralModal
     Config={props.Config}
@@ -214,15 +217,184 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
 }
 
 export function ModalSettings(props: ModalSettingsProps) {
+  const LS_Key = "vp-settings"
+  const [settingsModalKind, setSettingsModalKind] = useState<typeof props.Config.Settings.ModalKind.Getter>(props.Config.Settings.ModalKind.Getter);
+  const [settingsModalSide, setSettingsModalSide] = useState<typeof props.Config.Settings.ModalSide.Getter>(props.Config.Settings.ModalSide.Getter);
+  const [settingsVideoPrivacyMode, setSettingsVideoPrivacyMode] = useState<typeof props.Config.Settings.PrivacyVideoMode.Getter>(false);
+
+  const allSettings = useMemo(() => {
+    return {
+      settingsModalKind,
+      settingsModalSide,
+      settingsVideoPrivacyMode,
+    }
+  }, [
+    settingsModalKind,
+    settingsModalSide,
+    settingsVideoPrivacyMode,
+  ])
+
+  function reset() {
+    const stored = window.localStorage.getItem(LS_Key);
+    if (typeof stored == 'string') {
+      const settings = JSON.parse(stored) as typeof allSettings;
+      setSettingsModalKind(settings.settingsModalKind);
+      setSettingsModalSide(settings.settingsModalSide);
+      setSettingsVideoPrivacyMode(settings.settingsVideoPrivacyMode);
+
+      props.Config.Settings.ModalKind.Setter(settings.settingsModalKind);
+      props.Config.Settings.ModalSide.Setter(settings.settingsModalSide);
+      props.Config.Settings.PrivacyVideoMode.Setter(settings.settingsVideoPrivacyMode);
+    } else {
+      setSettingsModalKind(props.Config.Settings.ModalKind.Getter);
+      setSettingsModalSide(props.Config.Settings.ModalSide.Getter);
+      setSettingsVideoPrivacyMode(props.Config.Settings.PrivacyVideoMode.Getter);
+    }
+  }
+
+  function submit() {
+    props.Config.Sidebar.Bottom.SettingsModal.Setter(false);
+    saveToLocalStorage();
+    reset();
+  }
+
+  function saveToLocalStorage() {
+    window.localStorage.setItem(LS_Key, JSON.stringify(allSettings))
+  }
+
+  useEffect(() => {
+    reset();
+  }, [props.Config.Sidebar.Bottom.SettingsModal.Getter])
+
+
   return <GeneralModal
     Config={props.Config}
     open={props.Config.Sidebar.Bottom.SettingsModal.Getter}
     setOpen={props.Config.Sidebar.Bottom.SettingsModal.Setter}
     title="Settings"
+    cancelBtn={<Button variant="secondary" onClick={() => reset()}>Cancel</Button>}
+    confirmBtn={<Button onClick={() => submit()}>Confirm</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
-    Not implemented
+
+    <div className="w-full grid grid-cols-2 justify-between gap-y-2">
+
+      <Marker variant="separator" className="pb-2 col-span-2">
+        <MarkerContent>Modals</MarkerContent>
+      </Marker>
+
+      <Label htmlFor="settings-kind">Kind</Label>
+      <Select value={settingsModalKind} onValueChange={(val) => setSettingsModalKind(val as typeof settingsModalKind)}>
+        <SelectTrigger className="w-full">
+          <SelectValue id="settings-kind" className="w-full" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="dialog">Dialog</SelectItem>
+          <SelectItem value="drawer">Drawer</SelectItem>
+          <SelectItem value="sheet">Sheet</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Label htmlFor="settings-side">Side</Label>
+      <Select
+        value={settingsModalSide}
+        onValueChange={(val) => setSettingsModalSide(val as typeof settingsModalSide)}
+        disabled={settingsModalKind == 'dialog'}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue id="settings-side" className="w-full" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="top">Top</SelectItem>
+          <SelectItem value="right">Right</SelectItem>
+          <SelectItem value="bottom">Bottom</SelectItem>
+          <SelectItem value="left">Left</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Marker variant="separator" className="pb-2 col-span-2">
+        <MarkerContent>Video table</MarkerContent>
+      </Marker>
+
+      <Label htmlFor="privacyMode">Privacy mode</Label>
+      <span className="w-full flex gap-2">
+        <Switch checked={settingsVideoPrivacyMode} onCheckedChange={setSettingsVideoPrivacyMode} />
+        {settingsVideoPrivacyMode ? 'On' : 'Off'}
+      </span>
+    </div>
+
+  </GeneralModal>
+}
+
+export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
+  const [requestStatus, setRequestStatus] = useState<'not-started' | 'waiting' | 'done'>('not-started');
+  const [updatedVideos, setUpdatedVideos] = useState<ApiVideo[]>();
+
+  useEffect(() => {
+    setUpdatedVideos(undefined);
+    setRequestStatus('not-started');
+  }, [props.Config.Sidebar.Top.AutomaticRuleModel.Getter])
+
+  return <GeneralModal
+    Config={props.Config}
+    open={props.Config.Sidebar.Top.AutomaticRuleModel.Getter}
+    setOpen={props.Config.Sidebar.Top.AutomaticRuleModel.Setter}
+    title="Apply automatic rules"
+    description="You can apply all of the automatic rules to automatically update playlists and tags"
+    cancelBtn={<Button variant="secondary">Cancel</Button>}
+    kind={props.Config.Settings.ModalKind.Getter}
+    side={props.Config.Settings.ModalSide.Getter}
+  >
+    <div className="flex items-center justify-between">
+      <span>
+        {
+          props.Config.Api.Data.Rules.Getter !== undefined
+            ? <>Found {props.Config.Api.Data.Rules.Getter.length} rules</>
+            : <>Cannot find any rule</>
+        }
+      </span>
+      <Button
+        onClick={() => {
+          props.Config.Api.Instance.GetRuleList()
+            .then(props.Config.Api.Data.Rules.Setter);
+        }}
+      >Refresh rules</Button>
+    </div>
+
+    <Button
+      className="mt-4 w-full"
+      disabled={(props.Config.Api.Data.Rules.Getter?.length ?? 0) == 0 && requestStatus != 'waiting' }
+      onClick={() => {
+        setRequestStatus('waiting')
+        props.Config.Api.Instance.ApplyAutomaticRule()
+          .then(updatedVideos => {
+            const updatedVideosObj = Object.fromEntries(updatedVideos.map(v => [v.id, v]));
+            const updatedVideosIds = Object.keys(updatedVideosObj);
+            setRequestStatus('done')
+            setUpdatedVideos(updatedVideos);
+            props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : [...videos.map(v => {
+              if (!updatedVideosIds.includes(v.id)) return v;
+              console.log(v.id, v);
+              return updatedVideosObj[v.id];
+            }
+            )]);
+          });
+      }}
+    >
+      {
+        requestStatus != 'waiting'
+          ? <>Apply rules</>
+          : <><Spinner />Applying rules</>
+      }
+    </Button>
+
+    {updatedVideos && <>
+      <Marker variant="separator" className="py-4">
+        <MarkerContent>Results</MarkerContent>
+      </Marker>
+      <div>Updated {updatedVideos.length} videos</div>
+    </>}
   </GeneralModal>
 }
 
@@ -384,7 +556,7 @@ export function ModalSyncData(props: ModalSyncDataProps) {
           </Button>
         </>
       )
-        : step == 'scan' ? <>Scanning the folder: Found {updatedVideos.length} videos</>
+        : step == 'scan' ? <>Scanning the folder: Found <span className="font-mono">{updatedVideos.length.toLocaleString('it-IT')}</span> videos</>
           : step == 'end' ? <>Finish scanning: Found {updatedVideos.length} videos</>
             : <></>
     }

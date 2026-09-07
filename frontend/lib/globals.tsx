@@ -1,8 +1,8 @@
 "use client";
 
-import { AudioLines, File, Film, Globe, Keyboard, Palette, RefreshCw, Settings, Waypoints, X } from "lucide-react";
+import { AudioLines, File, FileVideo, Film, Globe, Keyboard, Palette, RefreshCw, Settings, SquareFunction, Waypoints, X } from "lucide-react";
 import { ComponentProps, Dispatch, JSX, SetStateAction, useEffect, useMemo, useState } from "react";
-import { ApiFolder, ApiPlaylist, ApiRequest, ApiTag, ApiVideo } from "@/lib/api";
+import { ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
 import { Drawer } from "@/components/ui/drawer";
 
@@ -26,6 +26,7 @@ export type GlobalConfigType = {
       Playlists: GetterSetter<ApiPlaylist[] | undefined>;
       Folders: GetterSetter<ApiFolder[] | undefined>;
       Tags: GetterSetter<ApiTag[] | undefined>;
+      Rules: GetterSetter<ApiRule[] | undefined>;
     };
   };
   Filters: {
@@ -40,6 +41,7 @@ export type GlobalConfigType = {
       RemoveVideo: SidebarItem<boolean>;
       FromFileModal: SidebarItem<boolean>;
       FromUrlModal: SidebarItem<boolean>;
+      AutomaticRuleModel: SidebarItem<boolean>;
       AudioContextModal: SidebarItem<boolean>;
       SyncDataModal: SidebarItem<boolean>;
     };
@@ -67,7 +69,8 @@ export type GlobalConfigType = {
   },
   Settings: {
     ModalKind: GetterSetter<'dialog' | 'drawer' | 'sheet'>;
-    ModalSide: GetterSetter<ComponentProps<typeof SheetContent>['side'] | ComponentProps<typeof Drawer>['direction']>
+    ModalSide: GetterSetter<ComponentProps<typeof SheetContent>['side'] | ComponentProps<typeof Drawer>['direction']>;
+    PrivacyVideoMode: GetterSetter<boolean>;
   }
 }
 
@@ -82,12 +85,14 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [openKeybinds, setOpenKeybinds] = useState(false);
   const [openSyncData, setOpenSyncData] = useState(false);
   const [removeVideo, setRemoveVideo] = useState(false);
+  const [openAutomaticRule, setOpenAutomaticRule] = useState(false);
 
   const [selectedVideo, setSelectetdVideo] = useState<ApiVideo | undefined>();
   const [apiVideos, setApiVideos] = useState<ApiVideo[]>();
   const [apiPlaylists, setApiPlaylists] = useState<ApiPlaylist[]>();
   const [apiFolders, setApiFolders] = useState<ApiFolder[]>();
   const [apiTagas, setApiTags] = useState<ApiTag[]>();
+  const [apiRules, setApiRules] = useState<ApiRule[]>();
 
   const [filterFolder, setFilterFolder] = useState<ApiFolder>();
   const [filterPlaylist, setFilterPlaylist] = useState<ApiPlaylist>();
@@ -104,6 +109,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
 
   const [settingsModalKind, setSettingsModalKind] = useState<GlobalConfigType['Settings']['ModalKind']['Getter']>('sheet');
   const [settingsModalSide, setSettingsModalSide] = useState<GlobalConfigType['Settings']['ModalSide']['Getter']>('right');
+  const [privacyVideoMode, setPrivacyVideoMode] = useState(false);
 
   const showHideVideo = useMemo(() => selectedVideo != undefined, [selectedVideo]);
 
@@ -120,6 +126,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
         Playlists: { Getter: apiPlaylists, Setter: setApiPlaylists, },
         Folders: { Getter: apiFolders, Setter: setApiFolders, },
         Tags: { Getter: apiTagas, Setter: setApiTags, },
+        Rules: { Getter: apiRules, Setter: setApiRules, },
       },
     },
     Filters: {
@@ -138,7 +145,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       Top: {
         RemoveVideo: {
           Icon: <X />,
-          Title: "Hide video",
+          Title: "Remove video",
           Getter: removeVideo,
           Setter: setRemoveVideo,
           Visibility: showHideVideo,
@@ -147,7 +154,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
           },
         },
         FromFileModal: {
-          Icon: <File />,
+          Icon: <FileVideo />,
           Title: "Open from file",
           Getter: openImportFromFile,
           Setter: setOpenFromFile,
@@ -159,6 +166,13 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
           Getter: openImportFromUrl,
           Setter: setOpenFromUrl,
           Action() { setOpenFromUrl(!openImportFromUrl) },
+        },
+        AutomaticRuleModel: {
+          Icon: <SquareFunction />,
+          Title: "Apply automatic rules",
+          Getter: openAutomaticRule,
+          Setter: setOpenAutomaticRule,
+          Action() { setOpenAutomaticRule(!openAutomaticRule) },
         },
         AudioContextModal: {
           Icon: <AudioLines />,
@@ -173,7 +187,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
           Getter: openSyncData,
           Setter: setOpenSyncData,
           Action() { setOpenSyncData(!openSyncData) },
-        }
+        },
       },
       Bottom: {
         ThemeModal: {
@@ -227,6 +241,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
     Settings: {
       ModalKind: { Getter: settingsModalKind, Setter: setSettingsModalKind, },
       ModalSide: { Getter: settingsModalSide, Setter: setSettingsModalSide, },
+      PrivacyVideoMode: { Getter: privacyVideoMode, Setter: setPrivacyVideoMode, },
     }
   } as const;
 }

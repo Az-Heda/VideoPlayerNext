@@ -202,6 +202,20 @@ var data = []IApi{
 			},
 		},
 	},
+	&ApiDefinition[ApplyRuleRequest, ApplyRuleResponse]{
+		Callback: CB_ApplyRuleStream,
+		Operation: huma.Operation{
+			OperationID: "rule-apply",
+			Method:      http.MethodGet,
+			Path:        "/apply",
+			Summary:     "Apply all automatic rules",
+			Description: "Apply all of the rules (or the ones choosed) and return the videos with SSE",
+			Errors: []int{
+				http.StatusBadRequest,
+				http.StatusInternalServerError,
+			},
+		},
+	},
 }
 
 func Setup(g *huma.Group, conn *gorm.DB) {
@@ -213,3 +227,5 @@ func Setup(g *huma.Group, conn *gorm.DB) {
 		iapi.Register(g, conn)
 	}
 }
+
+//! Fare endpoint SSE sulle regole per eseguire tutte le regole automatiche (magari mettere filtro con gli id delle regole in input da eseguire, stile endpoint list)

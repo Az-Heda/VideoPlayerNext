@@ -1,15 +1,15 @@
 import { GlobalConfigType } from "@/lib/globals";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import { MainvideoTable } from "./video-table";
-import { ScrollArea } from "./ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Film, Hash, X } from "lucide-react";
-import { Attachment, AttachmentMedia, AttachmentContent, AttachmentTitle, AttachmentDescription, AttachmentActions, AttachmentAction } from "./ui/attachment";
-import { Button } from "./ui/button";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "./ui/empty";
-import { Spinner } from "./ui/spinner";
+import { Attachment, AttachmentMedia, AttachmentContent, AttachmentTitle, AttachmentDescription, AttachmentActions, AttachmentAction } from "@/components/ui/attachment";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import { SortArrayObject } from "@/lib/utils";
 
 type CommonProps = {
@@ -85,7 +85,7 @@ export function ExplorePlaylists(props: ExplorePlaylistsProps) {
             <Film />
           </AttachmentMedia>
           <AttachmentContent>
-            <AttachmentTitle>{p.name}</AttachmentTitle>
+            <AttachmentTitle className="overflow-x-clip text-ellipsis">{p.name}</AttachmentTitle>
             <AttachmentDescription>{props.config.Api.Data.Videos.Getter?.filter(x => x.playlists?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
           </AttachmentContent>
           <AttachmentActions>
@@ -131,7 +131,7 @@ export function ExploreTags(props: ExploreTagsProps) {
             <Hash />
           </AttachmentMedia>
           <AttachmentContent>
-            <AttachmentTitle>{p.name}</AttachmentTitle>
+            <AttachmentTitle className="overflow-x-clip text-ellipsis">{p.name}</AttachmentTitle>
             <AttachmentDescription>{props.config.Api.Data.Videos.Getter?.filter(x => x.tags?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
           </AttachmentContent>
           <AttachmentActions>

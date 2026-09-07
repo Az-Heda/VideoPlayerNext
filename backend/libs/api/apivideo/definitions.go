@@ -95,3 +95,32 @@ func CB_GetVideo(conn *gorm.DB, i *GetVideoRequest) ApiExchange[GetVideoResponse
 		return ApiExchange[GetVideoResponse]{StatusCode: http.StatusConflict}
 	}
 }
+
+// 200 OK
+//
+// 400 Bad Request
+//
+// 404 Not Found
+//
+// 409 Conflict
+//
+// 500 Internal Server Error
+func CB_SetVideoWatched(conn *gorm.DB, i *PatchVideoWatchedRequest) ApiExchange[PatchVideoWatchedResponse] {
+	var videoRequest = CB_GetVideo(conn, &GetVideoRequest{Id: i.Id, Preload: Preload{PreloadPlaylist: true, PreloadFolder: true, PreloadTags: true}})
+	videoRequest.Init()
+	if videoRequest.StatusCode != http.StatusOK {
+		return ConvertApiExchange[GetVideoResponse, PatchVideoWatchedResponse](videoRequest)
+	}
+
+	var video = videoRequest.Value.Body
+
+	video.Attributes.Watched = &i.Watched
+	if tx := conn.Save(&video); tx.Error != nil {
+		return ApiExchangeDatabaseError[PatchVideoWatchedResponse](tx.Error)
+	}
+
+	return ApiExchange[PatchVideoWatchedResponse]{
+		Value:      &PatchVideoWatchedResponse{Body: video},
+		StatusCode: http.StatusOK,
+	}
+}

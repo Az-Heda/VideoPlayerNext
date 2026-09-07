@@ -14,3 +14,9 @@ export function SortArrayObject<T extends object>(list: T[], property: (item: T)
     return 0;
   })
 }
+
+export function HumanReadableBytes(bytes: number): string {
+  const exponent = Math.floor(Math.log(bytes) / Math.log(1024.0))
+  const decimal = (bytes / Math.pow(1024.0, exponent)).toFixed(exponent ? 2 : 0)
+  return `${decimal} ${exponent ? `${'kMGTPEZY'[exponent - 1]}B` : 'B'}`
+}

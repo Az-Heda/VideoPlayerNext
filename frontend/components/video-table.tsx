@@ -1,23 +1,24 @@
 import { ApiPlaylist, ApiVideo } from "@/lib/api";
 import { GlobalConfigType } from "@/lib/globals"
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import { ColumnFiltersState, createColumnHelper, SortingState, useTable, type ColumnDef, type RowData } from "@tanstack/react-table"
+import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable, type ColumnDef, type RowData } from "@tanstack/react-table"
 import { features, DataTableFeatures } from "@/components/data-table-features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Cpu, Film, Hash, ListMinus, OctagonAlert, Plus, Star, X } from "lucide-react";
-import { Badge } from "./ui/badge";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { cn, HumanReadableBytes } from "@/lib/utils";
 import { Description, RatingStars, Typography } from "./utility";
-import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "./ui/context-menu";
-import { Label } from "./ui/label";
-import { Select, SelectTrigger, SelectValue } from "./ui/select";
-import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue } from "./ui/combobox";
-import { ButtonGroup } from "./ui/button-group";
+import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue } from "@/components/ui/combobox";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { GeneralModal } from "./modals";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "./ui/command";
-import { Input } from "./ui/input";
-import { Marker, MarkerContent } from "./ui/marker";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { Marker, MarkerContent } from "@/components/ui/marker";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 
 type MainVideoTableProps = {
@@ -28,6 +29,10 @@ export function MainvideoTable(props: MainVideoTableProps) {
   const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
   const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
+    'col-rating': false,
+    'col-size': false,
+  });
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'col-folder', desc: false },
     { id: 'col-filename', desc: false },
@@ -87,14 +92,44 @@ export function MainvideoTable(props: MainVideoTableProps) {
         return true;
       },
       cell({ row }) {
-        switch (row.original.attributes.watched) {
-          case true:
-            return <Check />
-          case false:
-            return <X />
-          default:
-            return <OctagonAlert />
+        var onClickFN = () => {
+          props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: !row.original.attributes.watched })
+            .then(video => {
+              props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
+                if (v.id != video.id) return v;
+                return video;
+              }))
+            });
         }
+
+        const icons = {
+          'true': <Check />,
+          'false': <X />,
+          'undefined': <OctagonAlert />,
+        };
+        const labels = {
+          'true': 'Yes',
+          'false': 'No',
+          'undefined': 'Unknown',
+        }
+        const colors = {
+          'true': 'bg-emerald-500 text-emerald-950 hover:bg-emerald-600',
+          'false': 'bg-rose-500 text-rose-950 hover:bg-rose-600',
+          'undefined': 'bg-amber-500 text-amber-950 hover:bg-amber-600',
+        }
+
+        return <div
+          className="flex items-center gap-1"
+          onClick={onClickFN}
+        >
+          <Button
+            size="icon"
+            className={cn(colors[`${row.original.attributes.watched}`])}
+          >
+            {icons[`${row.original.attributes.watched}`]}
+          </Button>
+          {labels[`${row.original.attributes.watched}`]}
+        </div>
       }
     }),
     columnHelper.accessor('filename', {
@@ -122,6 +157,13 @@ export function MainvideoTable(props: MainVideoTableProps) {
           className="block overflow-hidden truncate text-ellipsis max-w-150"
           onClick={() => {
             props.Config.VideoPlayer.Selected.Setter(row.original);
+            if (!row.original.attributes.watched && !props.Config.Settings.PrivacyVideoMode.Getter) {
+              props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: true })
+                .then(vid => props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
+                  if (v.id != vid.id) return v;
+                  return vid;
+                })))
+            }
           }}
         >
           {row.original?.filename}
@@ -160,6 +202,16 @@ export function MainvideoTable(props: MainVideoTableProps) {
         if (priorityA && !priorityB) return -1;
         if (priorityB && !priorityA) return 1;
         return a.localeCompare(b);
+      }
+    }),
+    columnHelper.accessor("attributes.size", {
+      ...commonProperties as any,
+      id: 'col-size',
+      header: 'File size',
+      size: 15,
+      cell({ row }) {
+        const bytes = row.original.attributes.size;
+        return <span>{HumanReadableBytes(bytes)}</span>
       }
     }),
     columnHelper.accessor("id", {
@@ -205,6 +257,9 @@ export function MainvideoTable(props: MainVideoTableProps) {
     data: visibleVideos,
     columns: columns,
     enableSorting: true,
+
+    autoResetPageIndex: false,
+
     initialState: {
       sorting: [
         { id: 'col-folder', desc: false },
@@ -215,10 +270,12 @@ export function MainvideoTable(props: MainVideoTableProps) {
     state: {
       sorting,
       columnFilters,
+      columnVisibility,
     },
 
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
   });
 
   useEffect(() => {
@@ -283,6 +340,33 @@ export function MainvideoTable(props: MainVideoTableProps) {
             </SelectTrigger>
           </Select>
         </Label>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {
+              tbl
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id.replace('col-', '')}
+                  </DropdownMenuCheckboxItem>
+                ))
+            }
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <Table>
         <TableHeader>

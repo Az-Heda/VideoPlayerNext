@@ -22,7 +22,7 @@ type RequestOptions = {
 
 
 type GetVideoListFilter = {
-  id?: ApiVideo['id'];
+  id?: ApiVideo['id'] | ApiVideo['id'][];
   path?: ApiVideo['fullpath'];
   watched?: boolean;
   'show-only-existing': boolean;
@@ -31,20 +31,26 @@ type GetVideoListFilter = {
   preloadTags?: boolean;
 }
 type GetPlaylistListFilter = {
-  id?: ApiPlaylist['id'];
+  id?: ApiPlaylist['id'] | ApiPlaylist['id'][];
   name?: ApiPlaylist['name'];
   preloadVideos?: boolean;
   preloadFolders?: boolean;
 }
 type GetFolderListFilter = {
-  id?: ApiFolder['id'];
+  id?: ApiFolder['id'] | ApiFolder['id'][];
   path?: ApiFolder['fullpath'];
   preloadVideos?: boolean;
 }
 type GetTagListFilter = {
-  id?: ApiTag['id'];
+  id?: ApiTag['id'] | ApiTag['id'][];
   name?: ApiTag['name'];
   preloadVideos?: boolean;
+}
+type GetRuleListFilder = {
+  id?: ApiRule['id'] | ApiRule['id'][];
+}
+type PatchSetWatchedFlagFilter = {
+  attr: boolean;
 }
 
 export class ApiRequest {
@@ -150,6 +156,19 @@ export class ApiRequest {
     })
   }
 
+  public async PatchSetWatchedFlag(video: ApiVideo, filter?: PatchSetWatchedFlagFilter): Promise<ApiVideo> {
+    if (filter == undefined) filter = {} as PatchSetWatchedFlagFilter;
+    return new Promise<ApiVideo>(async resolve => {
+      const queryData: RequestOptions['query'] = {
+        attr: filter.attr ? 'true' : 'false'
+      };
+      const data = await this.SendRequest<ApiVideo>('PATCH', `/api/video/${video.id}/watched`, {
+        query: queryData
+      });
+      resolve(data);
+    })
+  }
+
 
   //* =============================================[ Playlists ]============================================= *//
 
@@ -240,6 +259,27 @@ export class ApiRequest {
     });
   }
 
+  //* =============================================[ Automatic Rules ]============================================= *//
+
+  public async GetRuleList(filter?: GetRuleListFilder): Promise<ApiRule[]> {
+    if (filter == undefined) filter = {} as GetRuleListFilder;
+    return new Promise<ApiRule[]>(async (resolve) => {
+      const queryData: RequestOptions['query'] = {};
+      if (filter.id) queryData.id = filter.id;
+
+      const data = await this.SendRequest<ApiRule[]>('GET', '/api/automatic-rule/', {
+        query: queryData,
+      });
+      resolve(data);
+    })
+  }
+
+  public async ApplyAutomaticRule(...rules: ApiRule[]): Promise<ApiVideo[]> {
+    return new Promise<ApiVideo[]>(async resolve => {
+      const data = await this.SendRequest<ApiVideo[]>('GET', '/api/automatic-rule/apply')
+      resolve(data);
+    })
+  }
 
 }
 
@@ -249,6 +289,11 @@ type baseApiType = {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export type ApiRule = baseApiType & {
+  regexRaw: string;
+};
+
 export type ApiVideo = baseApiType & {
   fullpath: string;
   filename: string;
