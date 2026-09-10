@@ -1,11 +1,26 @@
 package server
 
 import (
+	"embed"
+	"io/fs"
 	"net/http"
 	"vp/libs/api/apivideo"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
+
+//go:embed all:fe-build
+var staticFiles embed.FS
+
+func AddStaticEndpoints(mux *http.ServeMux) {
+	const frontend = "fe-build"
+	newFsys, err := fs.Sub(staticFiles, frontend)
+	if err != nil {
+		log.Fatal().Err(err).Send()
+	}
+	mux.Handle("/", http.FileServerFS(newFsys))
+}
 
 func AddEndpoints(mux *http.ServeMux, conn *gorm.DB) {
 	endpoint_streaming(mux, conn)

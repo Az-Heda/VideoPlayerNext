@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, File, FileVideo, Film, Globe, Keyboard, Palette, RefreshCw, Settings, SquareFunction, Waypoints, X } from "lucide-react";
+import { AudioLines, CloudBackup, File, FileVideo, Film, Globe, Keyboard, Palette, RefreshCw, Settings, SquareFunction, Waypoints, X } from "lucide-react";
 import { ComponentProps, Dispatch, JSX, SetStateAction, useEffect, useMemo, useState } from "react";
 import { ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
@@ -34,6 +34,12 @@ export type GlobalConfigType = {
     Folder: GetterSetter<ApiFolder | undefined>;
     Fullpath: GetterSetter<string | undefined>;
     Tag: GetterSetter<ApiTag | undefined>;
+
+    Table: {
+      Watched: GetterSetter<boolean | undefined>;
+      Filename: GetterSetter<string | undefined>;
+      Folder: GetterSetter<string | undefined>;
+    }
   }
   Sidebar: {
     Title: SidebarItem<string>;
@@ -43,13 +49,14 @@ export type GlobalConfigType = {
       FromUrlModal: SidebarItem<boolean>;
       AutomaticRuleModel: SidebarItem<boolean>;
       AudioContextModal: SidebarItem<boolean>;
-      SyncDataModal: SidebarItem<boolean>;
+      ScanFolderVideosModal: SidebarItem<boolean>;
     };
     Bottom: {
       ThemeModal: SidebarItem<boolean>;
       KeybindsModal: SidebarItem<boolean>;
       SettingsModal: SidebarItem<boolean>;
       OpenScalar: SidebarItem<undefined>;
+      SyncDataModal: SidebarItem<boolean>;
     };
   };
   VideoPlayer: {
@@ -71,6 +78,9 @@ export type GlobalConfigType = {
     ModalKind: GetterSetter<'dialog' | 'drawer' | 'sheet'>;
     ModalSide: GetterSetter<ComponentProps<typeof SheetContent>['side'] | ComponentProps<typeof Drawer>['direction']>;
     PrivacyVideoMode: GetterSetter<boolean>;
+    ShowScalarApi: GetterSetter<boolean>;
+    ApiHostUrl: GetterSetter<string | undefined>;
+    ColoredWatchedStatus: GetterSetter<'none' | 'border' | 'full'>;
   }
 }
 
@@ -83,9 +93,11 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [openAudioContext, setOpenAudioContext] = useState(false);
   const [openTheme, setOpenTheme] = useState(false);
   const [openKeybinds, setOpenKeybinds] = useState(false);
-  const [openSyncData, setOpenSyncData] = useState(false);
+  const [openSyncFolderData, setOpenSyncFolderData] = useState(false);
   const [removeVideo, setRemoveVideo] = useState(false);
   const [openAutomaticRule, setOpenAutomaticRule] = useState(false);
+  const [openSyncData, setOpenSyncData] = useState(false);
+
 
   const [selectedVideo, setSelectetdVideo] = useState<ApiVideo | undefined>();
   const [apiVideos, setApiVideos] = useState<ApiVideo[]>();
@@ -107,9 +119,16 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [utilityEditPlaylist, setUtilityEditPlaylist] = useState<ApiVideo>();
   const [utilityEditTag, setUtilityEditTag] = useState<ApiVideo>();
 
+  const [tableFilterWatched, setTableFilterWatched] = useState<boolean>();
+  const [tableFilterFilename, setTableFilterFilename] = useState<string>();
+  const [tableFilterFolder, setTableFilterFolder] = useState<string>();
+
   const [settingsModalKind, setSettingsModalKind] = useState<GlobalConfigType['Settings']['ModalKind']['Getter']>('sheet');
   const [settingsModalSide, setSettingsModalSide] = useState<GlobalConfigType['Settings']['ModalSide']['Getter']>('right');
   const [privacyVideoMode, setPrivacyVideoMode] = useState(false);
+  const [settingsShowScalarApi, setSettingsShowScalarApi] = useState(false);
+  const [settingsColoredWatchedStatus, setSettingsColoredWatchedStatus] = useState<'none' | 'border' | 'full'>('border');
+  const [settingsApiUrl, setSettingsApiUrl] = useState<string>();
 
   const showHideVideo = useMemo(() => selectedVideo != undefined, [selectedVideo]);
 
@@ -134,6 +153,12 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       Playlist: { Getter: filterPlaylist, Setter: setFilterPlaylist, },
       Fullpath: { Getter: filterFullpath, Setter: setFiltetrFullpath, },
       Tag: { Getter: filterTag, Setter: setFilterTag, },
+
+      Table: {
+        Watched: { Getter: tableFilterWatched, Setter: setTableFilterWatched, },
+        Filename: { Getter: tableFilterFilename, Setter: setTableFilterFilename, },
+        Folder: { Getter: tableFilterFolder, Setter: setTableFilterFolder, },
+      }
     },
     Sidebar: {
       Title: {
@@ -181,15 +206,22 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
           Setter: setOpenAudioContext,
           Action() { setOpenAudioContext(!openAudioContext) },
         },
-        SyncDataModal: {
+        ScanFolderVideosModal: {
           Icon: <RefreshCw />,
           Title: "Scan folder data",
-          Getter: openSyncData,
-          Setter: setOpenSyncData,
-          Action() { setOpenSyncData(!openSyncData) },
-        },
+          Getter: openSyncFolderData,
+          Setter: setOpenSyncFolderData,
+          Action() { setOpenSyncFolderData(!openSyncFolderData) },
+        }
       },
       Bottom: {
+        SyncDataModal: {
+          Icon: <CloudBackup />,
+          Title: "Sync local data",
+          Getter: openSyncData,
+          Setter: setOpenSyncData,
+          Action() { setOpenSyncData(!openSyncData) }
+        },
         ThemeModal: {
           Title: "Theme selector",
           Icon: <Palette />,
@@ -214,12 +246,13 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
         OpenScalar: {
           Title: "Scalar API",
           Icon: <Waypoints />,
+          Getter: empty,
+          Setter: setEmpty,
+          Visibility: settingsShowScalarApi,
           Action() {
             const url = apiRequest.GetScalarUrl();
             open(url, 'mozillaWindow', 'pupup');
           },
-          Getter: empty,
-          Setter: setEmpty,
         },
       },
     },
@@ -242,6 +275,9 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       ModalKind: { Getter: settingsModalKind, Setter: setSettingsModalKind, },
       ModalSide: { Getter: settingsModalSide, Setter: setSettingsModalSide, },
       PrivacyVideoMode: { Getter: privacyVideoMode, Setter: setPrivacyVideoMode, },
+      ShowScalarApi: { Getter: settingsShowScalarApi, Setter: setSettingsShowScalarApi, },
+      ColoredWatchedStatus: { Getter: settingsColoredWatchedStatus, Setter: setSettingsColoredWatchedStatus, },
+      ApiHostUrl: { Getter: settingsApiUrl, Setter: setSettingsApiUrl, },
     }
   } as const;
 }

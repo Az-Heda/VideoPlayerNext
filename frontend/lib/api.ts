@@ -1,3 +1,5 @@
+import { GlobalConfigType } from "./globals";
+
 type HTTPMethod = 'GET' | 'POST' | 'DELETE' | 'PATCH' | 'PUT';
 
 type ApiErrorDetails = {
@@ -54,28 +56,47 @@ type PatchSetWatchedFlagFilter = {
 }
 
 export class ApiRequest {
-  private baseUrl: string;
+  private baseUrl?: string;
+  private globalConfigs?: GlobalConfigType;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl?: string) {
     this.baseUrl = baseUrl;
+  }
+
+  private ensureBaseUrl(): string {
+    if (this.globalConfigs != undefined && this.globalConfigs.Settings.ApiHostUrl.Getter != undefined) return new URL(this.globalConfigs.Settings.ApiHostUrl.Getter).origin;
+    let lsSettings = window.localStorage.getItem("vp-settings");
+    if (lsSettings != null) {
+      const obj: { [key: string]: any } = JSON.parse(lsSettings);
+      if (obj.localApiOrigin) return obj.localApiOrigin as string;
+    }
+    if (this.baseUrl != undefined) return this.baseUrl;
+    const port = window.location.port;
+    if (port === '3000') this.baseUrl = 'http://localhost:5008';
+    else this.baseUrl = window.location.origin;
+    return this.baseUrl;
+  }
+
+  public addGlobalConfigs(configs: GlobalConfigType) {
+    this.globalConfigs = configs;
   }
 
   //* =============================================[ Utility ]============================================= *//
 
   public GetStreamUrl(video: ApiVideo): string {
-    const url = new URL(this.baseUrl);
+    const url = new URL(this.ensureBaseUrl());
     url.pathname = `/stream/${video.id}`;
     return url.toString();
   }
 
   public GetScalarUrl(): string {
-    const url = new URL(this.baseUrl);
+    const url = new URL(this.ensureBaseUrl());
     url.pathname = "/docs";
     return url.toString();
   }
 
   public GetScanFolderStreamUrl(folder: ApiFolder): string {
-    const url = new URL(this.baseUrl);
+    const url = new URL(this.ensureBaseUrl());
     url.pathname = `/api/folder/${folder.id}/stream`;
     return url.toString();
   }
@@ -83,7 +104,7 @@ export class ApiRequest {
   private async SendRequest<T>(method: HTTPMethod, path: string, options?: RequestOptions): Promise<T> {
     if (!path.startsWith('/')) path = '/' + path;
 
-    const url = new URL(this.baseUrl);
+    const url = new URL(this.ensureBaseUrl());
     url.pathname = path;
     if (options?.query) {
       for (const [k, v] of Object.entries(options.query)) {

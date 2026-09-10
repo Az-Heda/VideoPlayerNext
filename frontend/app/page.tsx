@@ -1,6 +1,6 @@
 "use client";
 
-import { ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
+import { ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalSyncVideos, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
 import { Explore } from "@/components/explore";
 import { AppSidebar } from "@/components/sidebar"
 import { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from "@/components/ui/attachment";
@@ -21,10 +21,11 @@ import { Spinner } from "@/components/ui/spinner";
 export default function Page() {
   // const [videos, setVideos] = useState<ApiVideo[]>();
   // const [playlists, setPlaylists] = useState<ApiPlaylist[]>();
-  const api = new ApiRequest('http://localhost:5008');
+  const api = new ApiRequest();
   let config = GlobalConfig(api);
 
   useEffect(() => {
+    api.addGlobalConfigs(config);
     api.GetFolderList().then(config.Api.Data.Folders.Setter);
     api.GetVideoList().then((data) => {
       config.Api.Data.Videos.Setter(data);
@@ -66,7 +67,7 @@ export default function Page() {
                   <Vp config={config} className="col-span-2" />
 
                   {
-                    (config.Api.Data.Playlists.Getter ?? []).filter(p => (config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).length > 0
+                    false && (config.Api.Data.Playlists.Getter ?? []).filter(p => (config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).length > 0
                       ? <>
                         <ScrollArea className="min-h-0 border border-primary rounded-md px-4">
                           <Typography kind="h3" className="mt-4 mb-2 text-center">Playlists</Typography>
@@ -139,8 +140,9 @@ export default function Page() {
         <ModalThemeSelector Config={config} />
         <ModalKeybinds Config={config} />
         <ModalSettings Config={config} />
-        <ModalSyncData Config={config} />
+        <ModalSyncVideos Config={config} />
         <ModalApplyAutomaticRules Config={config} />
+        <ModalSyncData Config={config} />
 
         <PlaylistSelector Config={config} />
         <TagSelector Config={config} />

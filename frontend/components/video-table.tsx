@@ -1,23 +1,19 @@
-import { ApiPlaylist, ApiVideo } from "@/lib/api";
-import { GlobalConfigType } from "@/lib/globals"
+import { ApiVideo } from "@/lib/api";
+import { GlobalConfigType } from "@/lib/globals";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable, type ColumnDef, type RowData } from "@tanstack/react-table"
+import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable } from "@tanstack/react-table";
 import { features, DataTableFeatures } from "@/components/data-table-features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Cpu, Film, Hash, ListMinus, OctagonAlert, Plus, Star, X } from "lucide-react";
+import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, OctagonAlert, Regex, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, HumanReadableBytes } from "@/lib/utils";
 import { Description, RatingStars, Typography } from "./utility";
 import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue } from "@/components/ui/combobox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { GeneralModal } from "./modals";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-import { Marker, MarkerContent } from "@/components/ui/marker";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 
@@ -29,6 +25,9 @@ export function MainvideoTable(props: MainVideoTableProps) {
   const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
   const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [localFilenameFilterMode, setLocalFilenameFilterMode] = useState<'text' | 'regex'>('text');
+  const [localWatched, setLocalWatched] = useState<string>('undefined');
+
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
     'col-rating': false,
     'col-size': false,
@@ -47,6 +46,21 @@ export function MainvideoTable(props: MainVideoTableProps) {
       if (props.Config.Filters.Playlist.Getter != undefined) conds.push((x.playlists ?? []).map(p => p.id).includes(props.Config.Filters.Playlist.Getter?.id));
       if (props.Config.Filters.Fullpath.Getter != undefined) conds.push(x.fullpath.startsWith(props.Config.Filters.Fullpath.Getter));
       if (props.Config.Filters.Tag.Getter != undefined) conds.push((x.tags ?? []).map(t => t.id).includes(props.Config.Filters.Tag.Getter.id));
+      if (props.Config.Filters.Table.Watched.Getter != undefined) conds.push((x.attributes.watched ?? false) == props.Config.Filters.Table.Watched.Getter)
+      if (props.Config.Filters.Table.Folder.Getter != undefined) conds.push(x.fullpath.replace('\\', '/').split('/').slice(0, -1).join('/').toLowerCase().includes(props.Config.Filters.Table.Folder.Getter.toLowerCase()))
+      if (props.Config.Filters.Table.Filename.Getter != undefined) {
+        switch (localFilenameFilterMode) {
+          case 'text':
+            conds.push(x.filename.toLowerCase().includes(props.Config.Filters.Table.Filename.Getter.toLowerCase()))
+            break;
+          case 'regex':
+            try {
+              const rule = new RegExp(props.Config.Filters.Table.Filename.Getter ?? '', 'gi');
+              conds.push(rule.test(x.filename))
+            } catch { }
+            break;
+        }
+      }
       return conds.length == 0 || conds.every(Boolean);
     });
   }, [
@@ -54,6 +68,12 @@ export function MainvideoTable(props: MainVideoTableProps) {
     props.Config.Filters.Playlist.Getter,
     props.Config.Filters.Fullpath.Getter,
     props.Config.Filters.Tag.Getter,
+
+    props.Config.Filters.Table.Watched.Getter,
+    props.Config.Filters.Table.Filename.Getter,
+    props.Config.Filters.Table.Folder.Getter,
+    localFilenameFilterMode,
+
     props.Config.Api.Data.Videos.Getter,
   ]);
 
@@ -88,9 +108,6 @@ export function MainvideoTable(props: MainVideoTableProps) {
       header: 'Watched',
       size: 0,
       maxSize: 4,
-      filterFn: (row): boolean => {
-        return true;
-      },
       cell({ row }) {
         var onClickFN = () => {
           props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: !row.original.attributes.watched })
@@ -102,20 +119,35 @@ export function MainvideoTable(props: MainVideoTableProps) {
             });
         }
 
-        const icons = {
+        type AutomaticChoice<T> = { true: T; false: T, undefined: T };
+
+        const icons: AutomaticChoice<ReactNode> = {
           'true': <Check />,
           'false': <X />,
           'undefined': <OctagonAlert />,
         };
-        const labels = {
+        const labels: AutomaticChoice<string> = {
           'true': 'Yes',
           'false': 'No',
           'undefined': 'Unknown',
         }
-        const colors = {
-          'true': 'bg-emerald-500 text-emerald-950 hover:bg-emerald-600',
-          'false': 'bg-rose-500 text-rose-950 hover:bg-rose-600',
-          'undefined': 'bg-amber-500 text-amber-950 hover:bg-amber-600',
+
+        const colors: { full: AutomaticChoice<string>; border: AutomaticChoice<string>; none: AutomaticChoice<string>; } = {
+          full: {
+            'true': 'bg-emerald-500 text-emerald-950 hover:bg-emerald-600',
+            'false': 'bg-rose-500 text-rose-950 hover:bg-rose-600',
+            'undefined': 'bg-amber-500 text-amber-950 hover:bg-amber-600',
+          },
+          border: {
+            'true': 'border border-emerald-500 text-emerald-500 hover:border-emerald-600 hover:text-emerald-600',
+            'false': 'border border-rose-500 text-rose-500 hover:border-rose-600 hover:text-rose-600',
+            'undefined': 'border border-amber-500 text-amber-500 hover:border-amber-600 hover:text-amber-600',
+          },
+          none: {
+            'true': '',
+            'false': '',
+            'undefined': '',
+          },
         }
 
         return <div
@@ -124,7 +156,16 @@ export function MainvideoTable(props: MainVideoTableProps) {
         >
           <Button
             size="icon"
-            className={cn(colors[`${row.original.attributes.watched}`])}
+            variant="ghost"
+            className={cn(
+              (
+                props.Config.Settings.ColoredWatchedStatus.Getter == 'full'
+                  ? colors.full
+                  : props.Config.Settings.ColoredWatchedStatus.Getter == 'border'
+                    ? colors.border
+                    : colors.none
+              )
+              [`${row.original.attributes.watched}`])}
           >
             {icons[`${row.original.attributes.watched}`]}
           </Button>
@@ -227,11 +268,14 @@ export function MainvideoTable(props: MainVideoTableProps) {
               text={<Typography kind={kind}>Edit playlist</Typography>}
               asChild
             >
-              <Button size="icon" onClick={() => {
-                console.log("before");
-                props.Config.Utility.Modals.EditPlaylists.Setter(row.original);
-                console.log("after");
-              }}>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => {
+                  console.log("before");
+                  props.Config.Utility.Modals.EditPlaylists.Setter(row.original);
+                  console.log("after");
+                }}>
                 <ListMinus />
               </Button>
             </Description>
@@ -240,7 +284,10 @@ export function MainvideoTable(props: MainVideoTableProps) {
               text={<Typography kind={kind}>Edit Tags</Typography>}
               asChild
             >
-              <Button size="icon" onClick={() => props.Config.Utility.Modals.EditTags.Setter(row.original)}>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => props.Config.Utility.Modals.EditTags.Setter(row.original)}>
                 <Hash />
               </Button>
             </Description>
@@ -251,6 +298,19 @@ export function MainvideoTable(props: MainVideoTableProps) {
   ])
 
 
+  useEffect(() => {
+    switch (localWatched) {
+      case 'true':
+        props.Config.Filters.Table.Watched.Setter(true);
+        break;
+      case 'false':
+        props.Config.Filters.Table.Watched.Setter(false);
+        break;
+      default:
+        props.Config.Filters.Table.Watched.Setter(undefined);
+        break;
+    }
+  }, [localWatched]);
 
   const tbl = useTable({
     features: features,
@@ -288,7 +348,6 @@ export function MainvideoTable(props: MainVideoTableProps) {
     }
     tbl.setPageSize(validPage ?? defaultPage)
   }, []);
-
 
   return (<>
     {
@@ -390,6 +449,58 @@ export function MainvideoTable(props: MainVideoTableProps) {
           ))}
         </TableHeader>
         <TableBody>
+          {tbl.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                switch (header.id) {
+                  case 'col-watched':
+                    return <TableCell key={header.id}>
+                      <Select value={localWatched} onValueChange={setLocalWatched}>
+                        <SelectTrigger>
+                          <SelectValue className="w-full" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="undefined">No filter</SelectItem>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  case 'col-filename':
+                    return <TableCell key={header.id}>
+                      <ButtonGroup className="w-full">
+                        <Input
+                          value={props.Config.Filters.Table.Filename.Getter ?? ''}
+                          onChange={(e) => props.Config.Filters.Table.Filename.Setter(e.target.value)}
+                          placeholder="Filter filename"
+                        />
+                        <Button
+                          size="icon"
+                          variant="default"
+                          onClick={() => setLocalFilenameFilterMode({ 'text': 'regex', 'regex': 'text' }[localFilenameFilterMode] as any)}
+                        >
+                          {
+                            localFilenameFilterMode == 'text'
+                              ? <CaseSensitive />
+                              : <Regex />
+                          }
+                        </Button>
+                      </ButtonGroup>
+                    </TableCell>
+                  case 'col-folder':
+                    return <TableCell key={header.id}>
+                      <Input
+                        value={props.Config.Filters.Table.Folder.Getter ?? ''}
+                        onChange={(e) => props.Config.Filters.Table.Folder.Setter(e.target.value)}
+                        placeholder="Filter folder"
+                      />
+                    </TableCell>
+                  default:
+                    return <TableCell key={header.id}></TableCell>
+                }
+              })}
+            </TableRow>
+          ))}
           {tbl.getRowModel().rows?.length ? (
             tbl.getRowModel().rows.map((row) => (
               <TableRow

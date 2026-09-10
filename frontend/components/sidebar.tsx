@@ -58,7 +58,7 @@ export function AppSidebar(props: AppSidebarProps) {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {Object.values(props.Config.Sidebar.Bottom).map((rawItem) => {
+              {Object.values(props.Config.Sidebar.Bottom).filter(x => x.Visibility ?? true).map((rawItem) => {
                 const item = rawItem as any as SidebarItem<unknown>
                 return (
                   <SidebarMenuItem key={item.Title}>

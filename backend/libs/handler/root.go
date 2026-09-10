@@ -46,6 +46,7 @@ func Root(cmd *cobra.Command, args []string) {
 	models.AutoMigrate(conn)
 	api.Setup(mux, conn)
 	server.AddEndpoints(mux, conn)
+	server.AddStaticEndpoints(mux)
 
 	log.Info().Msgf("Server online at http://%s", address)
 

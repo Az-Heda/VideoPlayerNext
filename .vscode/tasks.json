@@ -28,6 +28,39 @@
       }
     },
     {
+      "label": "[BE] Build",
+      "detail": "Build the backend",
+      "type": "shell",
+      "command": "go build -tags='all' .",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true,
+        "close": true
+      },
+      "promptOnClose": false,
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest",
+      },
+      "dependsOn": [
+        "[FE] Build",
+        "[Build] Move builded files",
+      ],
+      "dependsOrder": "sequence",
+      "icon": {
+        "id": "server",
+        "color": "terminal.ansiCyan"
+      }
+    },
+    {
       "label": "[FE] Run dev",
       "detail": "Run the frontend in development mode",
       "type": "shell",
@@ -51,6 +84,61 @@
       "icon": {
         "id": "globe",
         "color": "terminal.ansiGreen"
+      }
+    },
+    {
+      "label": "[FE] Build",
+      "detail": "Build the frontend",
+      "type": "shell",
+      "command": "pnpm build",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "icon": {
+        "id": "globe",
+        "color": "terminal.ansiGreen"
+      }
+    },
+    {
+      "label": "[Build] Move builded files",
+      "detail": "Move the files of the build to the server",
+      "type": "shell",
+      "command": "rm -rf backend/libs/server/fe-build && mv frontend/out/ backend/libs/server/fe-build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true,
+        "close": true
+      },
+      "promptOnClose": false,
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "hide": false,
+      "icon": {
+        "id": "move",
+        "color": "terminal.ansiRed"
       }
     }
   ]

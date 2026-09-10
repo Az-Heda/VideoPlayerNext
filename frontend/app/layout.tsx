@@ -11,11 +11,44 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const validThemes: string[] = [
+    // 'default',
+
+    ...[
+      // // 'blush-pink',
+      // // 'claude',
+      // // 'marshmallow',
+      // // 'material-design',
+      // // 'midnight-bloom',
+      // // 'slack',
+      // // 'seo-katana',
+      // 'caffeine',
+      // 'spotify',
+      // 'vs-code',
+    ],
+
+    ...[
+      'cosmic-night',
+      'darkmatter',
+      'amethyst-haze',
+      // 'northern-lights',
+      // 'supabase',
+      // 'violet-bloom',
+    ],
+
+    ...[
+      // // "sakura-blossom-neon",
+      // "sakura",
+      // "cyberpunk-2077",
+      // "twitter",
+    ],
+
+    ...[
+      "sage-garden",
+      "vikasana",
+    ],
+  ].sort()
   return (
     <html
       lang="en"
@@ -24,10 +57,11 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider
-          attribute="class"
           defaultTheme="system"
-          enableSystem
+          attribute="data-theme"
+          themes={validThemes}
           disableTransitionOnChange
+          enableSystem={false}
         >
           <TooltipProvider>
             {children}

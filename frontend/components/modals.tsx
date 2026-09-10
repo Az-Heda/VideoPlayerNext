@@ -2,7 +2,7 @@ import { GlobalConfigType } from "@/lib/globals"
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { ApiFolder, ApiPlaylist, ApiVideo } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Check, Dot, Folders, Plus, RefreshCw, X } from "lucide-react";
+import { Check, CloudBackup, Dot, Folders, Plus, RefreshCcw, RefreshCw, X } from "lucide-react";
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ import { CommandShortcut } from "@/components/ui/command";
 import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useTheme } from "next-themes";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { ScrollArea } from "./ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
 type CommonProps = {
   Config: GlobalConfigType;
@@ -114,7 +118,7 @@ export function ModalImportFromFile(props: ModalImportFromFileProps) {
     setOpen={props.Config.Sidebar.Top.FromFileModal.Setter}
     title="Import from file"
     description="Choose a video on disk to play"
-    cancelBtn={<Button variant="secondary">Cancel</Button>}
+    cancelBtn={<Button variant="outline">Cancel</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
@@ -130,8 +134,8 @@ export function ModalImportFromUrl(props: ModalImportFromUrlProps) {
     title="Import from url"
     description={<>Import video from link<br />
       [Note]: Audio Context doesn't work for videos imported from url</>}
-    cancelBtn={<Button variant="secondary">Cancel</Button>}
-    confirmBtn={<Button type="submit" variant="secondary">Confirm</Button>}
+    cancelBtn={<Button variant="outline">Cancel</Button>}
+    confirmBtn={<Button type="submit">Confirm</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
@@ -167,13 +171,14 @@ export function ModalAudioContext(props: ModalAudioContextProps) {
     setOpen={props.Config.Sidebar.Top.AudioContextModal.Setter}
     title="Audio Context"
     description="Initialize and use AudioContext to increase the max volume availabale"
+    cancelBtn={<Button variant="outline">Close</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
-    {!props.Config.VideoPlayer.AudioContext.Enabled.Getter && <Button onClick={() => { setDoEnable(true) }}>Enable</Button>}
+    {!props.Config.VideoPlayer.AudioContext.Enabled.Getter && <Button className="w-full" onClick={() => { setDoEnable(true) }}>Enable</Button>}
     {props.Config.VideoPlayer.AudioContext.Enabled.Getter && <Typography>
       Set the limits of the audio context.
-      <ButtonGroup>
+      <ButtonGroup className="w-full grid grid-cols-6">
         {
           props.Config.VideoPlayer.AudioContext.Limits.Getter.map(l => (
             <Button
@@ -191,15 +196,60 @@ export function ModalAudioContext(props: ModalAudioContextProps) {
 }
 
 export function ModalThemeSelector(props: ModalThemeSelectorProps) {
+  const { theme, themes, setTheme } = useTheme();
+  const [themeSelected, setThemeSelected] = useState<string>();
+
+  const themeSelectedDisplay = useMemo(() => {
+    if (themeSelected === undefined) return '';
+    return '(' + themeSelected + ')';
+  }, [themeSelected])
+
+  function ConfirmTheme() {
+    if (themeSelected === undefined) return;
+    setTheme(themeSelected);
+    setThemeSelected(undefined);
+  }
+
   return <GeneralModal
     Config={props.Config}
     open={props.Config.Sidebar.Bottom.ThemeModal.Getter}
     setOpen={props.Config.Sidebar.Bottom.ThemeModal.Setter}
     title="Theme selector"
+    cancelBtn={<Button variant="outline">Cancel</Button>}
+    confirmBtn={<Button onClick={() => ConfirmTheme()}>Confirm</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
-    Not implemented
+    <div>
+      Choose the website theme.<br />
+      Current: {theme} {themeSelectedDisplay}
+
+      <ScrollArea>
+        <div className="flex flex-wrap gap-4 justify-center items-center mt-4 mx-2">
+          {themes.map(t => (
+            <Card
+              key={t}
+              data-theme={t}
+              className="hover:cursor-pointer border border-primary"
+              onClick={() => setThemeSelected(t)}
+            >
+              <CardHeader>
+                <CardTitle className="capitalize">{t.replace(/[^0-9a-z]/gi, ' ')}</CardTitle>
+                <CardDescription></CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 *:size-8 *:rounded-full">
+                  <div className="bg-primary"></div>
+                  <div className="bg-secondary"></div>
+                  <div className="bg-accent"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </ScrollArea>
+
+    </div>
   </GeneralModal>
 }
 
@@ -221,17 +271,26 @@ export function ModalSettings(props: ModalSettingsProps) {
   const [settingsModalKind, setSettingsModalKind] = useState<typeof props.Config.Settings.ModalKind.Getter>(props.Config.Settings.ModalKind.Getter);
   const [settingsModalSide, setSettingsModalSide] = useState<typeof props.Config.Settings.ModalSide.Getter>(props.Config.Settings.ModalSide.Getter);
   const [settingsVideoPrivacyMode, setSettingsVideoPrivacyMode] = useState<typeof props.Config.Settings.PrivacyVideoMode.Getter>(false);
+  const [settingsShowScalarApi, setSettingsShowScalarApi] = useState<typeof props.Config.Settings.ShowScalarApi.Getter>(props.Config.Settings.ShowScalarApi.Getter);
+  const [coloredWatchedStatus, setColoredWatchedStatus] = useState<typeof props.Config.Settings.ColoredWatchedStatus.Getter>(props.Config.Settings.ColoredWatchedStatus.Getter)
+  const [localApiOrigin, setLocalApiOrigin] = useState<typeof props.Config.Settings.ApiHostUrl.Getter>(props.Config.Settings.ApiHostUrl.Getter);
 
   const allSettings = useMemo(() => {
     return {
       settingsModalKind,
       settingsModalSide,
       settingsVideoPrivacyMode,
+      settingsShowScalarApi,
+      coloredWatchedStatus,
+      localApiOrigin,
     }
   }, [
     settingsModalKind,
     settingsModalSide,
     settingsVideoPrivacyMode,
+    settingsShowScalarApi,
+    coloredWatchedStatus,
+    localApiOrigin,
   ])
 
   function reset() {
@@ -241,14 +300,23 @@ export function ModalSettings(props: ModalSettingsProps) {
       setSettingsModalKind(settings.settingsModalKind);
       setSettingsModalSide(settings.settingsModalSide);
       setSettingsVideoPrivacyMode(settings.settingsVideoPrivacyMode);
+      setSettingsShowScalarApi(settings.settingsShowScalarApi);
+      setColoredWatchedStatus(settings.coloredWatchedStatus);
+      setLocalApiOrigin(settings.localApiOrigin);
 
       props.Config.Settings.ModalKind.Setter(settings.settingsModalKind);
       props.Config.Settings.ModalSide.Setter(settings.settingsModalSide);
       props.Config.Settings.PrivacyVideoMode.Setter(settings.settingsVideoPrivacyMode);
+      props.Config.Settings.ShowScalarApi.Setter(settings.settingsShowScalarApi);
+      props.Config.Settings.ColoredWatchedStatus.Setter(settings.coloredWatchedStatus);
+      props.Config.Settings.ApiHostUrl.Setter(settings.localApiOrigin);
     } else {
       setSettingsModalKind(props.Config.Settings.ModalKind.Getter);
       setSettingsModalSide(props.Config.Settings.ModalSide.Getter);
       setSettingsVideoPrivacyMode(props.Config.Settings.PrivacyVideoMode.Getter);
+      setSettingsShowScalarApi(props.Config.Settings.ShowScalarApi.Getter);
+      setColoredWatchedStatus(props.Config.Settings.ColoredWatchedStatus.Getter);
+      setLocalApiOrigin(props.Config.Settings.ApiHostUrl.Getter);
     }
   }
 
@@ -272,7 +340,7 @@ export function ModalSettings(props: ModalSettingsProps) {
     open={props.Config.Sidebar.Bottom.SettingsModal.Getter}
     setOpen={props.Config.Sidebar.Bottom.SettingsModal.Setter}
     title="Settings"
-    cancelBtn={<Button variant="secondary" onClick={() => reset()}>Cancel</Button>}
+    cancelBtn={<Button variant="outline" onClick={() => reset()}>Cancel</Button>}
     confirmBtn={<Button onClick={() => submit()}>Confirm</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
@@ -280,7 +348,7 @@ export function ModalSettings(props: ModalSettingsProps) {
 
     <div className="w-full grid grid-cols-2 justify-between gap-y-2">
 
-      <Marker variant="separator" className="pb-2 col-span-2">
+      <Marker variant="separator" className="not-first:mt-4 pb-2 col-span-2">
         <MarkerContent>Modals</MarkerContent>
       </Marker>
 
@@ -313,7 +381,7 @@ export function ModalSettings(props: ModalSettingsProps) {
         </SelectContent>
       </Select>
 
-      <Marker variant="separator" className="pb-2 col-span-2">
+      <Marker variant="separator" className="not-first:mt-4 pb-2 col-span-2">
         <MarkerContent>Video table</MarkerContent>
       </Marker>
 
@@ -322,6 +390,38 @@ export function ModalSettings(props: ModalSettingsProps) {
         <Switch checked={settingsVideoPrivacyMode} onCheckedChange={setSettingsVideoPrivacyMode} />
         {settingsVideoPrivacyMode ? 'On' : 'Off'}
       </span>
+
+      <Label>Watched status color mode</Label>
+      <ButtonGroup className="w-full grid grid-cols-3">
+        <Button onClick={() => { setColoredWatchedStatus('none') }} variant={coloredWatchedStatus == 'none' ? 'default' : 'outline'}>None</Button>
+        <Button onClick={() => { setColoredWatchedStatus('border') }} variant={coloredWatchedStatus == 'border' ? 'default' : 'outline'}>Border</Button>
+        <Button onClick={() => { setColoredWatchedStatus('full') }} variant={coloredWatchedStatus == 'full' ? 'default' : 'outline'}>Full</Button>
+      </ButtonGroup>
+
+      <Marker variant="separator" className="not-first:mt-4 pb-2 col-span-2">
+        <MarkerContent>Sidebar</MarkerContent>
+      </Marker>
+
+      <Label htmlFor="privacyMode">Show Scalar API</Label>
+      <span className="w-full flex gap-2">
+        <Switch checked={settingsShowScalarApi} onCheckedChange={setSettingsShowScalarApi} />
+        {settingsShowScalarApi ? 'On' : 'Off'}
+      </span>
+
+      <Label>Api origin</Label>
+      <ButtonGroup className="w-full">
+        <Input
+          value={localApiOrigin ?? ''}
+          onChange={(e) => setLocalApiOrigin(e.target.value)}
+        />
+        <Button
+          onClick={() => {
+            setLocalApiOrigin(window.location.origin);
+          }}
+        >
+          <RefreshCcw />
+        </Button>
+      </ButtonGroup>
     </div>
 
   </GeneralModal>
@@ -342,7 +442,7 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
     setOpen={props.Config.Sidebar.Top.AutomaticRuleModel.Setter}
     title="Apply automatic rules"
     description="You can apply all of the automatic rules to automatically update playlists and tags"
-    cancelBtn={<Button variant="secondary">Cancel</Button>}
+    cancelBtn={<Button variant="outline">Cancel</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
@@ -364,7 +464,7 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
 
     <Button
       className="mt-4 w-full"
-      disabled={(props.Config.Api.Data.Rules.Getter?.length ?? 0) == 0 && requestStatus != 'waiting' }
+      disabled={(props.Config.Api.Data.Rules.Getter?.length ?? 0) == 0 && requestStatus != 'waiting'}
       onClick={() => {
         setRequestStatus('waiting')
         props.Config.Api.Instance.ApplyAutomaticRule()
@@ -398,13 +498,13 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
   </GeneralModal>
 }
 
-export function ModalSyncData(props: ModalSyncDataProps) {
+export function ModalSyncVideos(props: ModalSyncDataProps) {
   const [newFolder, setNewFolder] = useState<string>();
   const [step, setStep] = useState<'select' | 'scan' | 'end'>('select');
   const [selectedFolder, setSelectedFolder] = useState<ApiFolder>();
   const [updatedVideos, setUpdatedVideos] = useState<ApiVideo[]>([]);
   const videosRef = useRef<ApiVideo[]>([]);
-  const [selectedValue, setSelectedValue] = useState<string>();
+  const [selectedValue, setSelectedValue] = useState<string>('');
 
   const isSelectValid = useMemo(() => {
     if (selectedFolder == undefined) return false;
@@ -433,16 +533,16 @@ export function ModalSyncData(props: ModalSyncDataProps) {
     if (step == 'scan') return;
     setStep('select');
     setSelectedFolder(undefined);
-    setSelectedValue(undefined);
+    setSelectedValue('');
     setUpdatedVideos([]);
     videosRef.current = [];
-  }, [step, props.Config.Sidebar.Top.SyncDataModal.Getter])
+  }, [step, props.Config.Sidebar.Top.ScanFolderVideosModal.Getter])
 
 
   return <GeneralModal
     Config={props.Config}
-    open={props.Config.Sidebar.Top.SyncDataModal.Getter}
-    setOpen={props.Config.Sidebar.Top.SyncDataModal.Setter}
+    open={props.Config.Sidebar.Top.ScanFolderVideosModal.Getter}
+    setOpen={props.Config.Sidebar.Top.ScanFolderVideosModal.Setter}
     title="Scan folder"
     description={
       step == 'select' ? <>Select the folder you want to fetch the data</>
@@ -754,5 +854,137 @@ export function TagSelector(props: TagSelectorProps) {
         </CommandGroup>
       </CommandList>
     </Command>
+  </GeneralModal>
+}
+
+export function ModalSyncData(props: ModalImportFromFileProps) {
+  const [updateState, setUpdateState] = useState<keyof typeof props.Config.Api.Data>()
+
+  useEffect(() => {
+    switch (updateState) {
+      case 'Folders':
+        props.Config.Api.Instance.GetFolderList()
+          .then(d => {
+            props.Config.Api.Data.Folders.Setter(d);
+            setUpdateState(undefined);
+          });
+        return;
+      case 'Playlists':
+        props.Config.Api.Instance.GetPlaylistList()
+          .then(d => {
+            props.Config.Api.Data.Playlists.Setter(d);
+            setUpdateState(undefined);
+          });
+        return;
+      case 'Rules':
+        props.Config.Api.Instance.GetRuleList()
+          .then(d => {
+            props.Config.Api.Data.Rules.Setter(d);
+            setUpdateState(undefined);
+          });
+        return;
+      case 'Tags':
+        props.Config.Api.Instance.GetTagList()
+          .then(d => {
+            props.Config.Api.Data.Tags.Setter(d);
+            setUpdateState(undefined);
+          });
+        return;
+      case 'Videos':
+        props.Config.Api.Instance.GetVideoList()
+          .then(d => {
+            props.Config.Api.Data.Videos.Setter(d);
+            setUpdateState(undefined);
+          });
+        return;
+    }
+  }, [updateState]);
+
+  return <GeneralModal
+    Config={props.Config}
+    open={props.Config.Sidebar.Bottom.SyncDataModal.Getter}
+    setOpen={props.Config.Sidebar.Bottom.SyncDataModal.Setter}
+    title="Sync local data"
+    description="You can sync the data currently on the page"
+    cancelBtn={<Button variant="outline">Close</Button>}
+    kind={props.Config.Settings.ModalKind.Getter}
+    side={props.Config.Settings.ModalSide.Getter}
+  >
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Resource</TableHead>
+          <TableHead>Counter</TableHead>
+          <TableHead></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell>Folders</TableCell>
+          <TableCell>{props.Config.Api.Data.Folders.Getter !== undefined ? props.Config.Api.Data.Folders.Getter.length : '-'}</TableCell>
+          <TableCell>
+            {
+              updateState == 'Folders'
+                ? <Button size="icon"><Spinner /></Button>
+                : <Button size="icon" onClick={() => setUpdateState('Folders')}>
+                  <CloudBackup />
+                </Button>
+            }
+          </TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Playlists</TableCell>
+          <TableCell>{props.Config.Api.Data.Playlists.Getter !== undefined ? props.Config.Api.Data.Playlists.Getter.length : '-'}</TableCell>
+          <TableCell>
+            {
+              updateState == 'Playlists'
+                ? <Button size="icon"><Spinner /></Button>
+                : <Button size="icon" onClick={() => setUpdateState('Playlists')}>
+                  <CloudBackup />
+                </Button>
+            }
+          </TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Rules</TableCell>
+          <TableCell>{props.Config.Api.Data.Rules.Getter !== undefined ? props.Config.Api.Data.Rules.Getter.length : '-'}</TableCell>
+          <TableCell>
+            {
+              updateState == 'Rules'
+                ? <Button size="icon"><Spinner /></Button>
+                : <Button size="icon" onClick={() => setUpdateState('Rules')}>
+                  <CloudBackup />
+                </Button>
+            }
+          </TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Tags</TableCell>
+          <TableCell>{props.Config.Api.Data.Tags.Getter !== undefined ? props.Config.Api.Data.Tags.Getter.length : '-'}</TableCell>
+          <TableCell>
+            {
+              updateState == 'Tags'
+                ? <Button size="icon"><Spinner /></Button>
+                : <Button size="icon" onClick={() => setUpdateState('Tags')}>
+                  <CloudBackup />
+                </Button>
+            }
+          </TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Videos</TableCell>
+          <TableCell>{props.Config.Api.Data.Videos.Getter !== undefined ? props.Config.Api.Data.Videos.Getter.length : '-'}</TableCell>
+          <TableCell>
+            {
+              updateState == 'Videos'
+                ? <Button size="icon"><Spinner /></Button>
+                : <Button size="icon" onClick={() => setUpdateState('Videos')}>
+                  <CloudBackup />
+                </Button>
+            }
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
   </GeneralModal>
 }
