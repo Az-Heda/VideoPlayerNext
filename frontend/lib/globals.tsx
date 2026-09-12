@@ -39,6 +39,7 @@ export type GlobalConfigType = {
       Watched: GetterSetter<boolean | undefined>;
       Filename: GetterSetter<string | undefined>;
       Folder: GetterSetter<string | undefined>;
+      FilenameMode: GetterSetter<'text' | 'regex'>;
     }
   }
   Sidebar: {
@@ -61,6 +62,7 @@ export type GlobalConfigType = {
   };
   VideoPlayer: {
     Selected: GetterSetter<ApiVideo | undefined>;
+    List: ApiVideo[];
     AudioContext: {
       Enabled: GetterSetter<boolean>;
       SelectedLimit: GetterSetter<number>;
@@ -122,6 +124,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [tableFilterWatched, setTableFilterWatched] = useState<boolean>();
   const [tableFilterFilename, setTableFilterFilename] = useState<string>();
   const [tableFilterFolder, setTableFilterFolder] = useState<string>();
+  const [tableFilterfilenameMode, setTableFilterfilenameMode] = useState<'text' | 'regex'>('text');
 
   const [settingsModalKind, setSettingsModalKind] = useState<GlobalConfigType['Settings']['ModalKind']['Getter']>('sheet');
   const [settingsModalSide, setSettingsModalSide] = useState<GlobalConfigType['Settings']['ModalSide']['Getter']>('right');
@@ -131,6 +134,45 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [settingsApiUrl, setSettingsApiUrl] = useState<string>();
 
   const showHideVideo = useMemo(() => selectedVideo != undefined, [selectedVideo]);
+
+  const visibleVideos = useMemo(() => {
+    return (apiVideos ?? []).filter(x => {
+      const conds: boolean[] = [];
+      if (filterFolder != undefined) conds.push(x.folder?.id == filterFolder?.id);
+      if (filterPlaylist != undefined) conds.push((x.playlists ?? []).map(p => p.id).includes(filterPlaylist?.id));
+      if (filterFullpath != undefined) conds.push(x.fullpath.startsWith(filterFullpath));
+      if (filterTag != undefined) conds.push((x.tags ?? []).map(t => t.id).includes(filterTag.id));
+
+      if (tableFilterWatched != undefined) conds.push((x.attributes.watched ?? false) == tableFilterWatched)
+      if (tableFilterFolder != undefined) conds.push(x.fullpath.replace('\\', '/').split('/').slice(0, -1).join('/').toLowerCase().includes(tableFilterFolder.toLowerCase()))
+      if (tableFilterFilename != undefined) {
+        switch (tableFilterfilenameMode) {
+          case 'text':
+            conds.push(x.filename.toLowerCase().includes(tableFilterFilename.toLowerCase()))
+            break;
+          case 'regex':
+            try {
+              const rule = new RegExp(tableFilterFilename ?? '', 'gi');
+              conds.push(rule.test(x.filename))
+            } catch { }
+            break;
+        }
+      }
+      return conds.length == 0 || conds.every(Boolean);
+    });
+  }, [
+    filterFolder,
+    filterPlaylist,
+    filterFullpath,
+    filterTag,
+
+    tableFilterWatched,
+    tableFilterFilename,
+    tableFilterFolder,
+    tableFilterfilenameMode,
+
+    apiVideos,
+  ]);
 
   useEffect(() => {
     if (!audioCtxGainNode) return;
@@ -158,6 +200,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
         Watched: { Getter: tableFilterWatched, Setter: setTableFilterWatched, },
         Filename: { Getter: tableFilterFilename, Setter: setTableFilterFilename, },
         Folder: { Getter: tableFilterFolder, Setter: setTableFilterFolder, },
+        FilenameMode: { Getter: tableFilterfilenameMode, Setter: setTableFilterfilenameMode, },
       }
     },
     Sidebar: {
@@ -258,6 +301,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
     },
     VideoPlayer: {
       Selected: { Getter: selectedVideo, Setter: setSelectetdVideo, },
+      List: visibleVideos,
       AudioContext: {
         Enabled: { Getter: audioCtxEnabled, Setter: setAudioCtxEnabled },
         SelectedLimit: { Getter: audioCtxSelectedLimit, Setter: setAudioCtxSelectedLimit, },

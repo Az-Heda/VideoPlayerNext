@@ -32,6 +32,8 @@ func CB_ListVideo(conn *gorm.DB, i *ListVideoRequest) ApiExchange[ListVideoRespo
 		}
 	}
 
+	filtered = filtered.Order("fullpath ASC")
+
 	switch {
 	case len(i.Ids) > 0:
 		filtered = filtered.Where("id IN ?", i.Ids)

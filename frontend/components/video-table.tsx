@@ -25,7 +25,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
   const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
   const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [localFilenameFilterMode, setLocalFilenameFilterMode] = useState<'text' | 'regex'>('text');
+  // const [localFilenameFilterMode, setLocalFilenameFilterMode] = useState<'text' | 'regex'>('text');
   const [localWatched, setLocalWatched] = useState<string>('undefined');
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
@@ -39,43 +39,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
 
   const columnHelper = createColumnHelper<DataTableFeatures, ApiVideo>();
 
-  const visibleVideos = useMemo(() => {
-    return (props.Config.Api.Data.Videos.Getter ?? []).filter(x => {
-      const conds: boolean[] = [];
-      if (props.Config.Filters.Folder.Getter != undefined) conds.push(x.folder?.id == props.Config.Filters.Folder.Getter?.id);
-      if (props.Config.Filters.Playlist.Getter != undefined) conds.push((x.playlists ?? []).map(p => p.id).includes(props.Config.Filters.Playlist.Getter?.id));
-      if (props.Config.Filters.Fullpath.Getter != undefined) conds.push(x.fullpath.startsWith(props.Config.Filters.Fullpath.Getter));
-      if (props.Config.Filters.Tag.Getter != undefined) conds.push((x.tags ?? []).map(t => t.id).includes(props.Config.Filters.Tag.Getter.id));
-      if (props.Config.Filters.Table.Watched.Getter != undefined) conds.push((x.attributes.watched ?? false) == props.Config.Filters.Table.Watched.Getter)
-      if (props.Config.Filters.Table.Folder.Getter != undefined) conds.push(x.fullpath.replace('\\', '/').split('/').slice(0, -1).join('/').toLowerCase().includes(props.Config.Filters.Table.Folder.Getter.toLowerCase()))
-      if (props.Config.Filters.Table.Filename.Getter != undefined) {
-        switch (localFilenameFilterMode) {
-          case 'text':
-            conds.push(x.filename.toLowerCase().includes(props.Config.Filters.Table.Filename.Getter.toLowerCase()))
-            break;
-          case 'regex':
-            try {
-              const rule = new RegExp(props.Config.Filters.Table.Filename.Getter ?? '', 'gi');
-              conds.push(rule.test(x.filename))
-            } catch { }
-            break;
-        }
-      }
-      return conds.length == 0 || conds.every(Boolean);
-    });
-  }, [
-    props.Config.Filters.Folder.Getter,
-    props.Config.Filters.Playlist.Getter,
-    props.Config.Filters.Fullpath.Getter,
-    props.Config.Filters.Tag.Getter,
 
-    props.Config.Filters.Table.Watched.Getter,
-    props.Config.Filters.Table.Filename.Getter,
-    props.Config.Filters.Table.Folder.Getter,
-    localFilenameFilterMode,
-
-    props.Config.Api.Data.Videos.Getter,
-  ]);
 
   const commonProperties: Parameters<typeof columnHelper.accessor>[1] = {
     enableHiding: true,
@@ -314,7 +278,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
 
   const tbl = useTable({
     features: features,
-    data: visibleVideos,
+    data: props.Config.VideoPlayer.List,
     columns: columns,
     enableSorting: true,
 
@@ -477,10 +441,10 @@ export function MainvideoTable(props: MainVideoTableProps) {
                         <Button
                           size="icon"
                           variant="default"
-                          onClick={() => setLocalFilenameFilterMode({ 'text': 'regex', 'regex': 'text' }[localFilenameFilterMode] as any)}
+                          onClick={() => props.Config.Filters.Table.FilenameMode.Setter({ 'text': 'regex', 'regex': 'text' }[props.Config.Filters.Table.FilenameMode.Getter] as any)}
                         >
                           {
-                            localFilenameFilterMode == 'text'
+                            props.Config.Filters.Table.FilenameMode.Getter == 'text'
                               ? <CaseSensitive />
                               : <Regex />
                           }

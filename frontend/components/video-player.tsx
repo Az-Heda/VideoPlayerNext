@@ -2,13 +2,10 @@
 
 import dynamic from "next/dynamic";
 
-import { Dispatch, JSX, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { VideoPlayer, VideoPlayerContent, VideoPlayerControlBar, VideoPlayerMuteButton, VideoPlayerPlayButton, VideoPlayerSeekBackwardButton, VideoPlayerSeekForwardButton, VideoPlayerTimeDisplay, VideoPlayerTimeRange, VideoPlayerVolumeRange } from '@/components/ui/video-player-full';
-import { ApiVideo } from "@/lib/api";
 import { MediaChromeButton, MediaFullscreenButton, MediaTooltip as MediaTooltipReact } from "media-chrome/react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Info, Key, Moon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { MediaTooltip } from "media-chrome";
+import { ChevronsLeft, ChevronsRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlobalConfigType } from "@/lib/globals";
 
@@ -22,6 +19,40 @@ export default dynamic(() => Promise.resolve(Vp), { ssr: false })
 
 export function Vp({ config, className }: Props) {
   const refVideo = useRef<HTMLVideoElement>(null);
+  const [currentVideoTitlteOpen, setCurrentVideoTitleOpen] = useState(false);
+  const [previousVideoLabelOpen, setPreviousVideoLabelOpen] = useState(false);
+  const [nextVideoLabelOpen, setNextVideoLabelOpen] = useState(false);
+
+
+  const nextVideo = useMemo(() => {
+    const ids: string[] = [config.Filters.Playlist.Getter?.id, config.Filters.Tag.Getter?.id].filter(x => x != undefined);
+    if (ids.length != 1) return undefined;
+    if (config.VideoPlayer.List.find(x => x.id == config.VideoPlayer.Selected.Getter?.id) == null) return undefined;
+
+    const currentIdx = config.VideoPlayer.List.findIndex(v => v.id == config.VideoPlayer.Selected.Getter?.id);
+    if ((currentIdx + 1) < config.VideoPlayer.List.length) return config.VideoPlayer.List[currentIdx + 1];
+    return null;
+  }, [
+    config.VideoPlayer.Selected.Getter,
+    config.Filters.Playlist.Getter,
+    config.Filters.Tag.Getter,
+    config.VideoPlayer.List,
+  ]);
+
+  const previousVideo = useMemo(() => {
+    const ids: string[] = [config.Filters.Playlist.Getter?.id, config.Filters.Tag.Getter?.id].filter(x => x != undefined);
+    if (ids.length != 1) return undefined;
+    if (config.VideoPlayer.List.find(x => x.id == config.VideoPlayer.Selected.Getter?.id) == null) return undefined;
+
+    const currentIdx = config.VideoPlayer.List.findIndex(v => v.id == config.VideoPlayer.Selected.Getter?.id);
+    if ((currentIdx - 1) >= 0) return config.VideoPlayer.List[currentIdx - 1];
+    return null;
+  }, [
+    config.VideoPlayer.Selected.Getter,
+    config.Filters.Playlist.Getter,
+    config.Filters.Tag.Getter,
+    config.VideoPlayer.List,
+  ]);
 
   useEffect(() => {
     const video = document.querySelector<HTMLVideoElement>("video#video-stream");
@@ -29,7 +60,6 @@ export function Vp({ config, className }: Props) {
     let holdTimer: NodeJS.Timeout[] = [];
     const HOLD_TIMER_BEFORE_MOVING = 500; // 500ms
     const WAIT_AFTER_SCREENSHOT = 1000 * 1.5 // 2s;
-    const REFOCUS = 50;
     let can_take_screenshot = true;
     video.addEventListener('keyup', (evt) => {
       switch (evt.key) {
@@ -210,66 +240,39 @@ export function Vp({ config, className }: Props) {
         <VideoPlayerTimeDisplay showDuration />
 
 
-        {/* <MediaChromeButton
-          role="button"
-          className="p-2.5"
-          noTooltip
-          disabled={previousVideo === undefined}
-          onMouseEnter={() => setPreviousVideoLabelOpen(true)}
-          onMouseLeave={() => setPreviousVideoLabelOpen(false)}
-          onClick={() => {
-            console.log(previousVideo)
-            if (previousVideo === undefined) return;
-            commands.VideoPlayer.Setter!(previousVideo);
-          }}
-        >
-          <div className={cn(previousVideo === undefined ? 'text-primary/50 cursor-not-allowed' : 'text-primary cursor-pointer')} tabIndex={0} role="button" aria-label="Previous video in table">
-            <ChevronsLeft />
-          </div>
-          <slot name="tooltip">
-            <MediaTooltipReact
-              part="tooltip"
-              className="px-2 py-1"
-              hidden={!previousVideoLabelOpen}
-            >
-              Previous video
-            </MediaTooltipReact>
-          </slot>
-        </MediaChromeButton> */}
+        {
+          previousVideo !== undefined && <MediaChromeButton
+            role="button"
+            className="p-2.5"
+            noTooltip
+            disabled={previousVideo === null}
+            onMouseEnter={() => setPreviousVideoLabelOpen(true)}
+            onMouseLeave={() => setPreviousVideoLabelOpen(false)}
+            onClick={() => {
+              if (!!previousVideo) config.VideoPlayer.Selected.Setter(previousVideo);
+            }}
+          >
+            <div className={cn(previousVideo === null ? 'text-primary/50 cursor-not-allowed' : 'text-primary cursor-pointer')} tabIndex={0} role="button" aria-label="Previous video in table">
+              <ChevronsLeft />
+            </div>
+            <slot name="tooltip">
+              <MediaTooltipReact
+                part="tooltip"
+                className="px-2 py-1"
+                hidden={!previousVideoLabelOpen}
+              >
+                Previous video
+                {
+                  previousVideo === null
+                    ? <></>
+                    : <>:<br />{previousVideo.filename}</>
+                }
+              </MediaTooltipReact>
+            </slot>
+          </MediaChromeButton>
+        }
 
-
-        {/* <MediaChromeButton
-          role="button"
-          className="p-2.5"
-          noTooltip
-          disabled={nextVideo === undefined}
-          onMouseEnter={() => setNextVideoLabelOpen(true)}
-          onMouseLeave={() => setNextVideoLabelOpen(false)}
-          onClick={() => {
-            if (nextVideo === undefined) return;
-            commands.VideoPlayer.Setter!(nextVideo);
-          }}
-        >
-          <div className={cn(nextVideo === undefined ? 'text-primary/50 cursor-not-allowed' : 'text-primary cursor-pointer')} tabIndex={0} role="button" aria-label="Next video in table">
-            <ChevronsRight />
-          </div>
-          <slot name="tooltip">
-            <MediaTooltipReact
-              part="tooltip"
-              className="px-2 py-1"
-              hidden={!nextVideoLabelOpen}
-            >
-              Next video
-            </MediaTooltipReact>
-          </slot>
-        </MediaChromeButton> */}
-
-
-        <VideoPlayerMuteButton />
-        <VideoPlayerVolumeRange mediaVolume={0} />
-
-
-        {/* <MediaChromeButton
+        <MediaChromeButton
           role="button"
           className="p-2.5"
           noTooltip
@@ -282,14 +285,48 @@ export function Vp({ config, className }: Props) {
           <slot name="tooltip">
             <MediaTooltipReact
               part="tooltip"
-              className="px-2 py-1 w-32 whitespace-normal justify-content-end"
+              className="px-2 py-1"
               hidden={!currentVideoTitlteOpen}
             >
-              {commands.VideoPlayer.Getter?.title}
+              {config.VideoPlayer.Selected.Getter?.filename}
             </MediaTooltipReact>
           </slot>
-        </MediaChromeButton> */}
+        </MediaChromeButton>
 
+        {
+          nextVideo !== undefined && <MediaChromeButton
+            role="button"
+            className="p-2.5"
+            noTooltip
+            disabled={nextVideo === null}
+            onMouseEnter={() => setNextVideoLabelOpen(true)}
+            onMouseLeave={() => setNextVideoLabelOpen(false)}
+            onClick={() => {
+              if (!!nextVideo) config.VideoPlayer.Selected.Setter(nextVideo);
+            }}
+          >
+            <div className={cn(nextVideo === null ? 'text-primary/50 cursor-not-allowed' : 'text-primary cursor-pointer')} tabIndex={0} role="button" aria-label="Next video in table">
+              <ChevronsRight />
+            </div>
+            <slot name="tooltip">
+              <MediaTooltipReact
+                part="tooltip"
+                className="px-2 py-1"
+                hidden={!nextVideoLabelOpen}
+              >
+                Next video
+                {
+                  nextVideo === null
+                    ? <></>
+                    : <>:<br />{nextVideo.filename}</>
+                }
+              </MediaTooltipReact>
+            </slot>
+          </MediaChromeButton>
+        }
+
+        <VideoPlayerMuteButton />
+        <VideoPlayerVolumeRange mediaVolume={0} />
 
         <MediaFullscreenButton className="p-2.5" />
       </VideoPlayerControlBar>
