@@ -50,6 +50,7 @@ type ModalAudioContextProps = CommonProps & {};
 type ModalThemeSelectorProps = CommonProps & {};
 type ModalKeybindsProps = CommonProps & {};
 type ModalSettingsProps = CommonProps & {};
+type ModalSyncVideosProps = CommonProps & {};
 type ModalSyncDataProps = CommonProps & {};
 type ModalApplyAutomaticRules = CommonProps & {};
 type PlaylistSelectorProps = CommonProps & {};
@@ -498,7 +499,7 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
   </GeneralModal>
 }
 
-export function ModalSyncVideos(props: ModalSyncDataProps) {
+export function ModalSyncVideos(props: ModalSyncVideosProps) {
   const [newFolder, setNewFolder] = useState<string>();
   const [step, setStep] = useState<'select' | 'scan' | 'end'>('select');
   const [selectedFolder, setSelectedFolder] = useState<ApiFolder>();
@@ -857,7 +858,7 @@ export function TagSelector(props: TagSelectorProps) {
   </GeneralModal>
 }
 
-export function ModalSyncData(props: ModalImportFromFileProps) {
+export function ModalSyncData(props: ModalSyncDataProps) {
   const [updateState, setUpdateState] = useState<keyof typeof props.Config.Api.Data>()
 
   useEffect(() => {

@@ -61,10 +61,6 @@ func init() {
 	rootCmd.Flags().Bool("server.enableLogger", true, "Enable server request logger")
 	rootCmd.Flags().StringP("server.host", "h", "127.0.0.1", "Host of the webserver")
 	rootCmd.Flags().IntP("server.port", "p", 5008, "Port of the webserver")
-
-	// Commands
-
-	rootCmd.AddCommand(ruleCmd)
 }
 
 func removeHelpFlag(cmd *cobra.Command) {
