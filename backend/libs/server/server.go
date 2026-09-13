@@ -19,6 +19,7 @@ func AddStaticEndpoints(mux *http.ServeMux) {
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}
+
 	mux.Handle("/", http.FileServerFS(newFsys))
 }
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"vp/libs/api"
 	"vp/libs/database"
 	"vp/libs/models"
@@ -54,10 +55,22 @@ func Root(cmd *cobra.Command, args []string) {
 		mux,
 		server.MiddlewareIf{Cond: corsEnable, Middleware: server.MiddlewareCORS(corsDebugMode, corsAllowedOrigins)},
 		server.MiddlewareIf{Cond: true, Middleware: server.MiddlewareRecover},
-		server.MiddlewareIf{Cond: rateLimitEnabled, Middleware: server.MiddlewareRateLimit(rateLimitRps, rateLimitBurst)},
+		server.MiddlewareIf{
+			Cond: rateLimitEnabled,
+			Middleware: server.Skip(
+				server.MiddlewareRateLimit(rateLimitRps, rateLimitBurst),
+				func(r *http.Request) bool {
+					if strings.HasPrefix(r.URL.Path, "/stream/") {
+						log.Info().Msg("Should not rate limit my stream endpoint")
+					}
+					return strings.HasPrefix(r.URL.Path, "/stream/")
+				},
+			),
+		},
 		server.MiddlewareIf{Cond: serverEnableLogger, Middleware: server.MiddlewareLogger(log.Logger)},
 		server.MiddlewareIf{Cond: serverEnableLogger, Middleware: server.MiddlewareRequestLogger},
 	)
+
 	if err := http.ListenAndServe(address, handler); err != nil {
 		log.Fatal().Err(err).Send()
 	}

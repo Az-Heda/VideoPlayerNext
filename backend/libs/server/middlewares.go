@@ -196,6 +196,53 @@ func MiddlewareRateLimitByIP(rps float64, burst int) func(next http.Handler) htt
 	}
 }
 
+func SkipPath(mw Middleware, paths ...string) Middleware {
+	skip := make(map[string]struct{}, len(paths))
+	for _, path := range paths {
+		skip[path] = struct{}{}
+	}
+
+	return Skip(mw, func(r *http.Request) bool {
+		_, ok := skip[r.URL.Path]
+		return ok
+	})
+}
+
+func Skip(mw Middleware, shouldSkip func(*http.Request) bool) Middleware {
+	return func(next http.Handler) http.Handler {
+		handler := mw(next)
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if shouldSkip(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			handler.ServeHTTP(w, r)
+		})
+	}
+}
+
+func SkipPattern(mw Middleware, patterns ...string) Middleware {
+	skip := make(map[string]struct{}, len(patterns))
+	for _, pattern := range patterns {
+		skip[pattern] = struct{}{}
+	}
+
+	return func(next http.Handler) http.Handler {
+		handler := mw(next)
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := skip[r.Pattern]; ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			handler.ServeHTTP(w, r)
+		})
+	}
+}
+
 func MiddlewareCORS(enableDebugMode bool, allowedOrigins []string) func(next http.Handler) http.Handler {
 	// var cl = log.Hook(zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, message string) {
 	// 	e.Str("source", "_cors")
