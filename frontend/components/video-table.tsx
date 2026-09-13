@@ -145,9 +145,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
       cell({ row }) {
         const codeRegex = /\.\d+x\d+\./;
         if (codeRegex.test(row.original.filename)) {
-          const code = row.original.filename.replaceAll(/.*\.(\d+)x(\d\d)\..*/g, '$1 - $2');
-          const parts = code.split(' - ');
-          return <span>{parts[0]} x {parts[1]}</span>
+          return <span>{row.original.filename.replaceAll(/.*\.(\d+)x(\d\d)\..*/g, '$1 x $2')}</span>
         } else {
           return <div></div>
         }
@@ -162,13 +160,6 @@ export function MainvideoTable(props: MainVideoTableProps) {
           className="block overflow-hidden truncate text-ellipsis max-w-150"
           onClick={() => {
             props.Config.VideoPlayer.Selected.Setter(row.original);
-            if (!row.original.attributes.watched && !props.Config.Settings.PrivacyVideoMode.Getter) {
-              props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: true })
-                .then(vid => props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
-                  if (v.id != vid.id) return v;
-                  return vid;
-                })))
-            }
           }}
         >
           {row.original?.filename}

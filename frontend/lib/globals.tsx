@@ -179,6 +179,36 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
     audioCtxGainNode.gain.value = audioCtxSelectedLimit / 100;
   }, [audioCtxGainNode, audioCtxSelectedLimit]);
 
+
+  useEffect(() => {
+    if (selectedVideo === undefined) return;
+    if (privacyVideoMode) return;
+
+    if (!selectedVideo.attributes.watched) {
+      apiRequest.PatchSetWatchedFlag(selectedVideo, { attr: true })
+        .then(vid => {
+          setApiVideos(videos => videos === undefined ? undefined : videos.map(v => {
+            if (v.id == vid.id) return vid;
+            return v;
+          }).sort((a, b) => {
+            return a.fullpath.localeCompare(b.fullpath);
+          }))
+        })
+    }
+  }, [
+    privacyVideoMode,
+    selectedVideo,
+  ])
+
+  // props.Config.VideoPlayer.Selected.Setter(row.original);
+  //           if (!row.original.attributes.watched && !props.Config.Settings.PrivacyVideoMode.Getter) {
+  //             props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: true })
+  //               .then(vid => props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
+  //                 if (v.id != vid.id) return v;
+  //                 return vid;
+  //               })))
+  //           }
+
   return {
     Api: {
       Instance: apiRequest,
