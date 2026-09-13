@@ -60,9 +60,6 @@ func Root(cmd *cobra.Command, args []string) {
 			Middleware: server.Skip(
 				server.MiddlewareRateLimit(rateLimitRps, rateLimitBurst),
 				func(r *http.Request) bool {
-					if strings.HasPrefix(r.URL.Path, "/stream/") {
-						log.Info().Msg("Should not rate limit my stream endpoint")
-					}
 					return strings.HasPrefix(r.URL.Path, "/stream/")
 				},
 			),
