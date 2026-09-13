@@ -54,7 +54,7 @@ func init() {
 	rootCmd.Flags().String("database.dsn", defaultDsn, "Set the database connection string to use with the specified driver")
 	rootCmd.Flags().Duration("database.slowThreshold", time.Millisecond*500, "Set the slow threshold for the queries. Every single query longer that that will appear on the logger")
 
-	rootCmd.Flags().Bool("ratelimit", true, "Enable the API rate limit. Configurable with flags ratelimit.rps and ratelimit.burst")
+	rootCmd.Flags().Bool("ratelimit.enable", true, "Enable the API rate limit. Configurable with flags ratelimit.rps and ratelimit.burst")
 	rootCmd.Flags().Float64("ratelimit.rps", 10, "rps (rate) = how quickly tokens are added to the bucket")
 	rootCmd.Flags().Int("ratelimit.burst", 20, "burst = the bucket's maximum size (how many tokens it can hold)")
 

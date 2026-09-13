@@ -30,7 +30,7 @@ func Root(cmd *cobra.Command, args []string) {
 		corsDebugMode      = Must(cmd.Flags().GetBool("cors.debugMode"))
 		corsAllowedOrigins = Must(cmd.Flags().GetStringSlice("cors.allowOrigin"))
 
-		rateLimitEnabled = Must(cmd.Flags().GetBool("ratelimit"))
+		rateLimitEnabled = Must(cmd.Flags().GetBool("ratelimit.enable"))
 		rateLimitRps     = Must(cmd.Flags().GetFloat64("ratelimit.rps"))
 		rateLimitBurst   = Must(cmd.Flags().GetInt("ratelimit.burst"))
 	)
