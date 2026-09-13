@@ -83,6 +83,7 @@ export type GlobalConfigType = {
     ShowScalarApi: GetterSetter<boolean>;
     ApiHostUrl: GetterSetter<string | undefined>;
     ColoredWatchedStatus: GetterSetter<'none' | 'border' | 'full'>;
+    DevelopmentMode: GetterSetter<boolean>;
   }
 }
 
@@ -132,11 +133,13 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [settingsShowScalarApi, setSettingsShowScalarApi] = useState(false);
   const [settingsColoredWatchedStatus, setSettingsColoredWatchedStatus] = useState<'none' | 'border' | 'full'>('border');
   const [settingsApiUrl, setSettingsApiUrl] = useState<string>();
+  const [settingsShowDevelopmentMode, setSettingsShowDevelopmentMode] = useState(false);
 
   const showHideVideo = useMemo(() => selectedVideo != undefined, [selectedVideo]);
 
   const visibleVideos = useMemo(() => {
-    return (apiVideos ?? []).filter(x => {
+    if (apiVideos === undefined) return [];
+    return apiVideos.filter(x => {
       const conds: boolean[] = [];
       if (filterFolder != undefined) conds.push(x.folder?.id == filterFolder?.id);
       if (filterPlaylist != undefined) conds.push((x.playlists ?? []).map(p => p.id).includes(filterPlaylist?.id));
@@ -152,7 +155,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
             break;
           case 'regex':
             try {
-              const rule = new RegExp(tableFilterFilename ?? '', 'gi');
+              const rule = new RegExp(tableFilterFilename, 'gi');
               conds.push(rule.test(x.filename))
             } catch { }
             break;
@@ -352,6 +355,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       ShowScalarApi: { Getter: settingsShowScalarApi, Setter: setSettingsShowScalarApi, },
       ColoredWatchedStatus: { Getter: settingsColoredWatchedStatus, Setter: setSettingsColoredWatchedStatus, },
       ApiHostUrl: { Getter: settingsApiUrl, Setter: setSettingsApiUrl, },
+      DevelopmentMode: { Getter: settingsShowDevelopmentMode, Setter: setSettingsShowDevelopmentMode, },
     }
   } as const;
 }

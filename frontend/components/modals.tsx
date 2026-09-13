@@ -275,6 +275,7 @@ export function ModalSettings(props: ModalSettingsProps) {
   const [settingsShowScalarApi, setSettingsShowScalarApi] = useState<typeof props.Config.Settings.ShowScalarApi.Getter>(props.Config.Settings.ShowScalarApi.Getter);
   const [coloredWatchedStatus, setColoredWatchedStatus] = useState<typeof props.Config.Settings.ColoredWatchedStatus.Getter>(props.Config.Settings.ColoredWatchedStatus.Getter)
   const [localApiOrigin, setLocalApiOrigin] = useState<typeof props.Config.Settings.ApiHostUrl.Getter>(props.Config.Settings.ApiHostUrl.Getter);
+  const [localDevMode, setLocalDevMode] = useState<typeof props.Config.Settings.DevelopmentMode.Getter>(props.Config.Settings.DevelopmentMode.Getter);
 
   const allSettings = useMemo(() => {
     return {
@@ -284,6 +285,7 @@ export function ModalSettings(props: ModalSettingsProps) {
       settingsShowScalarApi,
       coloredWatchedStatus,
       localApiOrigin,
+      localDevMode,
     }
   }, [
     settingsModalKind,
@@ -292,6 +294,7 @@ export function ModalSettings(props: ModalSettingsProps) {
     settingsShowScalarApi,
     coloredWatchedStatus,
     localApiOrigin,
+    localDevMode,
   ])
 
   function reset() {
@@ -304,6 +307,7 @@ export function ModalSettings(props: ModalSettingsProps) {
       setSettingsShowScalarApi(settings.settingsShowScalarApi);
       setColoredWatchedStatus(settings.coloredWatchedStatus);
       setLocalApiOrigin(settings.localApiOrigin);
+      setLocalDevMode(settings.localDevMode);
 
       props.Config.Settings.ModalKind.Setter(settings.settingsModalKind);
       props.Config.Settings.ModalSide.Setter(settings.settingsModalSide);
@@ -311,6 +315,7 @@ export function ModalSettings(props: ModalSettingsProps) {
       props.Config.Settings.ShowScalarApi.Setter(settings.settingsShowScalarApi);
       props.Config.Settings.ColoredWatchedStatus.Setter(settings.coloredWatchedStatus);
       props.Config.Settings.ApiHostUrl.Setter(settings.localApiOrigin);
+      props.Config.Settings.DevelopmentMode.Setter(settings.localDevMode);
     } else {
       setSettingsModalKind(props.Config.Settings.ModalKind.Getter);
       setSettingsModalSide(props.Config.Settings.ModalSide.Getter);
@@ -318,6 +323,7 @@ export function ModalSettings(props: ModalSettingsProps) {
       setSettingsShowScalarApi(props.Config.Settings.ShowScalarApi.Getter);
       setColoredWatchedStatus(props.Config.Settings.ColoredWatchedStatus.Getter);
       setLocalApiOrigin(props.Config.Settings.ApiHostUrl.Getter);
+      setLocalDevMode(props.Config.Settings.DevelopmentMode.Getter);
     }
   }
 
@@ -400,29 +406,40 @@ export function ModalSettings(props: ModalSettingsProps) {
       </ButtonGroup>
 
       <Marker variant="separator" className="not-first:mt-4 pb-2 col-span-2">
-        <MarkerContent>Sidebar</MarkerContent>
+        <MarkerContent>Development mode</MarkerContent>
       </Marker>
 
-      <Label htmlFor="privacyMode">Show Scalar API</Label>
-      <span className="w-full flex gap-2">
-        <Switch checked={settingsShowScalarApi} onCheckedChange={setSettingsShowScalarApi} />
-        {settingsShowScalarApi ? 'On' : 'Off'}
-      </span>
 
-      <Label>Api origin</Label>
-      <ButtonGroup className="w-full">
-        <Input
-          value={localApiOrigin ?? ''}
-          onChange={(e) => setLocalApiOrigin(e.target.value)}
-        />
-        <Button
-          onClick={() => {
-            setLocalApiOrigin(window.location.origin);
-          }}
-        >
-          <RefreshCcw />
-        </Button>
-      </ButtonGroup>
+      <Label htmlFor="devMode">Dev mode</Label>
+      <span className="w-full flex gap-2">
+        <Switch checked={localDevMode} onCheckedChange={setLocalDevMode} />
+        {localDevMode ? 'On' : 'Off'}
+      </span>
+      {
+        localDevMode && <>
+          <Label htmlFor="privacyMode">Show Scalar API</Label>
+          <span className="w-full flex gap-2">
+            <Switch checked={settingsShowScalarApi} onCheckedChange={setSettingsShowScalarApi} />
+            {settingsShowScalarApi ? 'On' : 'Off'}
+          </span>
+
+          <Label>Api origin</Label>
+          <ButtonGroup className="w-full">
+            <Input
+              value={localApiOrigin ?? ''}
+              onChange={(e) => setLocalApiOrigin(e.target.value)}
+            />
+            <Button
+              onClick={() => {
+                setLocalApiOrigin(window.location.origin);
+              }}
+            >
+              <RefreshCcw />
+            </Button>
+          </ButtonGroup>
+        </>
+      }
+
     </div>
 
   </GeneralModal>
