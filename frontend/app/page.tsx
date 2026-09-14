@@ -1,6 +1,6 @@
 "use client";
 
-import { ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalSyncVideos, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
+import { ErrorModal, ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalSyncVideos, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
 import { Explore } from "@/components/explore";
 import { AppSidebar } from "@/components/sidebar"
 import { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from "@/components/ui/attachment";
@@ -26,12 +26,31 @@ export default function Page() {
 
   useEffect(() => {
     api.addGlobalConfigs(config);
-    api.GetFolderList().then(config.Api.Data.Folders.Setter);
-    api.GetVideoList().then((data) => {
-      config.Api.Data.Videos.Setter(data);
-      api.GetPlaylistList().then(config.Api.Data.Playlists.Setter);
-      api.GetTagList().then(config.Api.Data.Tags.Setter);
-    });
+    api.GetFolderList()
+      .then(
+        (folders) => config.Api.Data.Folders.Setter(folders),
+        (error) => config.Errors.Setter(errs => [...errs, error]),
+      );
+
+    api.GetVideoList()
+      .then(
+        (data) => {
+          config.Api.Data.Videos.Setter(data);
+          api.GetPlaylistList()
+            .then(
+              (playlists) => config.Api.Data.Playlists.Setter(playlists),
+              (error) => config.Errors.Setter(errs => [...errs, error]),
+
+            );
+          api.GetTagList()
+            .then(
+              (tags) => config.Api.Data.Tags.Setter(tags),
+              (error) => config.Errors.Setter(errs => [...errs, error]),
+
+            );
+        },
+        (error) => config.Errors.Setter(errs => [...errs, error]),
+      );
   }, [])
   return (
     <SidebarProvider
@@ -143,6 +162,7 @@ export default function Page() {
         <ModalSyncVideos Config={config} />
         <ModalApplyAutomaticRules Config={config} />
         <ModalSyncData Config={config} />
+        <ErrorModal Config={config} />
 
         <PlaylistSelector Config={config} />
         <TagSelector Config={config} />

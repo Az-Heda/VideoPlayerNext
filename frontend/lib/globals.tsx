@@ -1,8 +1,8 @@
 "use client";
 
-import { AudioLines, CloudBackup, File, FileVideo, Film, Globe, Keyboard, Palette, RefreshCw, Settings, SquareFunction, Waypoints, X } from "lucide-react";
-import { ComponentProps, Dispatch, JSX, SetStateAction, useEffect, useMemo, useState } from "react";
-import { ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
+import { AudioLines, CloudBackup, File, FileVideo, Film, Globe, Keyboard, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, Waypoints, X } from "lucide-react";
+import { ComponentProps, Dispatch, JSX, ReactNode, SetStateAction, useEffect, useMemo, useState } from "react";
+import { ApiError, ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
 import { Drawer } from "@/components/ui/drawer";
 
@@ -13,7 +13,7 @@ type GetterSetter<T> = {
 }
 export type SidebarItem<T> = {
   Icon: JSX.Element
-  Title: string;
+  Title: ReactNode;
   Action?: () => void;
   Visibility?: boolean;
 } & GetterSetter<T>;
@@ -58,6 +58,7 @@ export type GlobalConfigType = {
       SettingsModal: SidebarItem<boolean>;
       OpenScalar: SidebarItem<undefined>;
       SyncDataModal: SidebarItem<boolean>;
+      OpenErrorModal: SidebarItem<boolean>;
     };
   };
   VideoPlayer: {
@@ -84,7 +85,8 @@ export type GlobalConfigType = {
     ApiHostUrl: GetterSetter<string | undefined>;
     ColoredWatchedStatus: GetterSetter<'none' | 'border' | 'full'>;
     DevelopmentMode: GetterSetter<boolean>;
-  }
+  },
+  Errors: GetterSetter<(ApiError | Error | { source: string; content: string })[]>
 }
 
 export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
@@ -100,6 +102,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [removeVideo, setRemoveVideo] = useState(false);
   const [openAutomaticRule, setOpenAutomaticRule] = useState(false);
   const [openSyncData, setOpenSyncData] = useState(false);
+  const [openErrorModal, setOpenErrorModal] = useState(false);
 
 
   const [selectedVideo, setSelectetdVideo] = useState<ApiVideo | undefined>();
@@ -134,6 +137,8 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [settingsColoredWatchedStatus, setSettingsColoredWatchedStatus] = useState<'none' | 'border' | 'full'>('border');
   const [settingsApiUrl, setSettingsApiUrl] = useState<string>();
   const [settingsShowDevelopmentMode, setSettingsShowDevelopmentMode] = useState(false);
+
+  const [errorHandler, setErrorHandler] = useState<GlobalConfigType['Errors']['Getter']>([]);
 
   const showHideVideo = useMemo(() => selectedVideo != undefined, [selectedVideo]);
 
@@ -189,28 +194,47 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
 
     if (!selectedVideo.attributes.watched) {
       apiRequest.PatchSetWatchedFlag(selectedVideo, { attr: true })
-        .then(vid => {
-          setApiVideos(videos => videos === undefined ? undefined : videos.map(v => {
-            if (v.id == vid.id) return vid;
-            return v;
-          }).sort((a, b) => {
-            return a.fullpath.localeCompare(b.fullpath);
-          }))
-        })
+        .then(
+          (vid) => {
+            setApiVideos(videos => videos === undefined ? undefined : videos.map(v => {
+              if (v.id == vid.id) return vid;
+              return v;
+            }).sort((a, b) => {
+              return a.fullpath.localeCompare(b.fullpath);
+            }))
+          },
+          (error) => { setErrorHandler(errs => [...errs, error]) }
+        )
     }
   }, [
     privacyVideoMode,
     selectedVideo,
-  ])
+  ]);
 
-  // props.Config.VideoPlayer.Selected.Setter(row.original);
-  //           if (!row.original.attributes.watched && !props.Config.Settings.PrivacyVideoMode.Getter) {
-  //             props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: true })
-  //               .then(vid => props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
-  //                 if (v.id != vid.id) return v;
-  //                 return vid;
-  //               })))
-  //           }
+  useEffect(() => {
+    resetModal('OpenErrorModal');
+    setOpenErrorModal(true);
+  }, [errorHandler]);
+
+
+  function resetModal(exclude: (keyof GlobalConfigType['Sidebar']['Top'] | keyof GlobalConfigType['Sidebar']['Bottom'])) {
+    const modals = {
+      'FromFileModal': setOpenFromFile,
+      'FromUrlModal': setOpenFromUrl,
+      'AutomaticRuleModel': setOpenAutomaticRule,
+      'AudioContextModal': setOpenAudioContext,
+      'ScanFolderVideosModal': setOpenSyncFolderData,
+      'OpenErrorModal': setOpenErrorModal,
+      'SyncDataModal': setOpenSyncData,
+      'ThemeModal': setOpenTheme,
+      'KeybindsModal': setOpenKeybinds,
+      'SettingsModal': setOpenSettings,
+    } as const;
+
+    for (const [k, v] of Object.entries(modals)) {
+      if (k != exclude) v(false);
+    }
+  }
 
   return {
     Api: {
@@ -250,81 +274,117 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
           Getter: removeVideo,
           Setter: setRemoveVideo,
           Visibility: showHideVideo,
-          Action() {
-            setSelectetdVideo(undefined);
-          },
+          Action() { setSelectetdVideo(undefined) },
         },
         FromFileModal: {
           Icon: <FileVideo />,
           Title: "Open from file",
           Getter: openImportFromFile,
           Setter: setOpenFromFile,
-          Action() { setOpenFromFile(!openImportFromFile) },
+          Action() {
+            resetModal('FromFileModal');
+            setOpenFromFile(!openImportFromFile);
+          },
         },
         FromUrlModal: {
           Icon: <Globe />,
           Title: "Open from url",
           Getter: openImportFromUrl,
           Setter: setOpenFromUrl,
-          Action() { setOpenFromUrl(!openImportFromUrl) },
+          Action() {
+            resetModal('FromUrlModal');
+            setOpenFromUrl(!openImportFromUrl);
+          },
         },
         AutomaticRuleModel: {
           Icon: <SquareFunction />,
           Title: "Apply automatic rules",
           Getter: openAutomaticRule,
           Setter: setOpenAutomaticRule,
-          Action() { setOpenAutomaticRule(!openAutomaticRule) },
+          Action() {
+            resetModal('AutomaticRuleModel');
+            setOpenAutomaticRule(!openAutomaticRule);
+          },
         },
         AudioContextModal: {
           Icon: <AudioLines />,
           Title: "Audio context",
           Getter: openAudioContext,
           Setter: setOpenAudioContext,
-          Action() { setOpenAudioContext(!openAudioContext) },
+          Action() {
+            resetModal('AudioContextModal');
+            setOpenAudioContext(!openAudioContext);
+          },
         },
         ScanFolderVideosModal: {
           Icon: <RefreshCw />,
           Title: "Scan folder data",
           Getter: openSyncFolderData,
           Setter: setOpenSyncFolderData,
-          Action() { setOpenSyncFolderData(!openSyncFolderData) },
+          Action() {
+            resetModal('ScanFolderVideosModal');
+            setOpenSyncFolderData(!openSyncFolderData);
+          },
         }
       },
       Bottom: {
+        OpenErrorModal: {
+          Title: <div className="text-destructive">{errorHandler.length} Error{errorHandler.length == 1 ? '' : 's'}</div>,
+          Icon: <ShieldAlert className="text-destructive" />,
+          Visibility: errorHandler.length > 0,
+          Getter: openErrorModal,
+          Setter: setOpenErrorModal,
+          Action() {
+            resetModal('OpenErrorModal');
+            setOpenErrorModal(!openErrorModal);
+          },
+        },
         SyncDataModal: {
           Icon: <CloudBackup />,
           Title: "Sync local data",
           Getter: openSyncData,
           Setter: setOpenSyncData,
-          Action() { setOpenSyncData(!openSyncData) }
+          Action() {
+            resetModal('SyncDataModal');
+            setOpenSyncData(!openSyncData);
+          }
         },
         ThemeModal: {
           Title: "Theme selector",
           Icon: <Palette />,
           Getter: openTheme,
           Setter: setOpenTheme,
-          Action() { setOpenTheme(!openTheme) },
+          Action() {
+            resetModal('ThemeModal');
+            setOpenTheme(!openTheme);
+          },
         },
         KeybindsModal: {
           Title: "Keybinds",
           Icon: <Keyboard />,
           Getter: openKeybinds,
           Setter: setOpenKeybinds,
-          Action() { setOpenKeybinds(!openKeybinds) },
+          Action() {
+            resetModal('KeybindsModal');
+            setOpenKeybinds(!openKeybinds);
+          },
         },
         SettingsModal: {
           Title: "Settings",
           Icon: <Settings />,
           Getter: openSettings,
           Setter: setOpenSettings,
-          Action() { setOpenSettings(!openSettings) },
+          Action() {
+            resetModal('SettingsModal');
+            setOpenSettings(!openSettings);
+          },
         },
         OpenScalar: {
           Title: "Scalar API",
           Icon: <Waypoints />,
           Getter: empty,
           Setter: setEmpty,
-          Visibility: settingsShowScalarApi,
+          Visibility: settingsShowDevelopmentMode && settingsShowScalarApi,
           Action() {
             const url = apiRequest.GetScalarUrl();
             open(url, 'mozillaWindow', 'pupup');
@@ -356,6 +416,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       ColoredWatchedStatus: { Getter: settingsColoredWatchedStatus, Setter: setSettingsColoredWatchedStatus, },
       ApiHostUrl: { Getter: settingsApiUrl, Setter: setSettingsApiUrl, },
       DevelopmentMode: { Getter: settingsShowDevelopmentMode, Setter: setSettingsShowDevelopmentMode, },
-    }
+    },
+    Errors: { Getter: errorHandler, Setter: setErrorHandler },
   } as const;
 }

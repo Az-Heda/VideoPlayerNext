@@ -35,12 +35,11 @@ export function AppSidebar(props: AppSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
-              {Object.values(props.Config.Sidebar.Top).filter(x => x.Visibility ?? true).map((rawItem) => {
+              {Object.entries(props.Config.Sidebar.Top).filter(([_, x]) => x.Visibility ?? true).map(([key, rawItem]) => {
                 const item = rawItem as any as SidebarItem<unknown>;
                 return (
-                  <SidebarMenuItem key={item.Title}>
+                  <SidebarMenuItem key={key}>
                     <SidebarMenuButton
-                      tooltip={item.Title}
                       onClick={() => {
                         if (item.Action != undefined) item.Action();
                       }}
@@ -58,12 +57,11 @@ export function AppSidebar(props: AppSidebarProps) {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {Object.values(props.Config.Sidebar.Bottom).filter(x => x.Visibility ?? true).map((rawItem) => {
+              {Object.entries(props.Config.Sidebar.Bottom).filter(([_, x]) => x.Visibility ?? true).map(([key, rawItem]) => {
                 const item = rawItem as any as SidebarItem<unknown>
                 return (
-                  <SidebarMenuItem key={item.Title}>
+                  <SidebarMenuItem key={key}>
                     <SidebarMenuButton
-                      tooltip={item.Title}
                       onClick={() => {
                         if (item.Action != undefined) item.Action();
                       }}

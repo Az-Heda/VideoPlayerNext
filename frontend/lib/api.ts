@@ -7,14 +7,20 @@ type ApiErrorDetails = {
   message: string;
   value: any;
 }
-export type Api<T> =
-  | T
-  | {
-    errors: ApiErrorDetails[];
-    detail: string;
-    instance?: string;
-    title: string;
-  };
+
+type Thenable<T> = {
+  then(
+    resolve: (value: T) => void,
+    reject: (reason: ApiError | Error) => void
+  ): void;
+};
+
+export type ApiError = {
+  errors: ApiErrorDetails[];
+  detail: string;
+  instance?: string;
+  title: string;
+};
 type RequestOptions = {
   query?: { [key: string]: string | string[] };
   headers?: HeadersInit;
@@ -64,7 +70,7 @@ export class ApiRequest {
   }
 
   private ensureBaseUrl(): string {
-    if (this.globalConfigs != undefined && this.globalConfigs.Settings.ApiHostUrl.Getter != undefined) return new URL(this.globalConfigs.Settings.ApiHostUrl.Getter).origin;
+    if (this.globalConfigs != undefined && (this.globalConfigs.Settings.DevelopmentMode.Getter && this.globalConfigs.Settings.ApiHostUrl.Getter != undefined)) return new URL(this.globalConfigs.Settings.ApiHostUrl.Getter).origin;
     let lsSettings = window.localStorage.getItem("vp-settings");
     if (lsSettings != null) {
       const obj: { [key: string]: any } = JSON.parse(lsSettings);
@@ -101,7 +107,7 @@ export class ApiRequest {
     return url.toString();
   }
 
-  private async SendRequest<T>(method: HTTPMethod, path: string, options?: RequestOptions): Promise<T> {
+  private SendRequest<T>(method: HTTPMethod, path: string, options?: RequestOptions): Thenable<T> {
     if (!path.startsWith('/')) path = '/' + path;
 
     const url = new URL(this.ensureBaseUrl());
@@ -113,195 +119,157 @@ export class ApiRequest {
         }
       }
     }
+    return {
+      then: (resolve, reject) => {
+        try {
+          fetch(url, {
+            method: method,
+            headers: options?.headers,
+            body: options?.body,
+          })
+            .then(async (result) => {
+              if (result.status !== 200) {
+                throw await result.json();
+              }
 
-    return new Promise<T>(async (resolve) => {
-      const result = await fetch(url, {
-        method: method,
-        headers: options?.headers,
-        body: options?.body,
-      });
-
-      const data = await result[options?.responseType ?? 'json']() as T;
-      resolve(data);
-    });
+              return await result[options?.responseType ?? 'json']() as T;
+            })
+            .then(resolve)
+            .catch(err => {
+              if (err instanceof Error) {
+                reject(err);
+                return;
+              }
+              reject(new Error(`${err}`, { cause: 'Fail #1'}));
+            });
+        } catch (err) {
+          reject(new Error(`${err}`, { cause: 'Fail #2'}));
+        }
+      }
+    }
   }
 
   //* =============================================[ Folders ]============================================= *//
 
-  public async GetFolderList(filter?: GetFolderListFilter): Promise<ApiFolder[]> {
+  public GetFolderList(filter?: GetFolderListFilter): Thenable<ApiFolder[]> {
     if (filter == undefined) filter = {} as GetFolderListFilter;
-    return new Promise<ApiFolder[]>(async (resolve) => {
-      const queryData: RequestOptions['query'] = {};
-      if (filter.id) queryData.id = filter.id;
-      if (filter.path) queryData.name = filter.path;
-      if (filter.preloadVideos) queryData.preloadVideos = "true";
+    const queryData: RequestOptions['query'] = {};
+    if (filter.id) queryData.id = filter.id;
+    if (filter.path) queryData.name = filter.path;
+    if (filter.preloadVideos) queryData.preloadVideos = "true";
 
-      const data = await this.SendRequest<ApiFolder[]>('GET', '/api/folder/', {
-        query: queryData,
-      });
-      resolve(data);
-    })
+    return this.SendRequest<ApiFolder[]>('GET', '/api/folder/', { query: queryData });
   }
 
-  public async PostFolderNew(folderPath: string): Promise<ApiFolder> {
-    return new Promise<ApiFolder>(async resolve => {
-      const data = await this.SendRequest<ApiFolder>('POST', '/api/folder/', {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: folderPath }),
-      });
-      resolve(data);
-    })
+  public PostFolderNew(folderPath: string): Thenable<ApiFolder> {
+    return this.SendRequest<ApiFolder>('POST', '/api/folder/', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: folderPath }),
+    });
   }
 
   //* =============================================[ Videos ]============================================= *//
 
-  public async GetVideoList(filter?: GetVideoListFilter): Promise<ApiVideo[]> {
+  public GetVideoList(filter?: GetVideoListFilter): Thenable<ApiVideo[]> {
     if (filter == undefined) filter = {
       preloadPlaylist: true,
       preloadFolder: true,
       preloadTags: true,
     } as GetVideoListFilter;
     if (filter["show-only-existing"] == undefined) filter["show-only-existing"] = true;
-    return new Promise<ApiVideo[]>(async (resolve) => {
-      const queryData: RequestOptions['query'] = {};
-      if (filter.preloadFolder) queryData.preloadFolder = "true";
-      if (filter.preloadPlaylist) queryData.preloadPlaylist = "true";
-      if (filter.preloadTags) queryData.preloadTags = "true";
-      if (filter.id) queryData.id = filter.id;
-      if (filter.path) queryData.path = filter.path;
+    const queryData: RequestOptions['query'] = {};
+    if (filter.preloadFolder) queryData.preloadFolder = "true";
+    if (filter.preloadPlaylist) queryData.preloadPlaylist = "true";
+    if (filter.preloadTags) queryData.preloadTags = "true";
+    if (filter.id) queryData.id = filter.id;
+    if (filter.path) queryData.path = filter.path;
 
-      const data = await this.SendRequest<ApiVideo[]>('GET', '/api/video/', {
-        query: queryData,
-      })
-      resolve(data);
-    })
+    return this.SendRequest<ApiVideo[]>('GET', '/api/video/', { query: queryData });
   }
 
-  public async PatchSetWatchedFlag(video: ApiVideo, filter?: PatchSetWatchedFlagFilter): Promise<ApiVideo> {
+  public PatchSetWatchedFlag(video: ApiVideo, filter?: PatchSetWatchedFlagFilter): Thenable<ApiVideo> {
     if (filter == undefined) filter = {} as PatchSetWatchedFlagFilter;
-    return new Promise<ApiVideo>(async resolve => {
-      const queryData: RequestOptions['query'] = {
-        attr: filter.attr ? 'true' : 'false'
-      };
-      const data = await this.SendRequest<ApiVideo>('PATCH', `/api/video/${video.id}/watched`, {
-        query: queryData
-      });
-      resolve(data);
-    })
+    const queryData: RequestOptions['query'] = { attr: filter.attr ? 'true' : 'false' };
+    return this.SendRequest<ApiVideo>('PATCH', `/api/video/${video.id}/watched`, { query: queryData });
   }
 
 
   //* =============================================[ Playlists ]============================================= *//
 
-  public async GetPlaylistList(filter?: GetPlaylistListFilter): Promise<ApiPlaylist[]> {
+  public GetPlaylistList(filter?: GetPlaylistListFilter): Thenable<ApiPlaylist[]> {
     if (filter == undefined) filter = {} as GetVideoListFilter;
-    return new Promise<ApiPlaylist[]>(async (resolve) => {
-      const queryData: RequestOptions['query'] = {};
-      if (filter.id) queryData.id = filter.id;
-      if (filter.name) queryData.name = filter.name;
-      if (filter.preloadFolders) queryData.preloadFolders = "true";
-      if (filter.preloadVideos) queryData.preloadVideos = "true";
+    const queryData: RequestOptions['query'] = {};
+    if (filter.id) queryData.id = filter.id;
+    if (filter.name) queryData.name = filter.name;
+    if (filter.preloadFolders) queryData.preloadFolders = "true";
+    if (filter.preloadVideos) queryData.preloadVideos = "true";
 
-      const data = await this.SendRequest<ApiPlaylist[]>('GET', '/api/playlist/', {
-        query: queryData
-      });
-      resolve(data);
-    })
+    return this.SendRequest<ApiPlaylist[]>('GET', '/api/playlist/', { query: queryData });;
   }
 
-  public async PostPlaylistNew(name: string, videos: ApiVideo[]): Promise<ApiPlaylist> {
-    return new Promise<ApiPlaylist>(async resolve => {
-      const data = await this.SendRequest<ApiPlaylist>('POST', '/api/playlist/', {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name,
-          ids: videos.map(v => v.id),
-        })
-      });
-      resolve(data);
+  public PostPlaylistNew(name: string, videos: ApiVideo[]): Thenable<ApiPlaylist> {
+    return this.SendRequest<ApiPlaylist>('POST', '/api/playlist/', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        ids: videos.map(v => v.id),
+      })
     });
   }
 
-  public async PatchPlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Promise<ApiVideo> {
-    return new Promise<ApiVideo>(async resolve => {
-      const data = await this.SendRequest<ApiVideo>('PATCH', `/api/playlist/${playlist.id}/video/${video.id}`);
-      resolve(data);
-    });
+  public PatchPlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Thenable<ApiVideo> {
+    return this.SendRequest<ApiVideo>('PATCH', `/api/playlist/${playlist.id}/video/${video.id}`);
   }
 
-  public async DeletePlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Promise<ApiVideo> {
-    return new Promise<ApiVideo>(async resolve => {
-      const data = await this.SendRequest<ApiVideo>('DELETE', `/api/playlist/${playlist.id}/video/${video.id}`);
-      resolve(data);
-    });
+  public DeletePlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Thenable<ApiVideo> {
+    return this.SendRequest<ApiVideo>('DELETE', `/api/playlist/${playlist.id}/video/${video.id}`);
   }
 
   //* =============================================[ Tags ]============================================= *//
 
-  public async GetTagList(filter?: GetTagListFilter): Promise<ApiTag[]> {
+  public GetTagList(filter?: GetTagListFilter): Thenable<ApiTag[]> {
     if (filter == undefined) filter = {} as GetTagListFilter;
-    return new Promise<ApiTag[]>(async (resolve) => {
-      const queryData: RequestOptions['query'] = {};
-      if (filter.id) queryData.id = filter.id;
-      if (filter.name) queryData.name = filter.name;
-      if (filter.preloadVideos) queryData.preloadVideos = "true";
 
-      const data = await this.SendRequest<ApiTag[]>('GET', '/api/tag/', {
-        query: queryData
-      });
-      resolve(data);
+    const queryData: RequestOptions['query'] = {};
+    if (filter.id) queryData.id = filter.id;
+    if (filter.name) queryData.name = filter.name;
+    if (filter.preloadVideos) queryData.preloadVideos = "true";
+
+    return this.SendRequest<ApiTag[]>('GET', '/api/tag/', { query: queryData });
+  }
+
+  public PostTagNew(name: string, videos: ApiVideo[]): Thenable<ApiTag> {
+    return this.SendRequest<ApiTag>('POST', '/api/tag/', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        ids: videos.map(v => v.id),
+      })
     });
   }
 
-  public async PostTagNew(name: string, videos: ApiVideo[]): Promise<ApiTag> {
-    return new Promise<ApiTag>(async resolve => {
-      const data = await this.SendRequest<ApiTag>('POST', '/api/tag/', {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name,
-          ids: videos.map(v => v.id),
-        })
-      });
-      resolve(data);
-    });
+  public PatchTagAddVideo(tag: ApiTag, video: ApiVideo): Thenable<ApiVideo> {
+    return this.SendRequest<ApiVideo>('PATCH', `/api/tag/${tag.id}/video/${video.id}`);
   }
 
-  public async PatchTagAddVideo(tag: ApiTag, video: ApiVideo): Promise<ApiVideo> {
-    return new Promise<ApiVideo>(async resolve => {
-      const data = await this.SendRequest<ApiVideo>('PATCH', `/api/tag/${tag.id}/video/${video.id}`);
-      resolve(data);
-    });
-  }
-
-  public async DeleteTagAddVideo(tag: ApiTag, video: ApiVideo): Promise<ApiVideo> {
-    return new Promise<ApiVideo>(async resolve => {
-      const data = await this.SendRequest<ApiVideo>('DELETE', `/api/tag/${tag.id}/video/${video.id}`);
-      resolve(data);
-    });
+  public DeleteTagAddVideo(tag: ApiTag, video: ApiVideo): Thenable<ApiVideo> {
+    return this.SendRequest<ApiVideo>('DELETE', `/api/tag/${tag.id}/video/${video.id}`);
   }
 
   //* =============================================[ Automatic Rules ]============================================= *//
 
-  public async GetRuleList(filter?: GetRuleListFilder): Promise<ApiRule[]> {
+  public GetRuleList(filter?: GetRuleListFilder): Thenable<ApiRule[]> {
     if (filter == undefined) filter = {} as GetRuleListFilder;
-    return new Promise<ApiRule[]>(async (resolve) => {
-      const queryData: RequestOptions['query'] = {};
-      if (filter.id) queryData.id = filter.id;
 
-      const data = await this.SendRequest<ApiRule[]>('GET', '/api/automatic-rule/', {
-        query: queryData,
-      });
-      resolve(data);
-    })
+    const queryData: RequestOptions['query'] = {};
+    if (filter.id) queryData.id = filter.id;
+
+    return this.SendRequest<ApiRule[]>('GET', '/api/automatic-rule/', { query: queryData });
   }
 
-  public async ApplyAutomaticRule(...rules: ApiRule[]): Promise<ApiVideo[]> {
-    return new Promise<ApiVideo[]>(async resolve => {
-      const data = await this.SendRequest<ApiVideo[]>('GET', '/api/automatic-rule/apply')
-      resolve(data);
-    })
+  public ApplyAutomaticRule(...rules: ApiRule[]): Thenable<ApiVideo[]> {
+    return this.SendRequest<ApiVideo[]>('GET', '/api/automatic-rule/apply')
   }
-
 }
 
 

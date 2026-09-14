@@ -25,6 +25,7 @@ import { useTheme } from "next-themes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { ApiError } from "next/dist/server/api-utils";
 
 type CommonProps = {
   Config: GlobalConfigType;
@@ -53,6 +54,7 @@ type ModalSettingsProps = CommonProps & {};
 type ModalSyncVideosProps = CommonProps & {};
 type ModalSyncDataProps = CommonProps & {};
 type ModalApplyAutomaticRules = CommonProps & {};
+type ErrorModalProps = CommonProps & {};
 type PlaylistSelectorProps = CommonProps & {};
 type TagSelectorProps = CommonProps & {};
 
@@ -475,7 +477,10 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
       <Button
         onClick={() => {
           props.Config.Api.Instance.GetRuleList()
-            .then(props.Config.Api.Data.Rules.Setter);
+            .then(
+              (data) => props.Config.Api.Data.Rules.Setter(data),
+              (error) => props.Config.Errors.Setter(errs => [...errs, error])
+            );
         }}
       >Refresh rules</Button>
     </div>
@@ -486,18 +491,21 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
       onClick={() => {
         setRequestStatus('waiting')
         props.Config.Api.Instance.ApplyAutomaticRule()
-          .then(updatedVideos => {
-            const updatedVideosObj = Object.fromEntries(updatedVideos.map(v => [v.id, v]));
-            const updatedVideosIds = Object.keys(updatedVideosObj);
-            setRequestStatus('done')
-            setUpdatedVideos(updatedVideos);
-            props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : [...videos.map(v => {
-              if (!updatedVideosIds.includes(v.id)) return v;
-              console.log(v.id, v);
-              return updatedVideosObj[v.id];
-            }
-            )]);
-          });
+          .then(
+            (updatedVideos) => {
+              const updatedVideosObj = Object.fromEntries(updatedVideos.map(v => [v.id, v]));
+              const updatedVideosIds = Object.keys(updatedVideosObj);
+              setRequestStatus('done')
+              setUpdatedVideos(updatedVideos);
+              props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : [...videos.map(v => {
+                if (!updatedVideosIds.includes(v.id)) return v;
+                console.log(v.id, v);
+                return updatedVideosObj[v.id];
+              }
+              )]);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error])
+          );
       }}
     >
       {
@@ -507,13 +515,15 @@ export function ModalApplyAutomaticRules(props: ModalApplyAutomaticRules) {
       }
     </Button>
 
-    {updatedVideos && <>
-      <Marker variant="separator" className="py-4">
-        <MarkerContent>Results</MarkerContent>
-      </Marker>
-      <div>Updated {updatedVideos.length} videos</div>
-    </>}
-  </GeneralModal>
+    {
+      updatedVideos && <>
+        <Marker variant="separator" className="py-4">
+          <MarkerContent>Results</MarkerContent>
+        </Marker>
+        <div>Updated {updatedVideos.length} videos</div>
+      </>
+    }
+  </GeneralModal >
 }
 
 export function ModalSyncVideos(props: ModalSyncVideosProps) {
@@ -586,11 +596,13 @@ export function ModalSyncVideos(props: ModalSyncVideosProps) {
               onClick={() => {
                 if (!newFolder) return;
                 props.Config.Api.Instance.PostFolderNew(newFolder)
-                  .then(folder => {
-                    if (props.Config.Api.Data.Folders.Getter?.length == 0) { setSelectedValue(folder.id) }
-                    props.Config.Api.Data.Folders.Setter(folders => folders === undefined ? [folder] : [...folders, folder]);
-                    setNewFolder(undefined);
-                  })
+                  .then(
+                    (folder) => {
+                      if (props.Config.Api.Data.Folders.Getter?.length == 0) { setSelectedValue(folder.id) }
+                      props.Config.Api.Data.Folders.Setter(folders => folders === undefined ? [folder] : [...folders, folder]);
+                      setNewFolder(undefined);
+                    },
+                    (error) => props.Config.Errors.Setter(errs => [...errs, error]))
               }}
             >
               <Plus />
@@ -627,7 +639,11 @@ export function ModalSyncVideos(props: ModalSyncVideosProps) {
                 aria-invalid={false}
                 disabled={props.Config.Api.Data.Folders.Getter?.length == 0}
                 onClick={() => {
-                  props.Config.Api.Instance.GetFolderList().then(props.Config.Api.Data.Folders.Setter)
+                  props.Config.Api.Instance.GetFolderList()
+                    .then(
+                      (data) => props.Config.Api.Data.Folders.Setter(data),
+                      (error) => props.Config.Errors.Setter(errs => [...errs, error])
+                    )
                 }}
               >
                 <RefreshCw />
@@ -711,15 +727,18 @@ export function PlaylistSelector(props: PlaylistSelectorProps) {
         onClick={() => {
           if (!newPlaylist) return;
           props.Config.Api.Instance.PostPlaylistNew(newPlaylist, [selectedVideo!])
-            .then(playlist => {
-              props.Config.Api.Data.Playlists.Setter(playlists => playlists === undefined ? [playlist] : [...playlists, playlist]);
-              props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
-                if (v.id !== selectedVideo!.id) return v;
-                v.playlists?.push(playlist);
-                return v;
-              }))
-              setNewPlaylist(undefined);
-            })
+            .then(
+              (playlist) => {
+                props.Config.Api.Data.Playlists.Setter(playlists => playlists === undefined ? [playlist] : [...playlists, playlist]);
+                props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
+                  if (v.id !== selectedVideo!.id) return v;
+                  v.playlists?.push(playlist);
+                  return v;
+                }))
+                setNewPlaylist(undefined);
+              },
+              (error) => props.Config.Errors.Setter(errs => [...errs, error])
+            )
         }}
       >
         <Plus />
@@ -743,22 +762,28 @@ export function PlaylistSelector(props: PlaylistSelectorProps) {
                 const status = (selectedVideo?.playlists ?? []).map(x => x.id).includes(p.id);
                 if (!status) {
                   props.Config.Api.Instance.PatchPlaylistAddVideo(p, selectedVideo!)
-                    .then(video => {
-                      props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
-                        if (v.id != selectedVideo!.id) return v;
-                        console.log('Video updated (Patch)', { ...video });
-                        return video;
-                      }));
-                    });
+                    .then(
+                      (video) => {
+                        props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
+                          if (v.id != selectedVideo!.id) return v;
+                          console.log('Video updated (Patch)', { ...video });
+                          return video;
+                        }));
+                      },
+                      (error) => props.Config.Errors.Setter(errs => [...errs, error])
+                    );
                 } else {
                   props.Config.Api.Instance.DeletePlaylistAddVideo(p, selectedVideo!)
-                    .then(video => {
-                      props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
-                        if (v.id != selectedVideo!.id) return v;
-                        console.log('Video updated (Delete)', { ...video });
-                        return video;
-                      }));
-                    });
+                    .then(
+                      (video) => {
+                        props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
+                          if (v.id != selectedVideo!.id) return v;
+                          console.log('Video updated (Delete)', { ...video });
+                          return video;
+                        }));
+                      },
+                      (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+                    );
                 }
               }
               }
@@ -810,15 +835,18 @@ export function TagSelector(props: TagSelectorProps) {
         onClick={() => {
           if (!newTag) return;
           props.Config.Api.Instance.PostTagNew(newTag, [selectedVideo!])
-            .then(tag => {
-              props.Config.Api.Data.Tags.Setter(tags => tags === undefined ? [tag] : [...tags, tag]);
-              props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
-                if (v.id !== selectedVideo!.id) return v;
-                v.playlists?.push(tag);
-                return v;
-              }));
-              setNewTag(undefined);
-            })
+            .then(
+              (tag) => {
+                props.Config.Api.Data.Tags.Setter(tags => tags === undefined ? [tag] : [...tags, tag]);
+                props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
+                  if (v.id !== selectedVideo!.id) return v;
+                  v.playlists?.push(tag);
+                  return v;
+                }));
+                setNewTag(undefined);
+              },
+              (error) => props.Config.Errors.Setter(errs => [...errs, error])
+            );
         }}
       >
         <Plus />
@@ -842,20 +870,26 @@ export function TagSelector(props: TagSelectorProps) {
                 const status = (selectedVideo?.tags ?? []).map(x => x.id).includes(p.id);
                 if (!status) {
                   props.Config.Api.Instance.PatchTagAddVideo(p, selectedVideo!)
-                    .then(video => {
-                      props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
-                        if (v.id != selectedVideo!.id) return v;
-                        return video;
-                      }));
-                    });
+                    .then(
+                      (video) => {
+                        props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
+                          if (v.id != selectedVideo!.id) return v;
+                          return video;
+                        }));
+                      },
+                      (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+                    );
                 } else {
                   props.Config.Api.Instance.DeleteTagAddVideo(p, selectedVideo!)
-                    .then(video => {
-                      props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
-                        if (v.id != selectedVideo!.id) return v;
-                        return video;
-                      }));
-                    });
+                    .then(
+                      (video) => {
+                        props.Config.Api.Data.Videos.Setter(videos => videos === undefined ? undefined : videos.map(v => {
+                          if (v.id != selectedVideo!.id) return v;
+                          return video;
+                        }));
+                      },
+                      (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+                    );
                 }
               }}
             >
@@ -882,38 +916,52 @@ export function ModalSyncData(props: ModalSyncDataProps) {
     switch (updateState) {
       case 'Folders':
         props.Config.Api.Instance.GetFolderList()
-          .then(d => {
-            props.Config.Api.Data.Folders.Setter(d);
-            setUpdateState(undefined);
-          });
+          .then(
+            (data) => {
+              props.Config.Api.Data.Folders.Setter(data);
+              setUpdateState(undefined);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error])
+          );
         return;
       case 'Playlists':
         props.Config.Api.Instance.GetPlaylistList()
-          .then(d => {
-            props.Config.Api.Data.Playlists.Setter(d);
-            setUpdateState(undefined);
-          });
+          .then(
+            (data) => {
+              props.Config.Api.Data.Playlists.Setter(data);
+              setUpdateState(undefined);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error]));
         return;
       case 'Rules':
         props.Config.Api.Instance.GetRuleList()
-          .then(d => {
-            props.Config.Api.Data.Rules.Setter(d);
-            setUpdateState(undefined);
-          });
+          .then(
+            (data) => {
+              props.Config.Api.Data.Rules.Setter(data);
+              setUpdateState(undefined);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error])
+          );
         return;
       case 'Tags':
         props.Config.Api.Instance.GetTagList()
-          .then(d => {
-            props.Config.Api.Data.Tags.Setter(d);
-            setUpdateState(undefined);
-          });
+          .then(
+            (data) => {
+              props.Config.Api.Data.Tags.Setter(data);
+              setUpdateState(undefined);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error])
+          );
         return;
       case 'Videos':
         props.Config.Api.Instance.GetVideoList()
-          .then(d => {
-            props.Config.Api.Data.Videos.Setter(d);
-            setUpdateState(undefined);
-          });
+          .then(
+            (data) => {
+              props.Config.Api.Data.Videos.Setter(data);
+              setUpdateState(undefined);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error])
+          );
         return;
     }
   }, [updateState]);
@@ -1005,4 +1053,61 @@ export function ModalSyncData(props: ModalSyncDataProps) {
       </TableBody>
     </Table>
   </GeneralModal>
+}
+
+export function ErrorModal(props: ErrorModalProps) {
+  return <GeneralModal
+    Config={props.Config}
+    open={props.Config.Sidebar.Bottom.OpenErrorModal.Getter && props.Config.Errors.Getter.length > 0}
+    setOpen={props.Config.Sidebar.Bottom.OpenErrorModal.Setter}
+    title="Error handler"
+    description={<> Found {props.Config.Errors.Getter.length} error{props.Config.Errors.Getter.length == 1 ? '' : 's'}</>}
+    cancelBtn={< Button variant="outline" > Close</Button >}
+    kind={props.Config.Settings.ModalKind.Getter}
+    side={props.Config.Settings.ModalSide.Getter}
+  >
+    <Table className="mb-2">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Action</TableHead>
+          <TableHead>Source</TableHead>
+          <TableHead>Content</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {props.Config.Errors.Getter.map((e, i) => {
+          const deleteEvent = <TableCell>
+            <Button
+              size="icon"
+              variant="destructive"
+              onClick={() => { props.Config.Errors.Setter(errs => [...errs.filter((_, idx) => idx != i)]) }}
+              title="Remove error"
+            >
+              <X />
+            </Button>
+          </TableCell>
+
+          if (e instanceof ApiError) {
+            return <TableRow key={i}>
+              {deleteEvent}
+              <TableCell>{e.name}</TableCell>
+              <TableCell>{e.message}</TableCell>
+            </TableRow>
+          } else if (e instanceof Error) {
+            return <TableRow key={i}>
+              {deleteEvent}
+              <TableCell>{typeof e.cause == 'string' ? e.cause : e.name}</TableCell>
+              <TableCell>{e.message}</TableCell>
+            </TableRow>
+          } else {
+            return <TableRow key={i}>
+              {deleteEvent}
+              <TableCell>-</TableCell>
+              <TableCell>-</TableCell>
+            </TableRow>
+          }
+        })}
+      </TableBody>
+    </Table>
+  </GeneralModal >
 }

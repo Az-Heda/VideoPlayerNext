@@ -75,12 +75,15 @@ export function MainvideoTable(props: MainVideoTableProps) {
       cell({ row }) {
         var onClickFN = () => {
           props.Config.Api.Instance.PatchSetWatchedFlag(row.original, { attr: !row.original.attributes.watched })
-            .then(video => {
-              props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
-                if (v.id != video.id) return v;
-                return video;
-              }))
-            });
+            .then(
+              (video) => {
+                props.Config.Api.Data.Videos.Setter(allVideos => allVideos === undefined ? undefined : allVideos.map(v => {
+                  if (v.id != video.id) return v;
+                  return video;
+                }))
+              },
+              (error) => props.Config.Errors.Setter(errs => [...errs, error])
+            );
         }
 
         type AutomaticChoice<T> = { true: T; false: T, undefined: T };
