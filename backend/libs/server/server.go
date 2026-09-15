@@ -1,10 +1,11 @@
 package server
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"net/http"
-	"vp/libs/api/apivideo"
+	"vp/libs/registry"
 
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -23,14 +24,18 @@ func AddStaticEndpoints(mux *http.ServeMux) {
 	mux.Handle("/", http.FileServerFS(newFsys))
 }
 
-func AddEndpoints(mux *http.ServeMux, conn *gorm.DB) {
-	endpoint_streaming(mux, conn)
+func AddEndpoints(mux *http.ServeMux, conn *gorm.DB, ctx context.Context) {
+	endpoint_streaming(mux, conn, ctx)
 }
 
-func endpoint_streaming(mux *http.ServeMux, conn *gorm.DB) {
+func endpoint_streaming(mux *http.ServeMux, conn *gorm.DB, ctx context.Context) {
+	apiVideo, ok := ctx.Value("registry-videos").(registry.IRegistryVideo)
+	if !ok {
+		panic("Registry not initialized")
+	}
 	mux.HandleFunc("/stream/{id}", func(w http.ResponseWriter, req *http.Request) {
 		var id = req.PathValue("id")
-		var videoResponse = apivideo.CB_GetVideo(conn, &apivideo.GetVideoRequest{Id: id})
+		var videoResponse = apiVideo.GetVideo(ctx, conn, &registry.GetVideoRequest{Id: id})
 		videoResponse.Init()
 		if videoResponse.StatusCode != http.StatusOK {
 			http.Error(w, videoResponse.ErrorTitle, videoResponse.StatusCode)

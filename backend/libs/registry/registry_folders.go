@@ -1,6 +1,7 @@
-package apifolder
+package registry
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,24 +11,76 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"vp/libs/api/apivideo"
 	"vp/libs/array"
-	. "vp/libs/definitions"
 	"vp/libs/models"
+
+	. "vp/libs/definitions"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
-// 200 OK
-//
-// 404 Not found
-//
-// 422 Unprocessable Entity
-//
-// 500 Internal Server error
-func CB_NewFolder(conn *gorm.DB, i *NewFolderRequest) ApiExchange[NewFolderResponse] {
+type (
+	registryFolder  struct{}
+	IRegistryFolder interface {
+		NewFolder(ctx context.Context, conn *gorm.DB, i *NewFolderRequest) ApiExchange[NewFolderResponse]
+		ListFolder(ctx context.Context, conn *gorm.DB, i *ListFolderRequest) ApiExchange[ListFolderResponse]
+		GetFolder(ctx context.Context, conn *gorm.DB, i *GetFolderRequest) ApiExchange[GetFolderResponse]
+		DeleteFolder(ctx context.Context, conn *gorm.DB, i *DeleteFolderRequest) ApiExchange[DeleteFolderResponse]
+		CleanupFolders(ctx context.Context, conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[CleanupFolderResponse]
+		ScanFolderStream(ctx context.Context, conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchange[huma.StreamResponse]
+	}
+	PreloadFolder struct {
+		PreloadVideos bool `query:"preloadVideos"`
+	}
+	NewFolderRequest struct {
+		Body struct {
+			Path string `json:"path"`
+		}
+	}
+	NewFolderResponse struct {
+		Body models.Folder
+	}
+	ListFolderRequest struct {
+		Ids  []string `query:"id,explode"`
+		Path string   `query:"path"`
+		PreloadFolder
+	}
+	ListFolderResponse struct {
+		Body []models.Folder
+	}
+	GetFolderRequest struct {
+		Id   string `path:"id"`
+		Scan bool   `query:"scan"`
+		PreloadFolder
+	}
+	GetFolderResponse struct {
+		Body models.Folder
+	}
+	GetFolderStreamingRequest struct {
+		Id string `path:"id"`
+		PreloadFolder
+	}
+	DeleteFolderRequest struct {
+		Id string `path:"id"`
+	}
+	DeleteFolderResponse struct {
+		Body models.Folder
+	}
+	CleanupFolderRequest struct {
+		DoDelete bool `query:"doDelete"`
+		PreloadFolder
+	}
+	CleanupFolderResponse struct {
+		Body struct {
+			Valid   []models.Folder `json:"valid"`
+			Invalid []models.Folder `json:"invalid"`
+		}
+	}
+)
+
+func (r registryFolder) NewFolder(ctx context.Context, conn *gorm.DB, i *NewFolderRequest) ApiExchange[NewFolderResponse] {
 	if filepath.IsAbs(i.Body.Path) {
 		if p, err := filepath.Abs(i.Body.Path); err == nil {
 			i.Body.Path = p
@@ -53,7 +106,7 @@ func CB_NewFolder(conn *gorm.DB, i *NewFolderRequest) ApiExchange[NewFolderRespo
 		Fullpath: i.Body.Path,
 	}
 
-	if tx := conn.Create(&folder); tx.Error != nil {
+	if tx := conn.WithContext(ctx).Create(&folder); tx.Error != nil {
 		return ApiExchangeDatabaseError[NewFolderResponse](tx.Error)
 	}
 
@@ -63,12 +116,9 @@ func CB_NewFolder(conn *gorm.DB, i *NewFolderRequest) ApiExchange[NewFolderRespo
 	}
 }
 
-// 200 OK
-//
-// 500 Internal Server Error
-func CB_ListFolder(conn *gorm.DB, i *ListFolderRequest) ApiExchange[ListFolderResponse] {
+func (r registryFolder) ListFolder(ctx context.Context, conn *gorm.DB, i *ListFolderRequest) ApiExchange[ListFolderResponse] {
 	var folders []models.Folder
-	var filtered *gorm.DB = models.Folder{}.Preload(conn, i.Preload.PreloadVideos)
+	var filtered *gorm.DB = models.Folder{}.Preload(conn.WithContext(ctx), i.PreloadVideos)
 	switch {
 	case len(i.Ids) > 0:
 		filtered = filtered.Where("id IN ?", i.Ids)
@@ -87,17 +137,17 @@ func CB_ListFolder(conn *gorm.DB, i *ListFolderRequest) ApiExchange[ListFolderRe
 	}
 }
 
-// 200 OK
-//
-// 404 Not Found
-//
-// 409 Conflict
-//
-// 500 Internal Server Error
-func CB_GetFolder(conn *gorm.DB, i *GetFolderRequest) ApiExchange[GetFolderResponse] {
-	var out = CB_ListFolder(conn, &ListFolderRequest{
-		Ids:     []string{i.Id},
-		Preload: i.Preload,
+func (r registryFolder) GetFolder(ctx context.Context, conn *gorm.DB, i *GetFolderRequest) ApiExchange[GetFolderResponse] {
+	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	if !ok {
+		return ApiExchange[GetFolderResponse]{
+			StatusCode: http.StatusInternalServerError,
+			ErrorTitle: "Video registry not found",
+		}
+	}
+	var out = r.ListFolder(ctx, conn, &ListFolderRequest{
+		Ids:           []string{i.Id},
+		PreloadFolder: i.PreloadFolder,
 	})
 	out.Init()
 	if out.StatusCode != http.StatusOK {
@@ -110,10 +160,10 @@ func CB_GetFolder(conn *gorm.DB, i *GetFolderRequest) ApiExchange[GetFolderRespo
 	case 1:
 		var folder = out.Value.Body[0]
 		if i.Scan {
-			var videoRequest = apivideo.CB_ListVideo(conn, &apivideo.ListVideoRequest{Path: folder.Fullpath})
+			var videoRequest = apiVideo.ListVideos(ctx, conn, &ListVideoRequest{Path: folder.Fullpath})
 			videoRequest.Init()
 			if videoRequest.StatusCode != http.StatusOK {
-				return ConvertApiExchange[apivideo.ListVideoResponse, GetFolderResponse](videoRequest)
+				return ConvertApiExchange[ListVideoResponse, GetFolderResponse](videoRequest)
 			}
 			var existingVideos []*models.Video = array.Map[[]models.Video, []*models.Video](videoRequest.Value.Body, func(v models.Video, _ int) *models.Video {
 				return &v
@@ -142,22 +192,15 @@ func CB_GetFolder(conn *gorm.DB, i *GetFolderRequest) ApiExchange[GetFolderRespo
 	}
 }
 
-// 200 OK
-//
-// 404 Not Found
-//
-// 409 Conflict
-//
-// 500 Internal Server Error
-func CB_DeleteFolder(conn *gorm.DB, i *DeleteFolderRequest) ApiExchange[DeleteFolderResponse] {
-	var out = CB_GetFolder(conn, &GetFolderRequest{Id: i.Id})
+func (r registryFolder) DeleteFolder(ctx context.Context, conn *gorm.DB, i *DeleteFolderRequest) ApiExchange[DeleteFolderResponse] {
+	var out = r.GetFolder(ctx, conn, &GetFolderRequest{Id: i.Id})
 	out.Init()
 	if out.StatusCode != http.StatusOK {
 		return ConvertApiExchange[GetFolderResponse, DeleteFolderResponse](out)
 	}
 
 	var currentFolder = out.Value.Body
-	if tx := conn.Delete(&currentFolder); tx.Error != nil {
+	if tx := conn.WithContext(ctx).Delete(&currentFolder); tx.Error != nil {
 		return ApiExchangeDatabaseError[DeleteFolderResponse](tx.Error)
 	}
 	return ApiExchange[DeleteFolderResponse]{
@@ -166,11 +209,8 @@ func CB_DeleteFolder(conn *gorm.DB, i *DeleteFolderRequest) ApiExchange[DeleteFo
 	}
 }
 
-// 200 OK
-//
-// 500 Internal Server Error
-func CB_CleanupFolders(conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[CleanupFolderResponse] {
-	var out = CB_ListFolder(conn, &ListFolderRequest{Preload: i.Preload})
+func (r registryFolder) CleanupFolders(ctx context.Context, conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[CleanupFolderResponse] {
+	var out = r.ListFolder(ctx, conn, &ListFolderRequest{PreloadFolder: i.PreloadFolder})
 	out.Init()
 
 	var retValue CleanupFolderResponse
@@ -188,7 +228,7 @@ func CB_CleanupFolders(conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[Clean
 	}
 
 	if i.DoDelete {
-		transaction = conn.Begin()
+		transaction = conn.WithContext(ctx).Begin()
 		if transaction.Error != nil {
 			return ApiExchangeDatabaseError[CleanupFolderResponse](transaction.Error, "Database transaction error")
 		}
@@ -229,15 +269,15 @@ func CB_CleanupFolders(conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[Clean
 	}
 }
 
-// 200 OK
-//
-// 404 Not Found
-//
-// 409 Conflict
-//
-// 500 Internal Server Error
-func CB_ScanFolderStream(conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchange[huma.StreamResponse] {
-	var out = CB_GetFolder(conn, &GetFolderRequest{Id: i.Id, Preload: i.Preload})
+func (r registryFolder) ScanFolderStream(ctx context.Context, conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchange[huma.StreamResponse] {
+	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	if !ok {
+		return ApiExchange[huma.StreamResponse]{
+			StatusCode: http.StatusInternalServerError,
+			ErrorTitle: "Video registry not found",
+		}
+	}
+	var out = r.GetFolder(ctx, conn, &GetFolderRequest{Id: i.Id, PreloadFolder: i.PreloadFolder})
 	out.Init()
 	if out.StatusCode != http.StatusOK {
 		return ConvertApiExchange[GetFolderResponse, huma.StreamResponse](out)
@@ -260,7 +300,7 @@ func CB_ScanFolderStream(conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchang
 				hctx.SetHeader("Content-Type", "text/event-stream")
 				hctx.SetHeader("Cache-Control", "no-cache")
 
-				var videoRequest = apivideo.CB_ListVideo(conn, &apivideo.ListVideoRequest{Path: folder.Fullpath})
+				var videoRequest = apiVideo.ListVideos(ctx, conn, &ListVideoRequest{Path: folder.Fullpath})
 				videoRequest.Init()
 				if videoRequest.StatusCode != http.StatusOK {
 					fmt.Fprintf(writer, template, "error", fmt.Sprintf("%s\n%s", videoRequest.ErrorTitle, errors.Join(videoRequest.Errors...).Error()))

@@ -18,10 +18,10 @@ type (
 	}
 	ApiDefinition[In, Out any] struct {
 		Operation huma.Operation
-		Callback  func(conn *gorm.DB, input *In) ApiExchange[Out]
+		Callback  func(ctx context.Context, conn *gorm.DB, input *In) ApiExchange[Out]
 	}
 	IApi interface {
-		Register(g *huma.Group, conn *gorm.DB)
+		Register(g *huma.Group, conn *gorm.DB, ctx context.Context)
 		AddTags(tags ...string)
 		ID() string
 	}
@@ -89,9 +89,9 @@ func (a *ApiExchange[T]) ReturnStatus() (*T, error) {
 	}
 }
 
-func (a ApiDefinition[In, Out]) Register(g *huma.Group, conn *gorm.DB) {
-	huma.Register(g, a.Operation, func(ctx context.Context, i *In) (*Out, error) {
-		var data = a.Callback(conn.WithContext(ctx), i)
+func (a ApiDefinition[In, Out]) Register(g *huma.Group, conn *gorm.DB, ctx context.Context) {
+	huma.Register(g, a.Operation, func(hctx context.Context, i *In) (*Out, error) {
+		var data = a.Callback(ctx, conn.WithContext(hctx), i)
 		data.Init()
 		return data.ReturnStatus()
 	})

@@ -9,6 +9,7 @@ import (
 	"vp/libs/api"
 	"vp/libs/database"
 	"vp/libs/models"
+	"vp/libs/registry"
 	"vp/libs/server"
 	. "vp/libs/utility"
 
@@ -38,6 +39,7 @@ func Root(cmd *cobra.Command, args []string) {
 	var (
 		address = net.JoinHostPort(serverHost, strconv.Itoa(serverPort))
 		mux     = http.NewServeMux()
+		ctx     = registry.Setup(cmd.Context())
 		conn    = Must(database.Connect(databaseDriver, databaseDsn, database.DatabaseConnectionOptions{
 			UseColors:     cmd.OutOrStdout() == os.Stdout,
 			SlowThreshold: databaseSlowThreshold,
@@ -45,8 +47,8 @@ func Root(cmd *cobra.Command, args []string) {
 	)
 
 	models.AutoMigrate(conn)
-	api.Setup(mux, conn)
-	server.AddEndpoints(mux, conn)
+	api.Setup(mux, conn, ctx)
+	server.AddEndpoints(mux, conn, ctx)
 	server.AddStaticEndpoints(mux)
 
 	log.Info().Msgf("Server online at http://%s", address)
