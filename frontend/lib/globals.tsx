@@ -5,6 +5,7 @@ import { ComponentProps, Dispatch, JSX, ReactNode, SetStateAction, useEffect, us
 import { ApiError, ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
 import { Drawer } from "@/components/ui/drawer";
+import { getKeybind } from "@/lib/utils";
 
 
 type GetterSetter<T> = {
@@ -17,6 +18,22 @@ export type SidebarItem<T> = {
   Action?: () => void;
   Visibility?: boolean;
 } & GetterSetter<T>;
+
+
+export type KeybindLS = {
+  Id: string;
+  Key?: string;
+  Ctrl?: boolean;
+  Alt?: boolean;
+  Meta?: boolean;
+  Shift?: boolean;
+};
+
+export type Command = {
+  Default: KeybindLS;
+  Custom?: KeybindLS;
+  Action: () => void
+}
 
 export type GlobalConfigType = {
   Api: {
@@ -86,7 +103,8 @@ export type GlobalConfigType = {
     ColoredWatchedStatus: GetterSetter<'none' | 'border' | 'full'>;
     DevelopmentMode: GetterSetter<boolean>;
   },
-  Errors: GetterSetter<(ApiError | Error | { source: string; content: string })[]>
+  Errors: GetterSetter<(ApiError | Error | { source: string; content: string })[]>;
+  Keybinds: GetterSetter<{ [key: string]: Command }>;
 }
 
 export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
@@ -235,6 +253,53 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       if (k != exclude) v(false);
     }
   }
+
+  const commandIds = {
+    audioctx: {
+      enable: 'audioctx.enable',
+    },
+    video: {
+      remove: 'video.remove',
+    },
+    open: {
+      keybinds: 'open.keybinds',
+      themes: 'open.themes',
+      settings: 'open.settings',
+      sync: 'open.syncdata',
+    }
+  } as const;
+
+  const [keybinds, setKeybinds] = useState<GlobalConfigType['Keybinds']['Getter']>({
+    [commandIds.audioctx.enable]: {
+      Default: getKeybind(commandIds.audioctx.enable, 'a', false, true, false, false),
+      Action() {
+        if (!audioCtxEnabled) setAudioCtxEnabled(true);
+      },
+    },
+    [commandIds.video.remove]: {
+      Default: getKeybind(commandIds.video.remove, 'CAPSLOCK', false, false, false, false),
+      Action() {
+        setSelectetdVideo(undefined);
+      },
+    },
+    [commandIds.open.keybinds]: {
+      Default: getKeybind(commandIds.open.keybinds, 'K', false, true, false, false),
+      Action() { resetModal('KeybindsModal'); setOpenKeybinds(true); }
+    },
+    [commandIds.open.themes]: {
+      Default: getKeybind(commandIds.open.themes, 't', false, true, false, false),
+      Action() { resetModal('ThemeModal'); setOpenTheme(true); }
+    },
+    [commandIds.open.settings]: {
+      Default: getKeybind(commandIds.open.settings, 'F1', false, false, false, false),
+      Action() { resetModal('SettingsModal'); setOpenSettings(true); }
+    },
+    [commandIds.open.sync]: {
+      Default: getKeybind(commandIds.open.sync, 'F2', false, false, false, false),
+      Action() { resetModal('SyncDataModal'); setOpenSyncData(true); }
+    },
+  });
+
 
   return {
     Api: {
@@ -418,5 +483,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       DevelopmentMode: { Getter: settingsShowDevelopmentMode, Setter: setSettingsShowDevelopmentMode, },
     },
     Errors: { Getter: errorHandler, Setter: setErrorHandler },
+    Keybinds: { Getter: keybinds, Setter: setKeybinds },
   } as const;
 }
+

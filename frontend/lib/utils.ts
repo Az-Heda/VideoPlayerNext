@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { KeybindLS } from "@/lib/globals";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,4 +20,8 @@ export function HumanReadableBytes(bytes: number): string {
   const exponent = Math.floor(Math.log(bytes) / Math.log(1024.0))
   const decimal = (bytes / Math.pow(1024.0, exponent)).toFixed(exponent ? 2 : 0)
   return `${decimal} ${exponent ? `${'kMGTPEZY'[exponent - 1]}B` : 'B'}`
+}
+
+export function getKeybind(id: KeybindLS['Id'], key?: KeybindLS['Key'], ctrl?: KeybindLS['Ctrl'], alt?: KeybindLS['Alt'], meta?: KeybindLS['Meta'], shift?: KeybindLS['Shift']): KeybindLS {
+  return { Id: id, Key: key, Ctrl: ctrl, Alt: alt, Meta: meta, Shift: shift }
 }

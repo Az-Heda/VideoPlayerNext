@@ -1,8 +1,8 @@
-import { GlobalConfigType } from "@/lib/globals"
+import { GlobalConfigType, KeybindLS } from "@/lib/globals"
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { ApiFolder, ApiPlaylist, ApiVideo } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { Check, CloudBackup, Dot, Folders, Plus, RefreshCcw, RefreshCw, X } from "lucide-react";
+import { cn, getKeybind } from "@/lib/utils";
+import { Check, CloudBackup, Dot, Edit2, Folders, Play, Plus, RefreshCcw, RefreshCw, Save, Trash2, X } from "lucide-react";
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { ScrollArea } from "./ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { ApiError } from "next/dist/server/api-utils";
+import { EditKeyInput, KeyKeyboard } from "./commons";
 
 type CommonProps = {
   Config: GlobalConfigType;
@@ -39,10 +40,11 @@ type GeneralModalProps = CommonProps & {
   children: ReactNode;
   confirmBtn?: ReturnType<typeof Button>;
   cancelBtn?: ReturnType<typeof Button>;
+  className?: string;
 } & (
     | { kind: 'dialog', side?: string; }
-    | { kind: 'sheet', side?: ComponentProps<typeof SheetContent>['side'] }
-    | { kind: 'drawer', side?: ComponentProps<typeof Drawer>['direction'] }
+    | { kind: 'sheet', side?: ComponentProps<typeof SheetContent>['side']; }
+    | { kind: 'drawer', side?: ComponentProps<typeof Drawer>['direction']; }
   );
 
 type ModalImportFromFileProps = CommonProps & {};
@@ -62,7 +64,7 @@ export function GeneralModal(props: GeneralModalProps) {
   switch (props.kind) {
     case 'sheet':
       return <Sheet open={props.open} onOpenChange={props.setOpen}>
-        <SheetContent side={props.side}>
+        <SheetContent side={props.side} className={cn(props.className)}>
           <SheetHeader>
             <SheetTitle>{props.title ?? ''}</SheetTitle>
             <SheetDescription>{props.description ?? ''}</SheetDescription>
@@ -79,7 +81,7 @@ export function GeneralModal(props: GeneralModalProps) {
 
     case 'drawer':
       return <Drawer open={props.open} onOpenChange={props.setOpen} direction={props.side}>
-        <DrawerContent>
+        <DrawerContent className={cn(props.className)}>
           <DrawerHeader>
             <DrawerTitle>{props.title ?? ''}</DrawerTitle>
             <DrawerDescription>{props.description ?? ''}</DrawerDescription>
@@ -96,7 +98,7 @@ export function GeneralModal(props: GeneralModalProps) {
 
     case 'dialog':
       return <Dialog open={props.open} onOpenChange={props.setOpen}>
-        <DialogContent>
+        <DialogContent className={cn(props.className)}>
           <DialogHeader>
             <DialogTitle>{props.title ?? ''}</DialogTitle>
             <DialogDescription>{props.description ?? ''}</DialogDescription>
@@ -257,6 +259,93 @@ export function ModalThemeSelector(props: ModalThemeSelectorProps) {
 }
 
 export function ModalKeybinds(props: ModalKeybindsProps) {
+  const [editMode, setEditMode] = useState<string>();
+
+  type LSStore = { [key: string]: KeybindLS };
+  const LSKey = 'custom-keybinds';
+  let lastSaved = '';
+  const saveItem = useMemo(() => {
+    return Object.fromEntries(Object.entries(props.Config.Keybinds.Getter)
+      .filter((v) => v[1].Custom != undefined && JSON.stringify(v[1].Default) != JSON.stringify(v[1].Custom))
+      .map(([k, v]) => {
+        return [k, v.Custom ?? v.Default];
+      }))
+  }, [props.Config.Keybinds.Getter])
+
+
+  function overwrite(id: string, kb: KeybindLS) {
+    props.Config.Keybinds.Setter(current => Object.fromEntries(Object.entries(current).map(([k, v]) => {
+      if (k !== id) return [k, v];
+      console.log({ id, kb, k, v })
+      return [k, { ...v, Custom: kb }]
+    })));
+
+    console.log(props.Config.Keybinds.Getter)
+
+    setEditMode(undefined);
+  }
+
+  function readFromLS() {
+    const currentValue = localStorage.getItem(LSKey);
+    if (currentValue == null) return;
+    const parsed = JSON.parse(currentValue) as LSStore;
+    const overwriteKeys = Object.keys(parsed);
+    props.Config.Keybinds.Setter(current => Object.fromEntries(Object.entries(current).map(([k, v]) => {
+      if (!overwriteKeys.includes(k)) return [k, v];
+      return [k, { ...v, Custom: parsed[k] }]
+    })))
+  }
+
+  function reset(id: string) {
+    props.Config.Keybinds.Setter(current => Object.fromEntries(Object.entries(current).map(([k, v]) => {
+      if (k != id) return [k, v]
+      return [k, { ...v, Custom: undefined }];
+    })))
+  }
+
+  useEffect(() => {
+    readFromLS();
+  }, []);
+
+  useEffect(() => {
+    if (JSON.stringify(saveItem) == lastSaved) return;
+    lastSaved = JSON.stringify(saveItem);
+    window.localStorage.setItem(LSKey, lastSaved);
+    setEditMode(undefined);
+  }, [saveItem])
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      const ignoreConds: boolean[] = [
+        target.tagName == 'INPUT',
+        target.tagName == 'TEXTAREA',
+        target.isContentEditable,
+      ]
+      if (ignoreConds.some(Boolean)) return;
+
+      for (const v of Object.values(props.Config.Keybinds.Getter)) {
+        const command = v.Custom ?? v.Default;
+        const conds: boolean[] = [
+          event.key.toUpperCase() == command.Key?.toUpperCase(),
+          event.ctrlKey == (!!command.Ctrl),
+          event.altKey == (!!command.Alt),
+          event.shiftKey == (!!command.Shift),
+          event.metaKey == (!!command.Meta),
+        ];
+        if (conds.every(Boolean)) {
+          event.preventDefault();
+          v.Action()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [props.Config.Keybinds.Getter]);
+
   return <GeneralModal
     Config={props.Config}
     open={props.Config.Sidebar.Bottom.KeybindsModal.Getter}
@@ -264,8 +353,56 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
     title="Keybinds"
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
+    className={props.Config.Settings.ModalKind.Getter == 'dialog' ? 'max-w-135!' : ''}
   >
-    Not implemented
+    <Table>
+
+      <TableHeader>
+        <TableRow className="*:text-center">
+          <TableHead>Command</TableHead>
+          <TableHead>Shortcut</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+
+      <TableBody>
+        {Object.entries(props.Config.Keybinds.Getter).map(([k, v]) => (
+          <TableRow key={k}>
+            <TableCell>{k}</TableCell>
+            <TableCell>
+              {
+                editMode === k
+                  ? <EditKeyInput id={k} changed={(kb) => { overwrite(k, kb) }} />
+                  : <KeyKeyboard {...(v.Custom ?? v.Default)} />
+              }
+            </TableCell>
+            <TableCell>
+              <ButtonGroup className="w-full">
+                {
+                  editMode === k
+                    ? <Button variant="outline" onClick={() => props.Config.Errors.Setter(errs => [...errs, new Error('Not implemented yet', { cause: 'keybind.edit' })])}>
+                      <Save />
+                    </Button>
+                    : <>
+                      <Button variant="outline" onClick={() => v.Action()}>
+                        <Play />
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditMode(k)}>
+                        <Edit2 />
+                      </Button>
+                    </>
+                }
+
+                <Button variant="outline" disabled={editMode === k ? false : v.Custom == undefined} onClick={() => reset(k)}>
+                  <Trash2 />
+                </Button>
+              </ButtonGroup>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+
+    </Table>
   </GeneralModal>
 }
 
