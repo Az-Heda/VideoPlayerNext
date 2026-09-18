@@ -379,18 +379,14 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
             <TableCell>
               <ButtonGroup className="w-full">
                 {
-                  editMode === k
-                    ? <Button variant="outline" onClick={() => props.Config.Errors.Setter(errs => [...errs, new Error('Not implemented yet', { cause: 'keybind.edit' })])}>
-                      <Save />
+                  editMode !== k && <>
+                    <Button variant="outline" onClick={() => v.Action()}>
+                      <Play />
                     </Button>
-                    : <>
-                      <Button variant="outline" onClick={() => v.Action()}>
-                        <Play />
-                      </Button>
-                      <Button variant="outline" onClick={() => setEditMode(k)}>
-                        <Edit2 />
-                      </Button>
-                    </>
+                    <Button variant="outline" onClick={() => setEditMode(k)}>
+                      <Edit2 />
+                    </Button>
+                  </>
                 }
 
                 <Button variant="outline" disabled={editMode === k ? false : v.Custom == undefined} onClick={() => reset(k)}>
