@@ -1,17 +1,17 @@
 import { ApiVideo } from "@/lib/api";
 import { GlobalConfigType } from "@/lib/globals";
-import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
+import { ComponentProps, Fragment, ReactNode, useEffect, useMemo, useState } from "react";
 import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable } from "@tanstack/react-table";
 import { features, DataTableFeatures } from "@/components/data-table-features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, OctagonAlert, Regex, X } from "lucide-react";
+import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, NotebookText, OctagonAlert, Regex, TextCursor, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, HumanReadableBytes } from "@/lib/utils";
 import { Description, RatingStars, Typography } from "./utility";
 import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -21,11 +21,14 @@ type MainVideoTableProps = {
   Config: GlobalConfigType;
 }
 
+function getFolder(fullpath: string): string {
+  return fullpath.replace('\\', '/').split('/').slice(0, -1).join('/');
+}
+
 export function MainvideoTable(props: MainVideoTableProps) {
   const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
   const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  // const [localFilenameFilterMode, setLocalFilenameFilterMode] = useState<'text' | 'regex'>('text');
   const [localWatched, setLocalWatched] = useState<string>('undefined');
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
@@ -183,7 +186,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
       id: 'col-folder',
       header: 'Folder',
       cell({ row, column }) {
-        const lastFolder = row.getValue<string>(column.id).replace('\\', '/').split('/').slice(0, -1).join('/');
+        const lastFolder = getFolder(row.getValue<string>(column.id));
         return <span
           onClick={() => {
             props.Config.Filters.Fullpath.Setter(lastFolder);
@@ -193,8 +196,8 @@ export function MainvideoTable(props: MainVideoTableProps) {
       },
       sortFn: (rowA, rowB, columnId) => {
         const folderFirst = '_auto-delete';
-        const a = rowA.getValue<ApiVideo['fullpath']>(columnId).replace('\\', '/').split('/').slice(0, -1).join('/');
-        const b = rowB.getValue<ApiVideo['fullpath']>(columnId).replace('\\', '/').split('/').slice(0, -1).join('/');
+        const a = getFolder(rowA.getValue<ApiVideo['fullpath']>(columnId));
+        const b = getFolder(rowB.getValue<ApiVideo['fullpath']>(columnId));
         const priorityA = a.includes(folderFirst);
         const priorityB = b.includes(folderFirst);
 
@@ -306,6 +309,19 @@ export function MainvideoTable(props: MainVideoTableProps) {
     }
     tbl.setPageSize(validPage ?? defaultPage)
   }, []);
+
+  const videosSeparated: { [key: string]: string[] } = useMemo(() => {
+    const obj: { [key: string]: string[] } = {};
+    for (const folder of (props.Config.Api.Data.Folders.Getter ?? [])) {
+      const folderVideos = (props.Config.Api.Data.Videos.Getter ?? []).filter(v => v.folderId == folder.id);
+      const folders = folderVideos.map(v => v.fullpath).map(f => getFolder(f));
+      obj[folder.id] = [...new Set(folders)].sort();
+    }
+    return obj;
+  }, [
+    props.Config.Api.Data.Folders.Getter,
+    props.Config.Api.Data.Videos.Getter,
+  ])
 
   return (<>
     {
@@ -443,18 +459,82 @@ export function MainvideoTable(props: MainVideoTableProps) {
                               : <Regex />
                           }
                         </Button>
+                        {props.Config.Filters.Table.Filename.Getter && <Button size="icon" onClick={() => props.Config.Filters.Table.Filename.Setter(undefined)}><X /></Button>}
                       </ButtonGroup>
                     </TableCell>
                   case 'col-folder':
                     return <TableCell key={header.id}>
-                      <Input
-                        value={props.Config.Filters.Table.Folder.Getter ?? ''}
-                        onChange={(e) => props.Config.Filters.Table.Folder.Setter(e.target.value)}
-                        placeholder="Filter folder"
-                      />
+                      <ButtonGroup className="w-full">
+                        {
+                          props.Config.Filters.Table.FolderMode.Getter == 'input'
+                            ? <Input
+                              value={props.Config.Filters.Table.Folder.Getter ?? ''}
+                              onChange={(e) => props.Config.Filters.Table.Folder.Setter(e.target.value)}
+                              placeholder="Filter folder"
+                            />
+                            : <Select
+                              value={props.Config.Filters.Table.Folder.Getter ?? ''}
+                              onValueChange={(val) => props.Config.Filters.Table.Folder.Setter(val)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a folder" className="w-full" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(props.Config.Api.Data.Folders.Getter)?.filter(f => videosSeparated[f.id].length > 0)?.map((folder, i) => <Fragment key={folder.id}>
+                                  {!!i && <SelectSeparator />}
+                                  <SelectGroup>
+                                    <SelectLabel>{folder.fullpath}</SelectLabel>
+                                    {videosSeparated[folder.id].map(v => <SelectItem key={v} value={v}>{v.substring(v.length > (folder.fullpath.length + 1) ? folder.fullpath.length + 1 : folder.fullpath.length)}</SelectItem>)}
+                                  </SelectGroup>
+                                </Fragment>)}
+                              </SelectContent>
+                            </Select>
+                        }
+
+                        {
+                          props.Config.Filters.Table.FolderMode.Getter == 'input'
+                            ? <Button size="icon" onClick={() => props.Config.Filters.Table.FolderMode.Setter('select')}><NotebookText /></Button>
+                            : <Button size="icon" onClick={() => props.Config.Filters.Table.FolderMode.Setter('input')}><TextCursor /></Button>
+                        }
+                        {props.Config.Filters.Table.Folder.Getter && <Button size="icon" onClick={() => props.Config.Filters.Table.Folder.Setter(undefined)}><X /></Button>}
+                      </ButtonGroup>
                     </TableCell>
-                  default:
-                    return <TableCell key={header.id}></TableCell>
+                  // return props.Config.Filters.Table.FolderMode.Getter == 'input'
+                  //   ? <TableCell key={header.id}>
+                  //     <ButtonGroup className="w-full">
+                  //       <Input
+                  //         value={props.Config.Filters.Table.Folder.Getter ?? ''}
+                  //         onChange={(e) => props.Config.Filters.Table.Folder.Setter(e.target.value)}
+                  //         placeholder="Filter folder"
+                  //       />
+                  //       <Button size="icon" onClick={() => props.Config.Filters.Table.FolderMode.Setter('select')}><NotebookText /></Button>
+                  //       {props.Config.Filters.Table.Folder.Getter && <Button size="icon" onClick={() => props.Config.Filters.Table.Folder.Setter(undefined)}><X /></Button>}
+                  //     </ButtonGroup>
+                  //   </TableCell>
+                  //   : <TableCell key={header.id}>
+                  //     <ButtonGroup className="w-full">
+                  //       <Select
+                  //         value={props.Config.Filters.Table.Folder.Getter ?? ''}
+                  //         onValueChange={(val) => props.Config.Filters.Table.Folder.Setter(val)}
+                  //       >
+                  //         <SelectTrigger>
+                  //           <SelectValue placeholder="Select a folder" className="w-full" />
+                  //         </SelectTrigger>
+                  //         <SelectContent>
+                  //           {(props.Config.Api.Data.Folders.Getter)?.filter(f => videosSeparated[f.id].length > 0)?.map((folder, i) => <Fragment key={folder.id}>
+                  //             {!!i && <SelectSeparator />}
+                  //             <SelectGroup>
+                  //               <SelectLabel>{folder.fullpath}</SelectLabel>
+                  //               {videosSeparated[folder.id].map(v => <SelectItem key={v} value={v}>{v.substring(v.length > (folder.fullpath.length + 1) ? folder.fullpath.length + 1 : folder.fullpath.length)}</SelectItem>)}
+                  //             </SelectGroup>
+                  //           </Fragment>)}
+                  //         </SelectContent>
+                  //       </Select>
+                  //       <Button size="icon" onClick={() => props.Config.Filters.Table.FolderMode.Setter('input')}><TextCursor /></Button>
+                  //       {props.Config.Filters.Table.Folder.Getter && <Button size="icon" onClick={() => props.Config.Filters.Table.Folder.Setter(undefined)}><X /></Button>}
+                  //     </ButtonGroup>
+                  //   </TableCell>
+                  default: return <TableCell key={header.id}></TableCell>
                 }
               })}
             </TableRow>

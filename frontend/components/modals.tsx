@@ -827,8 +827,8 @@ export function ModalSyncVideos(props: ModalSyncVideosProps) {
           </Button>
         </>
       )
-        : step == 'scan' ? <>Scanning the folder: Found <span className="font-mono">{updatedVideos.length.toLocaleString('it-IT')}</span> videos</>
-          : step == 'end' ? <>Finish scanning: Found {updatedVideos.length} videos</>
+        : step == 'scan' ? <div>Scanning the folder: Found <span className="font-mono">{updatedVideos.length.toLocaleString('it-IT')}</span> videos</div>
+          : step == 'end' ? <div>Finish scanning: Found {updatedVideos.length} videos</div>
             : <></>
     }
   </GeneralModal>

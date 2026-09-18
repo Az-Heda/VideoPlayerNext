@@ -57,6 +57,7 @@ export type GlobalConfigType = {
       Filename: GetterSetter<string | undefined>;
       Folder: GetterSetter<string | undefined>;
       FilenameMode: GetterSetter<'text' | 'regex'>;
+      FolderMode: GetterSetter<'input' | 'select'>;
     }
   }
   Sidebar: {
@@ -146,7 +147,9 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [tableFilterWatched, setTableFilterWatched] = useState<boolean>();
   const [tableFilterFilename, setTableFilterFilename] = useState<string>();
   const [tableFilterFolder, setTableFilterFolder] = useState<string>();
-  const [tableFilterfilenameMode, setTableFilterfilenameMode] = useState<'text' | 'regex'>('text');
+  const [tableFilterFilenameMode, setTableFilterFilenameMode] = useState<'text' | 'regex'>('text');
+  const [tableFilterFolderMode, setTableFilterFolderMode] = useState<'input' | 'select'>('input');
+
 
   const [settingsModalKind, setSettingsModalKind] = useState<GlobalConfigType['Settings']['ModalKind']['Getter']>('sheet');
   const [settingsModalSide, setSettingsModalSide] = useState<GlobalConfigType['Settings']['ModalSide']['Getter']>('right');
@@ -172,7 +175,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       if (tableFilterWatched != undefined) conds.push((x.attributes.watched ?? false) == tableFilterWatched)
       if (tableFilterFolder != undefined) conds.push(x.fullpath.replace('\\', '/').split('/').slice(0, -1).join('/').toLowerCase().includes(tableFilterFolder.toLowerCase()))
       if (tableFilterFilename != undefined) {
-        switch (tableFilterfilenameMode) {
+        switch (tableFilterFilenameMode) {
           case 'text':
             conds.push(x.filename.toLowerCase().includes(tableFilterFilename.toLowerCase()))
             break;
@@ -195,7 +198,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
     tableFilterWatched,
     tableFilterFilename,
     tableFilterFolder,
-    tableFilterfilenameMode,
+    tableFilterFilenameMode,
 
     apiVideos,
   ]);
@@ -322,7 +325,8 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
         Watched: { Getter: tableFilterWatched, Setter: setTableFilterWatched, },
         Filename: { Getter: tableFilterFilename, Setter: setTableFilterFilename, },
         Folder: { Getter: tableFilterFolder, Setter: setTableFilterFolder, },
-        FilenameMode: { Getter: tableFilterfilenameMode, Setter: setTableFilterfilenameMode, },
+        FilenameMode: { Getter: tableFilterFilenameMode, Setter: setTableFilterFilenameMode, },
+        FolderMode: { Getter: tableFilterFolderMode, Setter: setTableFilterFolderMode, },
       }
     },
     Sidebar: {

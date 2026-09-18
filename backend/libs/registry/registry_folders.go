@@ -127,6 +127,8 @@ func (r registryFolder) ListFolder(ctx context.Context, conn *gorm.DB, i *ListFo
 	default:
 	}
 
+	filtered = filtered.Order("fullpath ASC")
+
 	if tx := filtered.Find(&folders); tx.Error != nil {
 		ApiExchangeDatabaseError[ListFolderResponse](tx.Error)
 	}
