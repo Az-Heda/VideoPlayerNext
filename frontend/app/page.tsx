@@ -13,10 +13,11 @@ import { ShowIf, Typography } from "@/components/utility";
 import { Vp } from "@/components/video-player";
 import { MainvideoTable } from "@/components/video-table";
 import { ApiPlaylist, ApiRequest, ApiVideo } from "@/lib/api";
-import { GlobalConfig } from "@/lib/globals"
+import { GlobalConfig, GlobalConfigType } from "@/lib/globals"
 import { ArrowUpRightIcon, File, Film, Hash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import { Hero } from "@/components/hero";
 
 export default function Page() {
   // const [videos, setVideos] = useState<ApiVideo[]>();
@@ -79,76 +80,7 @@ export default function Page() {
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 md:gap-6 md:py-6">
 
-              {config.VideoPlayer.Selected.Getter != undefined && (
-                <div className="grid min-h-0 h-[50vh] grid-cols-4">
-                  <Typography kind="h2" className="col-span-4 text-center">{config.VideoPlayer.Selected.Getter.filename}</Typography>
-                  <div></div>
-                  <Vp config={config} className="col-span-2" />
-
-                  {
-                    false && (config.Api.Data.Playlists.Getter ?? []).filter(p => (config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).length > 0
-                      ? <>
-                        <ScrollArea className="min-h-0 border border-primary rounded-md px-4">
-                          <Typography kind="h3" className="mt-4 mb-2 text-center">Playlists</Typography>
-                          <div className="flex flex-col gap-2">
-                            {
-                              (config.Api.Data.Playlists.Getter ?? []).filter(p => (config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).map(p => (
-                                <Attachment key={p.id} className="w-full">
-                                  <AttachmentMedia>
-                                    <Film />
-                                  </AttachmentMedia>
-                                  <AttachmentContent>
-                                    <AttachmentTitle className="overflow-x-clip text-ellipsis">{p.name}</AttachmentTitle>
-                                    <AttachmentDescription>{config.Api.Data.Videos.Getter?.filter(x => x.playlists?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
-                                  </AttachmentContent>
-                                  <AttachmentActions>
-                                    <AttachmentAction asChild className="size-auto">
-                                      <Button
-                                        onClick={() => { config.Filters.Playlist.Setter(p) }}
-                                      >
-                                        Filter
-                                      </Button>
-                                    </AttachmentAction>
-                                  </AttachmentActions>
-
-                                </Attachment>
-                              ))
-                            }
-                          </div>
-                          <Typography kind="h3" className="mt-4 mb-2 text-center">Tags</Typography>
-                          <div className="flex flex-col gap-2">
-                            {
-                              (config.Api.Data.Tags.Getter ?? []).filter(p => (config.VideoPlayer.Selected.Getter?.tags ?? []).map(x => x.id).includes(p.id)).map(p => (
-                                <Attachment key={p.id} className="w-full">
-                                  <AttachmentMedia>
-                                    <Hash />
-                                  </AttachmentMedia>
-                                  <AttachmentContent>
-                                    <AttachmentTitle>{p.name}</AttachmentTitle>
-                                    <AttachmentDescription>{config.Api.Data.Videos.Getter?.filter(x => x.tags?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
-                                  </AttachmentContent>
-                                  <AttachmentActions>
-                                    <AttachmentAction asChild className="size-auto">
-                                      <Button
-                                        onClick={() => { config.Filters.Tag.Setter(p) }}
-                                      >
-                                        Filter
-                                      </Button>
-                                    </AttachmentAction>
-                                  </AttachmentActions>
-
-                                </Attachment>
-                              ))
-                            }
-                          </div>
-                        </ScrollArea>
-                      </>
-                      : <div></div>
-                  }
-
-                </div>
-              )}
-              <Explore config={config} />
+              <PageContent Config={config} />
             </div>
 
           </div>
@@ -170,4 +102,92 @@ export default function Page() {
       </SidebarInset>
     </ SidebarProvider >
   )
+}
+
+
+type PageContentProps = {
+  Config: GlobalConfigType;
+}
+function PageContent(props: PageContentProps) {
+  switch (props.Config.Pages.Current.Getter) {
+    case 'homepage':
+      return <>
+        <Hero Config={props.Config}/>
+      </>
+    case 'videos':
+      return <>
+        {props.Config.VideoPlayer.Selected.Getter != undefined && (
+          <div className="grid min-h-0 h-[50vh] grid-cols-4">
+            <Typography kind="h2" className="col-span-4 text-center">{props.Config.VideoPlayer.Selected.Getter.filename}</Typography>
+            <div></div>
+            <Vp config={props.Config} className="col-span-2" />
+
+            {
+              false && (props.Config.Api.Data.Playlists.Getter ?? []).filter(p => (props.Config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).length > 0
+                ? <>
+                  <ScrollArea className="min-h-0 border border-primary rounded-md px-4">
+                    <Typography kind="h3" className="mt-4 mb-2 text-center">Playlists</Typography>
+                    <div className="flex flex-col gap-2">
+                      {
+                        (props.Config.Api.Data.Playlists.Getter ?? []).filter(p => (props.Config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).map(p => (
+                          <Attachment key={p.id} className="w-full">
+                            <AttachmentMedia>
+                              <Film />
+                            </AttachmentMedia>
+                            <AttachmentContent>
+                              <AttachmentTitle className="overflow-x-clip text-ellipsis">{p.name}</AttachmentTitle>
+                              <AttachmentDescription>{props.Config.Api.Data.Videos.Getter?.filter(x => x.playlists?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
+                            </AttachmentContent>
+                            <AttachmentActions>
+                              <AttachmentAction asChild className="size-auto">
+                                <Button
+                                  onClick={() => { props.Config.Filters.Playlist.Setter(p) }}
+                                >
+                                  Filter
+                                </Button>
+                              </AttachmentAction>
+                            </AttachmentActions>
+
+                          </Attachment>
+                        ))
+                      }
+                    </div>
+                    <Typography kind="h3" className="mt-4 mb-2 text-center">Tags</Typography>
+                    <div className="flex flex-col gap-2">
+                      {
+                        (props.Config.Api.Data.Tags.Getter ?? []).filter(p => (props.Config.VideoPlayer.Selected.Getter?.tags ?? []).map(x => x.id).includes(p.id)).map(p => (
+                          <Attachment key={p.id} className="w-full">
+                            <AttachmentMedia>
+                              <Hash />
+                            </AttachmentMedia>
+                            <AttachmentContent>
+                              <AttachmentTitle>{p.name}</AttachmentTitle>
+                              <AttachmentDescription>{props.Config.Api.Data.Videos.Getter?.filter(x => x.tags?.map(x => x.id).includes(p.id)).length} videos</AttachmentDescription>
+                            </AttachmentContent>
+                            <AttachmentActions>
+                              <AttachmentAction asChild className="size-auto">
+                                <Button
+                                  onClick={() => { props.Config.Filters.Tag.Setter(p) }}
+                                >
+                                  Filter
+                                </Button>
+                              </AttachmentAction>
+                            </AttachmentActions>
+
+                          </Attachment>
+                        ))
+                      }
+                    </div>
+                  </ScrollArea>
+                </>
+                : <div></div>
+            }
+
+          </div>
+        )}
+        <Explore config={props.Config} />
+      </>
+    default:
+      return <></>
+  }
 }

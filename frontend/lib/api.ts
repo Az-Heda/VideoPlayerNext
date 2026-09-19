@@ -275,8 +275,8 @@ export class ApiRequest {
 
 type baseApiType = {
   id: string;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ApiRule = baseApiType & {
@@ -300,7 +300,7 @@ export type ApiVideoAttributes = {
   exists?: boolean;
   size: number;
   duration: number;
-  lastFileChange?: Date | string;
+  lastFileChange?: string;
 }
 
 export type ApiPlaylist = baseApiType & {

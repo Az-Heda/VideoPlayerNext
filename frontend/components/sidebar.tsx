@@ -1,10 +1,8 @@
 "use client";
 
-import { ComponentProps } from "react"
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { CirclePlusIcon, CommandIcon, Film, MailIcon } from "lucide-react"
-import { GlobalConfigType, SidebarItem } from "@/lib/globals"
-import { Button } from "@/components/ui/button";
+import { ComponentProps } from "react";
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { GlobalConfigType, SidebarItem } from "@/lib/globals";
 
 
 type AppSidebarProps = {
@@ -34,6 +32,24 @@ export function AppSidebar(props: AppSidebarProps) {
 
         <SidebarGroup>
           <SidebarGroupContent className="flex flex-col gap-2">
+            <SidebarGroupLabel>Pages</SidebarGroupLabel>
+            <SidebarMenu>
+              {props.Config.Pages.All.map(p => <SidebarMenuItem key={p.Id}>
+                <SidebarMenuButton disabled={props.Config.Pages.Current.Getter == p.Id} onClick={() => {
+                  if (p.Id == 'videos') props.Config.VideoPlayer.Selected.Setter(undefined);
+                  props.Config.Pages.Current.Setter(p.Id);
+                }}>
+                  {p.Icon}
+                  <span>{p.Label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupContent className="flex flex-col gap-2">
+            <SidebarGroupLabel>Actions</SidebarGroupLabel>
             <SidebarMenu>
               {Object.entries(props.Config.Sidebar.Top).filter(([_, x]) => x.Visibility ?? true).map(([key, rawItem]) => {
                 const item = rawItem as any as SidebarItem<unknown>;

@@ -223,14 +223,14 @@ export function MainvideoTable(props: MainVideoTableProps) {
       header: 'Last file change',
       size: 20,
       cell({ row }) {
-        let value = row.original.attributes.lastFileChange;
+        let value: ApiVideoAttributes['lastFileChange'] | Date = row.original.attributes.lastFileChange;
         if (typeof value == 'string') value = new Date(value);
         if (value instanceof Date) return <span>{value.toISOString().replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, '$4:$5:$6 $3/$2/$1')}</span>
         else return <span></span>
       },
       sortFn: (rowA, rowB, columnId) => {
-        let a = rowA.getValue<ApiVideo['attributes']['lastFileChange']>(columnId);
-        let b = rowB.getValue<ApiVideo['attributes']['lastFileChange']>(columnId);
+        let a: ApiVideoAttributes['lastFileChange'] | Date = rowA.getValue<ApiVideo['attributes']['lastFileChange']>(columnId);
+        let b: ApiVideoAttributes['lastFileChange'] | Date = rowB.getValue<ApiVideo['attributes']['lastFileChange']>(columnId);
         if (typeof a == 'string') a = new Date(a);
         if (typeof b == 'string') b = new Date(b);
 
@@ -339,7 +339,8 @@ export function MainvideoTable(props: MainVideoTableProps) {
     for (const folder of (props.Config.Api.Data.Folders.Getter ?? [])) {
       const folderVideos = (props.Config.Api.Data.Videos.Getter ?? []).filter(v => v.folderId == folder.id);
       const folders = folderVideos.map(v => v.fullpath).map(f => getFolder(f));
-      obj[folder.id] = [...new Set(folders)].sort();
+      obj[folder.id] = [...new Set(folders)].sort().map(x => x.trim()).filter(x => x.length > 0);
+      if (!obj[folder.id].includes(folder.fullpath)) obj[folder.id] = [folder.fullpath, ...obj[folder.id]];
     }
     return obj;
   }, [
@@ -508,7 +509,13 @@ export function MainvideoTable(props: MainVideoTableProps) {
                                   {!!i && <SelectSeparator />}
                                   <SelectGroup>
                                     <SelectLabel>{folder.fullpath}</SelectLabel>
-                                    {videosSeparated[folder.id].map(v => <SelectItem key={v} value={v}>{v.substring(v.length > (folder.fullpath.length + 1) ? folder.fullpath.length + 1 : folder.fullpath.length)}</SelectItem>)}
+                                    {videosSeparated[folder.id].map((v, i) => <SelectItem key={i} value={v}>
+                                      {
+                                        v.trim() == folder.fullpath.trim()
+                                          ? v.trim()
+                                          : v.substring(folder.fullpath.length + 1)
+                                      }
+                                    </SelectItem>)}
                                   </SelectGroup>
                                 </Fragment>)}
                               </SelectContent>

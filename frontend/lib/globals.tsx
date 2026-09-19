@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, CloudBackup, File, FileVideo, Film, Globe, Keyboard, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, Waypoints, X } from "lucide-react";
+import { AudioLines, CloudBackup, FileVideo, Film, Globe, House, Keyboard, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, TvMinimalPlay, Waypoints, X } from "lucide-react";
 import { ComponentProps, Dispatch, JSX, ReactNode, SetStateAction, useEffect, useMemo, useState } from "react";
 import { ApiError, ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
@@ -19,6 +19,13 @@ export type SidebarItem<T> = {
   Visibility?: boolean;
 } & GetterSetter<T>;
 
+
+type Page = 'homepage' | 'videos';
+type PageSidebar = {
+  Id: Page,
+  Label: string;
+  Icon: JSX.Element;
+}
 
 export type KeybindLS = {
   Id: string;
@@ -106,9 +113,14 @@ export type GlobalConfigType = {
   },
   Errors: GetterSetter<(ApiError | Error | { source: string; content: string })[]>;
   Keybinds: GetterSetter<{ [key: string]: Command }>;
+  Pages: {
+    Current: GetterSetter<Page>;
+    All: PageSidebar[];
+  }
 }
 
 export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
+  const [currentPage, setCurrentPage] = useState<GlobalConfigType['Pages']['Current']['Getter']>('homepage');
   const [empty, setEmpty] = useState<undefined>();
   const [pageTitle, setPageTitle] = useState<string>('Video Player');
   const [openSettings, setOpenSettings] = useState(false);
@@ -305,6 +317,13 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
 
 
   return {
+    Pages: {
+      Current: { Getter: currentPage, Setter: setCurrentPage, },
+      All: [
+        { Id: 'homepage', Label: 'Homepage', Icon: <House />   },
+        { Id: 'videos', Label: 'Videos', Icon: <TvMinimalPlay /> }
+      ],
+    },
     Api: {
       Instance: apiRequest,
       Data: {
