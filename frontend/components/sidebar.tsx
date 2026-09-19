@@ -1,6 +1,6 @@
 "use client";
 
-import { ComponentProps } from "react";
+import { ComponentProps, useMemo } from "react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { GlobalConfigType, SidebarItem } from "@/lib/globals";
 
@@ -11,6 +11,14 @@ type AppSidebarProps = {
 }
 
 export function AppSidebar(props: AppSidebarProps) {
+  const pages = useMemo(() => {
+    return props.Config.Pages.All.map(x => {
+      return { ...x, Disabled: x.Id != props.Config.Pages.Current.Getter };
+    })
+  }, [
+    props.Config.Pages.Current.Getter,
+    props.Config.Pages.All
+  ])
   return (
     <Sidebar collapsible="offcanvas" {...props.SidebarProps}>
       <SidebarHeader>
@@ -34,8 +42,8 @@ export function AppSidebar(props: AppSidebarProps) {
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarGroupLabel>Pages</SidebarGroupLabel>
             <SidebarMenu>
-              {props.Config.Pages.All.map(p => <SidebarMenuItem key={p.Id}>
-                <SidebarMenuButton disabled={props.Config.Pages.Current.Getter == p.Id} onClick={() => {
+              {pages.map(p => <SidebarMenuItem key={p.Id}>
+                <SidebarMenuButton disabled={!(p?.Disabled ?? false)} onClick={() => {
                   if (p.Id == 'videos') props.Config.VideoPlayer.Selected.Setter(undefined);
                   props.Config.Pages.Current.Setter(p.Id);
                 }}>

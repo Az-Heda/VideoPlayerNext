@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 	"vp/libs/database"
@@ -44,6 +45,9 @@ func init() {
 	}
 	if defaualtDriver == sqliteDriver {
 		defaultDsn = ".sqlite3"
+		if executable, err := os.Executable(); err == nil {
+			defaultDsn = filepath.Join(filepath.Dir(executable), defaultDsn)
+		}
 	}
 
 	rootCmd.Flags().Bool("cors.enable", false, "Enable the cors headers to be sent by the server")

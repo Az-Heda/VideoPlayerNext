@@ -3,6 +3,9 @@ package definitions
 import (
 	"context"
 	"net/http"
+	"time"
+	"vp/libs/models"
+	"vp/libs/utility"
 
 	"github.com/danielgtaylor/huma/v2"
 	"gorm.io/gorm"
@@ -89,18 +92,34 @@ func (a *ApiExchange[T]) ReturnStatus() (*T, error) {
 	}
 }
 
-func (a ApiDefinition[In, Out]) Register(g *huma.Group, conn *gorm.DB, ctx context.Context) {
-	huma.Register(g, a.Operation, func(hctx context.Context, i *In) (*Out, error) {
-		var data = a.Callback(ctx, conn.WithContext(hctx), i)
-		data.Init()
-		return data.ReturnStatus()
-	})
-}
-
 func (a *ApiDefinition[In, Out]) AddTags(tags ...string) {
 	a.Operation.Tags = append(a.Operation.Tags, tags...)
 }
 
 func (a *ApiDefinition[In, Out]) ID() string {
 	return a.Operation.OperationID
+}
+
+func (a ApiDefinition[In, Out]) Register(g *huma.Group, conn *gorm.DB, ctx context.Context) {
+	huma.Register(g, a.Operation, func(hctx context.Context, i *In) (*Out, error) {
+		var data = a.Callback(ctx, conn.WithContext(hctx), i)
+		data.Init()
+		if data.StatusCode != http.StatusOK {
+			var errorlist []string
+			for _, e := range data.Errors {
+				if e != nil {
+					errorlist = append(errorlist, e.Error())
+				}
+			}
+			var systemLog = models.SystemLog{
+				StatusCode:     data.StatusCode,
+				StatusCodeText: http.StatusText(data.StatusCode),
+				Message:        data.ErrorTitle,
+				Errors:         errorlist,
+				CreatedAt:      utility.Ptr(time.Now()),
+			}
+			conn.WithContext(ctx).Save(&systemLog)
+		}
+		return data.ReturnStatus()
+	})
 }

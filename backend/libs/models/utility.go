@@ -18,6 +18,7 @@ func AutoMigrate(conn *gorm.DB) {
 	autoMigrate(&Playlist{}, conn)
 	autoMigrate(&Tag{}, conn)
 	autoMigrate(&Rule{}, conn)
+	autoMigrate(&SystemLog{}, conn)
 }
 
 func autoMigrate[T ValidModel](model T, conn *gorm.DB) {

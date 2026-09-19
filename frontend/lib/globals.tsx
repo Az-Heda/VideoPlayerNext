@@ -1,8 +1,8 @@
 "use client";
 
-import { AudioLines, CloudBackup, FileVideo, Film, Globe, House, Keyboard, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, TvMinimalPlay, Waypoints, X } from "lucide-react";
+import { AudioLines, Cctv, CloudBackup, FileVideo, Film, Globe, House, Keyboard, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, TvMinimalPlay, Waypoints, X } from "lucide-react";
 import { ComponentProps, Dispatch, JSX, ReactNode, SetStateAction, useEffect, useMemo, useState } from "react";
-import { ApiError, ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiTag, ApiVideo } from "@/lib/api";
+import { ApiError, ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiSystemLog, ApiTag, ApiVideo, GenericError } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
 import { Drawer } from "@/components/ui/drawer";
 import { getKeybind } from "@/lib/utils";
@@ -20,7 +20,7 @@ export type SidebarItem<T> = {
 } & GetterSetter<T>;
 
 
-type Page = 'homepage' | 'videos';
+type Page = 'homepage' | 'videos' | 'systemlogs';
 type PageSidebar = {
   Id: Page,
   Label: string;
@@ -51,6 +51,7 @@ export type GlobalConfigType = {
       Folders: GetterSetter<ApiFolder[] | undefined>;
       Tags: GetterSetter<ApiTag[] | undefined>;
       Rules: GetterSetter<ApiRule[] | undefined>;
+      SystemLogs: GetterSetter<ApiSystemLog[] | undefined>;
     };
   };
   Filters: {
@@ -111,7 +112,7 @@ export type GlobalConfigType = {
     ColoredWatchedStatus: GetterSetter<'none' | 'border' | 'full'>;
     DevelopmentMode: GetterSetter<boolean>;
   },
-  Errors: GetterSetter<(ApiError | Error | { source: string; content: string })[]>;
+  Errors: GetterSetter<(ApiError | Error | GenericError)[]>;
   Keybinds: GetterSetter<{ [key: string]: Command }>;
   Pages: {
     Current: GetterSetter<Page>;
@@ -142,6 +143,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [apiFolders, setApiFolders] = useState<ApiFolder[]>();
   const [apiTagas, setApiTags] = useState<ApiTag[]>();
   const [apiRules, setApiRules] = useState<ApiRule[]>();
+  const [apiSystemLogs, setApiSystemLogs] = useState<ApiSystemLog[]>();
 
   const [filterFolder, setFilterFolder] = useState<ApiFolder>();
   const [filterPlaylist, setFilterPlaylist] = useState<ApiPlaylist>();
@@ -320,8 +322,9 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
     Pages: {
       Current: { Getter: currentPage, Setter: setCurrentPage, },
       All: [
-        { Id: 'homepage', Label: 'Homepage', Icon: <House />   },
-        { Id: 'videos', Label: 'Videos', Icon: <TvMinimalPlay /> }
+        { Id: 'homepage', Label: 'Homepage', Icon: <House /> },
+        { Id: 'videos', Label: 'Videos', Icon: <TvMinimalPlay /> },
+        { Id: 'systemlogs', Label: 'System logs', Icon: <Cctv /> },
       ],
     },
     Api: {
@@ -332,6 +335,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
         Folders: { Getter: apiFolders, Setter: setApiFolders, },
         Tags: { Getter: apiTagas, Setter: setApiTags, },
         Rules: { Getter: apiRules, Setter: setApiRules, },
+        SystemLogs: { Getter: apiSystemLogs, Setter: setApiSystemLogs, },
       },
     },
     Filters: {

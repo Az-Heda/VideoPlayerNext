@@ -21,11 +21,14 @@ export function Hero(props: HeroProps) {
       { Label: 'Videos', Value: props.Config.Api.Data.Videos.Getter?.length },
       { Label: 'Playlists', Value: props.Config.Api.Data.Playlists.Getter?.length },
       { Label: 'Tags', Value: props.Config.Api.Data.Tags.Getter?.length },
-    ]
+      { Label: 'Automatic Rules', Value: props.Config.Api.Data.Rules.Getter?.length },
+      { Label: 'System Logs', Value: props.Config.Api.Data.SystemLogs.Getter?.length },
+    ];
   }, [
     props.Config.Api.Data.Folders.Getter,
     props.Config.Api.Data.Playlists.Getter,
     props.Config.Api.Data.Rules.Getter,
+    props.Config.Api.Data.SystemLogs.Getter,
     props.Config.Api.Data.Tags.Getter,
     props.Config.Api.Data.Videos.Getter,
   ])
@@ -78,7 +81,7 @@ export function Hero(props: HeroProps) {
                   <p className="mt-1 text-lg font-bold tabular-nums">
                     {
                       row.Value !== undefined
-                        ? row.Value
+                        ? row.Value.toLocaleString('it-IT', { useGrouping: 'always' })
                         : <span className="flex items-center justify-start gap-2 text-xs"><Spinner /> Loading...</span>
                     }
                   </p>

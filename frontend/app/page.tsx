@@ -2,26 +2,22 @@
 
 import { ErrorModal, ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalSyncVideos, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
 import { Explore } from "@/components/explore";
-import { AppSidebar } from "@/components/sidebar"
+import { AppSidebar } from "@/components/sidebar";
 import { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from "@/components/ui/attachment";
-import { Button } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { ShowIf, Typography } from "@/components/utility";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Typography } from "@/components/utility";
 import { Vp } from "@/components/video-player";
-import { MainvideoTable } from "@/components/video-table";
-import { ApiPlaylist, ApiRequest, ApiVideo } from "@/lib/api";
-import { GlobalConfig, GlobalConfigType } from "@/lib/globals"
-import { ArrowUpRightIcon, File, Film, Hash } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Spinner } from "@/components/ui/spinner";
+import { ApiRequest } from "@/lib/api";
+import { GlobalConfig, GlobalConfigType } from "@/lib/globals";
+import { Film, Hash } from "lucide-react";
+import { useEffect } from "react";
 import { Hero } from "@/components/hero";
+import { SystemLogTable } from "@/components/systemlog-table";
 
 export default function Page() {
-  // const [videos, setVideos] = useState<ApiVideo[]>();
-  // const [playlists, setPlaylists] = useState<ApiPlaylist[]>();
   const api = new ApiRequest();
   let config = GlobalConfig(api);
 
@@ -48,6 +44,16 @@ export default function Page() {
               (tags) => config.Api.Data.Tags.Setter(tags),
               (error) => config.Errors.Setter(errs => [...errs, error]),
 
+            );
+          api.GetRuleList()
+            .then(
+              (rules) => config.Api.Data.Rules.Setter(rules),
+              (error) => config.Errors.Setter(errs => [...errs, error]),
+            );
+          api.GetSystemLogList()
+            .then(
+              (systemLogs) => config.Api.Data.SystemLogs.Setter(systemLogs),
+              (error) => config.Errors.Setter(errs => [...errs, error]),
             );
         },
         (error) => config.Errors.Setter(errs => [...errs, error]),
@@ -112,7 +118,7 @@ function PageContent(props: PageContentProps) {
   switch (props.Config.Pages.Current.Getter) {
     case 'homepage':
       return <>
-        <Hero Config={props.Config}/>
+        <Hero Config={props.Config} />
       </>
     case 'videos':
       return <>
@@ -187,7 +193,11 @@ function PageContent(props: PageContentProps) {
         )}
         <Explore config={props.Config} />
       </>
+    case 'systemlogs':
+      return <>
+        <SystemLogTable Config={props.Config} />
+      </>
     default:
-      return <></>
+      return <>Page not found</>
   }
 }

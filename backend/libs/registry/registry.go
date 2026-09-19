@@ -10,6 +10,7 @@ type Registry struct {
 	Playlists IRegistryPlaylist
 	Tags      IRegistryTag
 	Rules     IRegistryRule
+	SystemLog IRegistrySystemLog
 }
 
 func getRegistry() Registry {
@@ -19,6 +20,7 @@ func getRegistry() Registry {
 		Playlists: registryPlaylist{},
 		Tags:      registryTag{bannedChars: []string{"%"}},
 		Rules:     registryRule{},
+		SystemLog: registrySystemLog{},
 	}
 }
 
@@ -31,6 +33,7 @@ func Setup(parent context.Context) context.Context {
 		"registry-playlists": registry.Videos,
 		"registry-tags":      registry.Tags,
 		"registry-rules":     registry.Videos,
+		"registry-systemlog": registry.SystemLog,
 	}
 	return chainContext(parent, contextValues)
 }

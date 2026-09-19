@@ -29,7 +29,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
   const [nPerPage,] = useState([10, 15, 20, 25, 30, 40, 50, 75, 100] as const);
   const [defaultPage,] = useState<typeof nPerPage['1']>(nPerPage[1]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [localWatched, setLocalWatched] = useState<string>('undefined');
+  const [localWatched, setLocalWatched] = useState<string>();
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
     'col-rating': false,

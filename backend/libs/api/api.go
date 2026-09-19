@@ -20,13 +20,14 @@ func Setup(mux *http.ServeMux, conn *gorm.DB, ctx context.Context) {
 	config.DocsRenderer = huma.DocsRendererScalar
 
 	var (
-		api         = humago.New(mux, config)
-		apiGroup    = huma.NewGroup(api, "/api")
-		apiFolder   = huma.NewGroup(apiGroup, "/folder")
-		apiVideo    = huma.NewGroup(apiGroup, "/video")
-		apiPlaylist = huma.NewGroup(apiGroup, "/playlist")
-		apiTag      = huma.NewGroup(apiGroup, "/tag")
-		apiRule     = huma.NewGroup(apiGroup, "/automatic-rule")
+		api          = humago.New(mux, config)
+		apiGroup     = huma.NewGroup(api, "/api")
+		apiFolder    = huma.NewGroup(apiGroup, "/folder")
+		apiVideo     = huma.NewGroup(apiGroup, "/video")
+		apiPlaylist  = huma.NewGroup(apiGroup, "/playlist")
+		apiTag       = huma.NewGroup(apiGroup, "/tag")
+		apiRule      = huma.NewGroup(apiGroup, "/automatic-rule")
+		apiSystemLog = huma.NewGroup(apiGroup, "/system-log")
 	)
 
 	setupApiFolders(apiFolder, conn, ctx, reg.Folders)
@@ -34,4 +35,5 @@ func Setup(mux *http.ServeMux, conn *gorm.DB, ctx context.Context) {
 	setupApiPlaylists(apiPlaylist, conn, ctx, reg.Playlists)
 	setupApiTags(apiTag, conn, ctx, reg.Tags)
 	setupApiRules(apiRule, conn, ctx, reg.Rules)
+	setupApiSystemLog(apiSystemLog, conn, ctx, reg.SystemLog)
 }

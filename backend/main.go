@@ -18,7 +18,6 @@ func init() {
 			TimeLocation: loc,
 		},
 	)).
-		// With().Caller().Logger().
 		With().Timestamp().Logger()
 }
 

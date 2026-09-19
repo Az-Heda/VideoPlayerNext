@@ -43,6 +43,9 @@ func setupApiVideos(g *huma.Group, conn *gorm.DB, ctx context.Context, r registr
 					},
 				},
 				Errors: []int{
+					http.StatusBadRequest,
+					http.StatusNotFound,
+					http.StatusConflict,
 					http.StatusInternalServerError,
 				},
 			},

@@ -2,12 +2,6 @@ import { GlobalConfigType } from "./globals";
 
 type HTTPMethod = 'GET' | 'POST' | 'DELETE' | 'PATCH' | 'PUT';
 
-type ApiErrorDetails = {
-  location: string;
-  message: string;
-  value: any;
-}
-
 type Thenable<T> = {
   then(
     resolve: (value: T) => void,
@@ -15,12 +9,21 @@ type Thenable<T> = {
   ): void;
 };
 
+type ApiErrorDetails = {
+  location?: string;
+  message: string;
+  value?: any;
+}
+
+export type GenericError = { source: string; content: string };
 export type ApiError = {
   errors: ApiErrorDetails[];
   detail: string;
   instance?: string;
+  status?: number;
   title: string;
 };
+
 type RequestOptions = {
   query?: { [key: string]: string | string[] };
   headers?: HeadersInit;
@@ -56,6 +59,9 @@ type GetTagListFilter = {
 }
 type GetRuleListFilder = {
   id?: ApiRule['id'] | ApiRule['id'][];
+}
+type GetSystemLogListFilder = {
+  id?: ApiSystemLog['id'] | ApiSystemLog['id'][];
 }
 type PatchSetWatchedFlagFilter = {
   attr: boolean;
@@ -140,10 +146,11 @@ export class ApiRequest {
                 reject(err);
                 return;
               }
-              reject(new Error(`${err}`, { cause: 'Fail #1' }));
+
+              reject(err as ApiError);
             });
         } catch (err) {
-          reject(new Error(`${err}`, { cause: 'Fail #2' }));
+          reject(new Error(`${err}`, { cause: 'Fail' }));
         }
       }
     }
@@ -270,6 +277,17 @@ export class ApiRequest {
   public ApplyAutomaticRule(...rules: ApiRule[]): Thenable<ApiVideo[]> {
     return this.SendRequest<ApiVideo[]>('GET', '/api/automatic-rule/apply')
   }
+
+  //* =============================================[ System Logs ]============================================= *//
+
+  public GetSystemLogList(filter?: GetSystemLogListFilder): Thenable<ApiSystemLog[]> {
+    if (filter === undefined) filter = {} as GetSystemLogListFilder;
+
+    const queryData: RequestOptions['query'] = {};
+    if (filter.id) queryData.id = typeof filter.id == 'number' ? filter.id.toString() : filter.id.map(x => x.toString());
+
+    return this.SendRequest<ApiSystemLog[]>('GET', '/api/system-log/', { query: queryData });
+  }
 }
 
 
@@ -316,4 +334,13 @@ export type ApiTag = baseApiType & {
 export type ApiFolder = baseApiType & {
   fullpath: string;
   videos?: ApiVideo[];
+}
+
+export type ApiSystemLog = {
+  id: number;
+  statusCode: number;
+  statusCodeText: string;
+  message: string;
+  errors?: string[] | null;
+  createdAt?: string;
 }

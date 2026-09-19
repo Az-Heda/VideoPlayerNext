@@ -169,20 +169,16 @@ type (
 )
 
 func (r registryRule) NewRule(ctx context.Context, conn *gorm.DB, i *NewRuleRequest) ApiExchange[NewRuleResponse] {
-	apiPlaylist, ok := ctx.Value("registry-playlists").(IRegistryPlaylist)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[NewRuleResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Playlist registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
-	apiTag, ok := ctx.Value("registry-tags").(IRegistryTag)
-	if !ok {
-		return ApiExchange[NewRuleResponse]{
-			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Tags registry not found",
-		}
-	}
+
+	var apiPlaylist = reg.Playlists
+	var apiTag = reg.Tags
 
 	var re, err = regexp.Compile(i.Body.Regex)
 	if err != nil {
@@ -293,13 +289,14 @@ func (r registryRule) DeleteRule(ctx context.Context, conn *gorm.DB, i *DeleteRu
 }
 
 func (r registryRule) AddPlaylistToRule(ctx context.Context, conn *gorm.DB, i *AddPlaylistToRuleRequest) ApiExchange[AddPlaylistToRuleResponse] {
-	apiPlaylist, ok := ctx.Value("registry-playlists").(IRegistryPlaylist)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[AddPlaylistToRuleResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Playlist registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiPlaylist = reg.Playlists
 	var outRule = r.GetRule(ctx, conn, &GetRuleRequest{
 		Id: i.RuleId,
 		PreloadRule: PreloadRule{
@@ -344,13 +341,14 @@ func (r registryRule) AddPlaylistToRule(ctx context.Context, conn *gorm.DB, i *A
 }
 
 func (r registryRule) AddTagToRule(ctx context.Context, conn *gorm.DB, i *AddTagToRuleRequest) ApiExchange[AddTagToRuleResponse] {
-	apiTag, ok := ctx.Value("registry-tags").(IRegistryTag)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[AddTagToRuleResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Tags registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiTag = reg.Tags
 	var outRule = r.GetRule(ctx, conn, &GetRuleRequest{
 		Id: i.RuleId,
 		PreloadRule: PreloadRule{
@@ -395,13 +393,14 @@ func (r registryRule) AddTagToRule(ctx context.Context, conn *gorm.DB, i *AddTag
 }
 
 func (r registryRule) DeletePlaylistToRule(ctx context.Context, conn *gorm.DB, i *DeletePlaylistToRuleRequest) ApiExchange[DeletePlaylistToRuleResponse] {
-	apiPlaylist, ok := ctx.Value("registry-playlists").(IRegistryPlaylist)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[DeletePlaylistToRuleResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Playlist registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiPlaylist = reg.Playlists
 	var outRule = r.GetRule(ctx, conn, &GetRuleRequest{
 		Id: i.RuleId,
 		PreloadRule: PreloadRule{
@@ -437,13 +436,14 @@ func (r registryRule) DeletePlaylistToRule(ctx context.Context, conn *gorm.DB, i
 }
 
 func (r registryRule) DeleteTagToRule(ctx context.Context, conn *gorm.DB, i *DeleteTagToRuleRequest) ApiExchange[DeleteTagToRuleResponse] {
-	apiTag, ok := ctx.Value("registry-tags").(IRegistryTag)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[DeleteTagToRuleResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Tags registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiTag = reg.Tags
 	var outRule = r.GetRule(ctx, conn, &GetRuleRequest{
 		Id: i.RuleId,
 		PreloadRule: PreloadRule{
@@ -479,13 +479,14 @@ func (r registryRule) DeleteTagToRule(ctx context.Context, conn *gorm.DB, i *Del
 }
 
 func (r registryRule) ApplyRuleStream(ctx context.Context, conn *gorm.DB, i *ApplyRuleRequest) ApiExchange[ApplyRuleResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[ApplyRuleResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Playlist registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var ruleRequest = r.ListRule(ctx, conn, &ListRuleRequest{
 		Ids: i.Ids,
 		PreloadRule: PreloadRule{

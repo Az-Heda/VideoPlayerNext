@@ -1,8 +1,8 @@
-import { GlobalConfigType, KeybindLS } from "@/lib/globals"
+import { GlobalConfigType, KeybindLS } from "@/lib/globals";
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
-import { ApiFolder, ApiPlaylist, ApiVideo } from "@/lib/api";
-import { cn, getKeybind } from "@/lib/utils";
-import { Check, CloudBackup, Dot, Edit2, Folders, Play, Plus, RefreshCcw, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { ApiError, ApiFolder, ApiVideo, GenericError } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { Check, CloudBackup, Edit2, Play, Plus, RefreshCcw, RefreshCw, Trash2, X } from "lucide-react";
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,6 @@ import { Typography } from "@/components/utility";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from "@/components/ui/combobox";
-import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -25,7 +23,6 @@ import { useTheme } from "next-themes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { ApiError } from "next/dist/server/api-utils";
 import { EditKeyInput, KeyKeyboard } from "./commons";
 
 type CommonProps = {
@@ -280,8 +277,6 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
       return [k, { ...v, Custom: kb }]
     })));
 
-    console.log(props.Config.Keybinds.Getter)
-
     setEditMode(undefined);
   }
 
@@ -334,7 +329,7 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
           event.metaKey == (!!command.Meta),
         ];
         if (conds.every(Boolean)) {
-          event.preventDefault();
+          if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey || event.key.length > 1) event.preventDefault();
           v.Action()
         }
       }
@@ -1096,6 +1091,17 @@ export function ModalSyncData(props: ModalSyncDataProps) {
             (error) => props.Config.Errors.Setter(errs => [...errs, error])
           );
         return;
+
+      case 'SystemLogs':
+        props.Config.Api.Instance.GetSystemLogList()
+          .then(
+            (data) => {
+              props.Config.Api.Data.SystemLogs.Setter(data);
+              setUpdateState(undefined);
+            },
+            (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+          );
+        return;
     }
   }, [updateState]);
 
@@ -1118,71 +1124,25 @@ export function ModalSyncData(props: ModalSyncDataProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        <TableRow>
-          <TableCell>Folders</TableCell>
-          <TableCell>{props.Config.Api.Data.Folders.Getter !== undefined ? props.Config.Api.Data.Folders.Getter.length : '-'}</TableCell>
-          <TableCell>
-            {
-              updateState == 'Folders'
-                ? <Button size="icon"><Spinner /></Button>
-                : <Button size="icon" onClick={() => setUpdateState('Folders')}>
-                  <CloudBackup />
-                </Button>
-            }
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Playlists</TableCell>
-          <TableCell>{props.Config.Api.Data.Playlists.Getter !== undefined ? props.Config.Api.Data.Playlists.Getter.length : '-'}</TableCell>
-          <TableCell>
-            {
-              updateState == 'Playlists'
-                ? <Button size="icon"><Spinner /></Button>
-                : <Button size="icon" onClick={() => setUpdateState('Playlists')}>
-                  <CloudBackup />
-                </Button>
-            }
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Rules</TableCell>
-          <TableCell>{props.Config.Api.Data.Rules.Getter !== undefined ? props.Config.Api.Data.Rules.Getter.length : '-'}</TableCell>
-          <TableCell>
-            {
-              updateState == 'Rules'
-                ? <Button size="icon"><Spinner /></Button>
-                : <Button size="icon" onClick={() => setUpdateState('Rules')}>
-                  <CloudBackup />
-                </Button>
-            }
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Tags</TableCell>
-          <TableCell>{props.Config.Api.Data.Tags.Getter !== undefined ? props.Config.Api.Data.Tags.Getter.length : '-'}</TableCell>
-          <TableCell>
-            {
-              updateState == 'Tags'
-                ? <Button size="icon"><Spinner /></Button>
-                : <Button size="icon" onClick={() => setUpdateState('Tags')}>
-                  <CloudBackup />
-                </Button>
-            }
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Videos</TableCell>
-          <TableCell>{props.Config.Api.Data.Videos.Getter !== undefined ? props.Config.Api.Data.Videos.Getter.length : '-'}</TableCell>
-          <TableCell>
-            {
-              updateState == 'Videos'
-                ? <Button size="icon"><Spinner /></Button>
-                : <Button size="icon" onClick={() => setUpdateState('Videos')}>
-                  <CloudBackup />
-                </Button>
-            }
-          </TableCell>
-        </TableRow>
+        {Object.keys(props.Config.Api.Data).map((k) => {
+          const key = k as keyof typeof props.Config.Api.Data;
+          return <TableRow key={key}>
+            <TableCell>{key}</TableCell>
+            <TableCell>
+              {props.Config.Api.Data[key].Getter !== undefined
+                ? props.Config.Api.Data[key].Getter.length.toLocaleString('it-IT', { useGrouping: 'always' })
+                : '-'
+              }
+            </TableCell>
+            <TableCell>
+              {
+                updateState === k
+                  ? <Button size="icon"><Spinner /></Button>
+                  : <Button size="icon" onClick={() => setUpdateState(key)}><CloudBackup /></Button>
+              }
+            </TableCell>
+          </TableRow>
+        })}
       </TableBody>
     </Table>
   </GeneralModal>
@@ -1198,6 +1158,7 @@ export function ErrorModal(props: ErrorModalProps) {
     cancelBtn={< Button variant="outline" > Close</Button >}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
+    className={props.Config.Settings.ModalKind.Getter == 'dialog' ? 'max-w-200!' : ''}
   >
     <Table className="mb-2">
       <TableHeader>
@@ -1205,10 +1166,21 @@ export function ErrorModal(props: ErrorModalProps) {
           <TableHead>Action</TableHead>
           <TableHead>Source</TableHead>
           <TableHead>Content</TableHead>
+          <TableHead>Additional content</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {props.Config.Errors.Getter.map((e, i) => {
+          function isGeneric(x: typeof e): x is GenericError {
+            return 'source' in x && 'content' in x
+          }
+          function isApiError(x: typeof e): x is ApiError {
+            return 'errors' in x && 'detail' in x && 'title' in x;
+          }
+          function isError(x: typeof e): x is Error {
+            return x instanceof Error;
+          }
+
           const deleteEvent = <TableCell>
             <Button
               size="icon"
@@ -1219,24 +1191,30 @@ export function ErrorModal(props: ErrorModalProps) {
               <X />
             </Button>
           </TableCell>
-
-          if (e instanceof ApiError) {
-            return <TableRow key={i}>
-              {deleteEvent}
-              <TableCell>{e.name}</TableCell>
-              <TableCell>{e.message}</TableCell>
-            </TableRow>
-          } else if (e instanceof Error) {
+          if (isError(e)) {
             return <TableRow key={i}>
               {deleteEvent}
               <TableCell>{typeof e.cause == 'string' ? e.cause : e.name}</TableCell>
               <TableCell>{e.message}</TableCell>
+              <TableCell></TableCell>
             </TableRow>
-          } else {
+          } else if (isApiError(e)) {
             return <TableRow key={i}>
               {deleteEvent}
-              <TableCell>-</TableCell>
-              <TableCell>-</TableCell>
+              <TableCell>{e.title}</TableCell>
+              <TableCell>{e.detail}</TableCell>
+              <TableCell>
+                <ul>
+                  {e.errors.map((x, i) => <li key={i}>{x.message}</li>)}
+                </ul>
+              </TableCell>
+            </TableRow>
+          } else if (isGeneric(e)) {
+            return <TableRow key={i}>
+              {deleteEvent}
+              <TableCell>{e.source}</TableCell>
+              <TableCell>{e.source}</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           }
         })}
