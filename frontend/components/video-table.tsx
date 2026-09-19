@@ -1,4 +1,4 @@
-import { ApiVideo } from "@/lib/api";
+import { ApiVideo, ApiVideoAttributes } from "@/lib/api";
 import { GlobalConfigType } from "@/lib/globals";
 import { ComponentProps, Fragment, ReactNode, useEffect, useMemo, useState } from "react";
 import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable } from "@tanstack/react-table";
@@ -34,6 +34,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
     'col-rating': false,
     'col-size': false,
+    'col-last-file-change': false,
   });
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'col-folder', desc: false },
@@ -215,6 +216,29 @@ export function MainvideoTable(props: MainVideoTableProps) {
         const bytes = row.original.attributes.size;
         return <span>{HumanReadableBytes(bytes)}</span>
       }
+    }),
+    columnHelper.accessor("attributes.lastFileChange", {
+      ...commonProperties as any,
+      id: 'col-last-file-change',
+      header: 'Last file change',
+      size: 20,
+      cell({ row }) {
+        let value = row.original.attributes.lastFileChange;
+        if (typeof value == 'string') value = new Date(value);
+        if (value instanceof Date) return <span>{value.toISOString().replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, '$4:$5:$6 $3/$2/$1')}</span>
+        else return <span></span>
+      },
+      sortFn: (rowA, rowB, columnId) => {
+        let a = rowA.getValue<ApiVideo['attributes']['lastFileChange']>(columnId);
+        let b = rowB.getValue<ApiVideo['attributes']['lastFileChange']>(columnId);
+        if (typeof a == 'string') a = new Date(a);
+        if (typeof b == 'string') b = new Date(b);
+
+        if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime();
+        if (a === undefined && b !== undefined) return -1;
+        if (a !== undefined && b === undefined) return 1;
+        return 0;
+      },
     }),
     columnHelper.accessor("id", {
       ...commonProperties as any,

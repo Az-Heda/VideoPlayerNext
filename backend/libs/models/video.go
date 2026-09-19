@@ -10,6 +10,7 @@ import (
 	"time"
 	. "vp/libs/utility"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -73,14 +74,18 @@ func (f *Video) Validate(op ValidationOP, tx *gorm.DB) error {
 	case After | Create:
 	case After | Delete:
 	case After | Find:
-		_, err := os.Stat(f.Fullpath)
-		if err != nil && errors.Is(err, os.ErrNotExist) {
-			f.Attributes.Exists = Ptr(false)
-			if tx2 := tx.Save(&f); tx2.Error != nil {
-				errs = append(errs, tx2.Error)
-			}
-		} else {
+		if stats, err := os.Stat(f.Fullpath); err == nil {
+			f.Attributes.LastFileChange = Ptr(stats.ModTime())
 			f.Attributes.Exists = Ptr(true)
+		} else {
+			if errors.Is(err, os.ErrNotExist) {
+				f.Attributes.Exists = Ptr(false)
+				if tx2 := tx.Save(&f); tx2.Error != nil {
+					errs = append(errs, tx2.Error)
+				}
+			} else {
+				log.Err(err).Send()
+			}
 		}
 	case After | Save:
 	case After | Update:

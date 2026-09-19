@@ -151,8 +151,8 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [tableFilterFolderMode, setTableFilterFolderMode] = useState<'input' | 'select'>('input');
 
 
-  const [settingsModalKind, setSettingsModalKind] = useState<GlobalConfigType['Settings']['ModalKind']['Getter']>('sheet');
-  const [settingsModalSide, setSettingsModalSide] = useState<GlobalConfigType['Settings']['ModalSide']['Getter']>('right');
+  const [settingsModalKind, setSettingsModalKind] = useState<GlobalConfigType['Settings']['ModalKind']['Getter']>('dialog');
+  const [settingsModalSide, setSettingsModalSide] = useState<GlobalConfigType['Settings']['ModalSide']['Getter']>('left');
   const [privacyVideoMode, setPrivacyVideoMode] = useState(false);
   const [settingsShowScalarApi, setSettingsShowScalarApi] = useState(false);
   const [settingsColoredWatchedStatus, setSettingsColoredWatchedStatus] = useState<'none' | 'border' | 'full'>('border');

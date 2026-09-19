@@ -140,10 +140,10 @@ export class ApiRequest {
                 reject(err);
                 return;
               }
-              reject(new Error(`${err}`, { cause: 'Fail #1'}));
+              reject(new Error(`${err}`, { cause: 'Fail #1' }));
             });
         } catch (err) {
-          reject(new Error(`${err}`, { cause: 'Fail #2'}));
+          reject(new Error(`${err}`, { cause: 'Fail #2' }));
         }
       }
     }
@@ -275,8 +275,8 @@ export class ApiRequest {
 
 type baseApiType = {
   id: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export type ApiRule = baseApiType & {
@@ -300,6 +300,7 @@ export type ApiVideoAttributes = {
   exists?: boolean;
   size: number;
   duration: number;
+  lastFileChange?: Date | string;
 }
 
 export type ApiPlaylist = baseApiType & {

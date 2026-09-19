@@ -134,8 +134,12 @@ func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot boo
 			FolderId: f.Id,
 			Folder:   f,
 			Attributes: Attributes{
-				Size:   info.Size(),
-				Exists: utility.Ptr(true),
+				Size:           info.Size(),
+				Exists:         utility.Ptr(true),
+				Watched:        utility.Ptr(false),
+				Rating:         0,
+				Duration:       0,
+				LastFileChange: utility.Ptr(info.ModTime()),
 			},
 		}
 
