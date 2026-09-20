@@ -140,13 +140,14 @@ func (r registryFolder) ListFolder(ctx context.Context, conn *gorm.DB, i *ListFo
 }
 
 func (r registryFolder) GetFolder(ctx context.Context, conn *gorm.DB, i *GetFolderRequest) ApiExchange[GetFolderResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[GetFolderResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var out = r.ListFolder(ctx, conn, &ListFolderRequest{
 		Ids:           []string{i.Id},
 		PreloadFolder: i.PreloadFolder,
@@ -272,13 +273,14 @@ func (r registryFolder) CleanupFolders(ctx context.Context, conn *gorm.DB, i *Cl
 }
 
 func (r registryFolder) ScanFolderStream(ctx context.Context, conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchange[huma.StreamResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[huma.StreamResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var out = r.GetFolder(ctx, conn, &GetFolderRequest{Id: i.Id, PreloadFolder: i.PreloadFolder})
 	out.Init()
 	if out.StatusCode != http.StatusOK {

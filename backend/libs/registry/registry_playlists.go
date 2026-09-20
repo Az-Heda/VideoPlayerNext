@@ -91,13 +91,14 @@ type (
 )
 
 func (r registryPlaylist) NewPlaylist(ctx context.Context, conn *gorm.DB, i *NewPlaylistRequest) ApiExchange[NewPlaylistResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[NewPlaylistResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var vids ApiExchange[ListVideoResponse] = ApiExchange[ListVideoResponse]{
 		Value:      &ListVideoResponse{Body: []models.Video{}},
 		StatusCode: http.StatusOK,
@@ -273,13 +274,14 @@ func (r registryPlaylist) PatchPlaylist(ctx context.Context, conn *gorm.DB, i *U
 }
 
 func (r registryPlaylist) AddVideoToPlaylist(ctx context.Context, conn *gorm.DB, i *AddVideoToPlaylistRequest) ApiExchange[AddVideoToPlaylistResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[AddVideoToPlaylistResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var outPlaylist = r.GetPlaylist(ctx, conn, &GetPlaylistRequest{Id: i.PlaylistId})
 	outPlaylist.Init()
 	if outPlaylist.StatusCode != http.StatusOK {
@@ -336,13 +338,14 @@ func (r registryPlaylist) AddVideoToPlaylist(ctx context.Context, conn *gorm.DB,
 }
 
 func (r registryPlaylist) DeleteVideoToPlaylist(ctx context.Context, conn *gorm.DB, i *DeleteVideoFromPlaylistRequest) ApiExchange[DeleteVideoFromPlaylistResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[DeleteVideoFromPlaylistResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 
 	var outPlaylist = r.GetPlaylist(ctx, conn, &GetPlaylistRequest{})
 	outPlaylist.Init()

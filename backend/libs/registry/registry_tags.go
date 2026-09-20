@@ -81,13 +81,14 @@ type (
 )
 
 func (r registryTag) NewTag(ctx context.Context, conn *gorm.DB, i *NewTagRequest) ApiExchange[NewTagResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[NewTagResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var tag = models.Tag{
 		Name: i.Body.Name,
 	}
@@ -219,13 +220,14 @@ func (r registryTag) DeleteTag(ctx context.Context, conn *gorm.DB, i *DeleteTagR
 }
 
 func (r registryTag) AddVideoToTag(ctx context.Context, conn *gorm.DB, i *AddVideoToTagRequest) ApiExchange[AddVideoToTagResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[AddVideoToTagResponse]{
 			StatusCode: http.StatusInternalServerError,
-			ErrorTitle: "Video registry not found",
+			ErrorTitle: "Registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var outTag = r.GetTag(ctx, conn, &GetTagRequest{Id: i.TagId, PreloadTags: PreloadTags{PreloadVideos: true}})
 	outTag.Init()
 	if outTag.StatusCode != http.StatusOK {
@@ -271,13 +273,14 @@ func (r registryTag) AddVideoToTag(ctx context.Context, conn *gorm.DB, i *AddVid
 }
 
 func (r registryTag) DeleteVideoToTag(ctx context.Context, conn *gorm.DB, i *DeleteVideoFromTagRequest) ApiExchange[DeleteVideoFromTagResponse] {
-	apiVideo, ok := ctx.Value("registry-videos").(IRegistryVideo)
+	reg, ok := ctx.Value("registry").(Registry)
 	if !ok {
 		return ApiExchange[DeleteVideoFromTagResponse]{
 			StatusCode: http.StatusInternalServerError,
 			ErrorTitle: "Video registry not found",
 		}
 	}
+	var apiVideo = reg.Videos
 	var outTags = r.GetTag(ctx, conn, &GetTagRequest{Id: i.TagId})
 	outTags.Init()
 	if outTags.StatusCode != http.StatusOK {

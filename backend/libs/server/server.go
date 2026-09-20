@@ -29,10 +29,11 @@ func AddEndpoints(mux *http.ServeMux, conn *gorm.DB, ctx context.Context) {
 }
 
 func endpoint_streaming(mux *http.ServeMux, conn *gorm.DB, ctx context.Context) {
-	apiVideo, ok := ctx.Value("registry-videos").(registry.IRegistryVideo)
+	reg, ok := ctx.Value("registry").(registry.Registry)
 	if !ok {
 		panic("Registry not initialized")
 	}
+	var apiVideo = reg.Videos
 	mux.HandleFunc("/stream/{id}", func(w http.ResponseWriter, req *http.Request) {
 		var id = req.PathValue("id")
 		var videoResponse = apiVideo.GetVideo(ctx, conn, &registry.GetVideoRequest{Id: id})
