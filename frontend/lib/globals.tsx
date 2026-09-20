@@ -88,7 +88,7 @@ export type GlobalConfigType = {
     };
   };
   VideoPlayer: {
-    Selected: GetterSetter<ApiVideo | undefined>;
+    Selected: GetterSetter<ApiVideo | string | undefined>;
     List: ApiVideo[];
     AudioContext: {
       Enabled: GetterSetter<boolean>;
@@ -115,13 +115,13 @@ export type GlobalConfigType = {
   Errors: GetterSetter<(ApiError | Error | GenericError)[]>;
   Keybinds: GetterSetter<{ [key: string]: Command }>;
   Pages: {
-    Current: GetterSetter<Page>;
+    Current: GetterSetter<Page | undefined>;
     All: PageSidebar[];
   }
 }
 
 export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
-  const [currentPage, setCurrentPage] = useState<GlobalConfigType['Pages']['Current']['Getter']>('homepage');
+  const [currentPage, setCurrentPage] = useState<GlobalConfigType['Pages']['Current']['Getter']>();
   const [empty, setEmpty] = useState<undefined>();
   const [pageTitle, setPageTitle] = useState<string>('Video Player');
   const [openSettings, setOpenSettings] = useState(false);
@@ -137,7 +137,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [openErrorModal, setOpenErrorModal] = useState(false);
 
 
-  const [selectedVideo, setSelectetdVideo] = useState<ApiVideo | undefined>();
+  const [selectedVideo, setSelectetdVideo] = useState<ApiVideo | string | undefined>();
   const [apiVideos, setApiVideos] = useState<ApiVideo[]>();
   const [apiPlaylists, setApiPlaylists] = useState<ApiPlaylist[]>();
   const [apiFolders, setApiFolders] = useState<ApiFolder[]>();
@@ -226,6 +226,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   useEffect(() => {
     if (selectedVideo === undefined) return;
     if (privacyVideoMode) return;
+    if (typeof selectedVideo === 'string') return;
 
     if (!selectedVideo.attributes.watched) {
       apiRequest.PatchSetWatchedFlag(selectedVideo, { attr: true })

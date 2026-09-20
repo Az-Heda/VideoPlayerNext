@@ -226,7 +226,7 @@ export function SystemLogTable(props: SystemLogTableProps) {
                     <ButtonGroup className="w-full">
                       <Select value={localStatusCodeFilter} onValueChange={setLocalStatusCodeFilter}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a level" />
+                          <SelectValue placeholder="Select a status code" />
                         </SelectTrigger>
                         <SelectContent>
                           {[...new Set((props.Config.Api.Data.SystemLogs.Getter ?? []).map(l => displayStatusCode(l)))].sort().map(l => (

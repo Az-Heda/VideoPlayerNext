@@ -6,8 +6,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { VideoPlayer, VideoPlayerContent, VideoPlayerControlBar, VideoPlayerMuteButton, VideoPlayerPlayButton, VideoPlayerSeekBackwardButton, VideoPlayerSeekForwardButton, VideoPlayerTimeDisplay, VideoPlayerTimeRange, VideoPlayerVolumeRange } from '@/components/ui/video-player-full';
 import { MediaChromeButton, MediaFullscreenButton, MediaTooltip as MediaTooltipReact } from "media-chrome/react";
 import { ChevronsLeft, ChevronsRight, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isApiVideo } from "@/lib/utils";
 import { GlobalConfigType } from "@/lib/globals";
+import { ApiVideo } from "@/lib/api";
 
 type Props = {
   config: GlobalConfigType;
@@ -27,9 +28,10 @@ export function Vp({ config, className }: Props) {
   const nextVideo = useMemo(() => {
     const ids: string[] = [config.Filters.Playlist.Getter?.id, config.Filters.Tag.Getter?.id].filter(x => x != undefined);
     if (ids.length != 1) return undefined;
-    if (config.VideoPlayer.List.find(x => x.id == config.VideoPlayer.Selected.Getter?.id) == null) return undefined;
+    if (typeof config.VideoPlayer.Selected.Getter === 'string') return undefined
+    if (config.VideoPlayer.List.find(x => x.id == (config.VideoPlayer.Selected.Getter as ApiVideo | undefined)?.id) == null) return undefined;
 
-    const currentIdx = config.VideoPlayer.List.findIndex(v => v.id == config.VideoPlayer.Selected.Getter?.id);
+    const currentIdx = config.VideoPlayer.List.findIndex(v => v.id == (config.VideoPlayer.Selected.Getter as ApiVideo | undefined)?.id);
     if ((currentIdx + 1) < config.VideoPlayer.List.length) return config.VideoPlayer.List[currentIdx + 1];
     return null;
   }, [
@@ -42,9 +44,10 @@ export function Vp({ config, className }: Props) {
   const previousVideo = useMemo(() => {
     const ids: string[] = [config.Filters.Playlist.Getter?.id, config.Filters.Tag.Getter?.id].filter(x => x != undefined);
     if (ids.length != 1) return undefined;
-    if (config.VideoPlayer.List.find(x => x.id == config.VideoPlayer.Selected.Getter?.id) == null) return undefined;
+    if (typeof config.VideoPlayer.Selected.Getter === 'string') return undefined
+    if (config.VideoPlayer.List.find(x => x.id == (config.VideoPlayer.Selected.Getter as ApiVideo | undefined)?.id) == null) return undefined;
 
-    const currentIdx = config.VideoPlayer.List.findIndex(v => v.id == config.VideoPlayer.Selected.Getter?.id);
+    const currentIdx = config.VideoPlayer.List.findIndex(v => v.id == (config.VideoPlayer.Selected.Getter as ApiVideo | undefined)?.id);
     if ((currentIdx - 1) >= 0) return config.VideoPlayer.List[currentIdx - 1];
     return null;
   }, [
@@ -272,27 +275,28 @@ export function Vp({ config, className }: Props) {
           </MediaChromeButton>
         }
 
-        <MediaChromeButton
-          role="button"
-          className="p-2.5"
-          noTooltip
-          onMouseEnter={() => setCurrentVideoTitleOpen(true)}
-          onMouseLeave={() => setCurrentVideoTitleOpen(false)}
-        >
-          <div className="text-primary" tabIndex={0} role="button">
-            <Info className="size-5" />
-          </div>
-          <slot name="tooltip">
-            <MediaTooltipReact
-              part="tooltip"
-              className="px-2 py-1"
-              hidden={!currentVideoTitlteOpen}
-            >
-              {config.VideoPlayer.Selected.Getter?.filename}
-            </MediaTooltipReact>
-          </slot>
-        </MediaChromeButton>
-
+        {
+          config.VideoPlayer.Selected.Getter && isApiVideo(config.VideoPlayer.Selected.Getter) && <MediaChromeButton
+            role="button"
+            className="p-2.5"
+            noTooltip
+            onMouseEnter={() => setCurrentVideoTitleOpen(true)}
+            onMouseLeave={() => setCurrentVideoTitleOpen(false)}
+          >
+            <div className="text-primary" tabIndex={0} role="button">
+              <Info className="size-5" />
+            </div>
+            <slot name="tooltip">
+              <MediaTooltipReact
+                part="tooltip"
+                className="px-2 py-1"
+                hidden={!currentVideoTitlteOpen}
+              >
+                {config.VideoPlayer.Selected.Getter?.filename}
+              </MediaTooltipReact>
+            </slot>
+          </MediaChromeButton>
+        }
         {
           nextVideo !== undefined && <MediaChromeButton
             role="button"

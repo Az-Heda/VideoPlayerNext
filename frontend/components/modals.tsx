@@ -1,12 +1,12 @@
 import { GlobalConfigType, KeybindLS } from "@/lib/globals";
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, ApiFolder, ApiVideo, GenericError } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { Check, CloudBackup, Edit2, Play, Plus, RefreshCcw, RefreshCw, Trash2, X } from "lucide-react";
+import { cn, isApiError, isError, isGeneric } from "@/lib/utils";
+import { Check, CloudBackup, CloudUploadIcon, Edit2, Play, Plus, RefreshCcw, RefreshCw, Trash2, Trash2Icon, X } from "lucide-react";
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Typography } from "@/components/utility";
+import { Typography, UploadFile } from "@/components/utility";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -119,16 +119,40 @@ export function ModalImportFromFile(props: ModalImportFromFileProps) {
     open={props.Config.Sidebar.Top.FromFileModal.Getter}
     setOpen={props.Config.Sidebar.Top.FromFileModal.Setter}
     title="Import from file"
-    description="Choose a video on disk to play"
     cancelBtn={<Button variant="outline">Cancel</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
-    Not implemented
+    <div className="not-prose flex flex-col gap-4">
+      {
+        props.Config.Sidebar.Top.FromFileModal.Getter && <UploadFile
+          Config={props.Config}
+          onSuccess={(url: URL) => {
+            if (props.Config.Pages.Current.Getter != 'videos') props.Config.Pages.Current.Setter('videos');
+            props.Config.VideoPlayer.Selected.Setter(url.toString());
+            props.Config.Sidebar.Top.FromFileModal.Setter(false);
+          }}
+          onFail={(err: any) => { console.log(err) }}
+        />
+      }
+    </div>
   </GeneralModal>
 }
 
 export function ModalImportFromUrl(props: ModalImportFromUrlProps) {
+  const [localUrl, setLocalUrl] = useState<string>();
+
+  function confirm() {
+    if (props.Config.Pages.Current.Getter != 'videos') props.Config.Pages.Current.Setter('videos');
+    props.Config.VideoPlayer.Selected.Setter(localUrl);
+    setLocalUrl(undefined);
+    props.Config.Sidebar.Top.FromUrlModal.Setter(false);
+  }
+
+  function cancel() {
+    setLocalUrl(undefined);
+  }
+
   return <GeneralModal
     Config={props.Config}
     open={props.Config.Sidebar.Top.FromUrlModal.Getter}
@@ -136,12 +160,17 @@ export function ModalImportFromUrl(props: ModalImportFromUrlProps) {
     title="Import from url"
     description={<>Import video from link<br />
       [Note]: Audio Context doesn't work for videos imported from url</>}
-    cancelBtn={<Button variant="outline">Cancel</Button>}
-    confirmBtn={<Button type="submit">Confirm</Button>}
+    cancelBtn={<Button variant="outline" onClick={() => cancel()}>Cancel</Button>}
+    confirmBtn={<Button type="submit" onClick={() => confirm()}>Confirm</Button>}
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
-    Not implemented yet
+    <Input
+      value={localUrl ?? ''}
+      onChange={(e) => setLocalUrl(e.target.value !== '' ? e.target.value : undefined)}
+      placeholder="URL"
+      type="url"
+    />
   </GeneralModal>
 }
 
@@ -1171,15 +1200,7 @@ export function ErrorModal(props: ErrorModalProps) {
       </TableHeader>
       <TableBody>
         {props.Config.Errors.Getter.map((e, i) => {
-          function isGeneric(x: typeof e): x is GenericError {
-            return 'source' in x && 'content' in x
-          }
-          function isApiError(x: typeof e): x is ApiError {
-            return 'errors' in x && 'detail' in x && 'title' in x;
-          }
-          function isError(x: typeof e): x is Error {
-            return x instanceof Error;
-          }
+
 
           const deleteEvent = <TableCell>
             <Button

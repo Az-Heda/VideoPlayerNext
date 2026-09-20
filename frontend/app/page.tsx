@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Typography } from "@/components/utility";
 import { Vp } from "@/components/video-player";
-import { ApiRequest } from "@/lib/api";
+import { ApiRequest, ApiVideo } from "@/lib/api";
 import { GlobalConfig, GlobalConfigType } from "@/lib/globals";
 import { Film, Hash } from "lucide-react";
 import { useEffect } from "react";
@@ -115,7 +115,9 @@ type PageContentProps = {
   Config: GlobalConfigType;
 }
 function PageContent(props: PageContentProps) {
+  useEffect(() => { props.Config.Pages.Current.Setter('homepage') }, [])
   switch (props.Config.Pages.Current.Getter) {
+    case undefined:
     case 'homepage':
       return <>
         <Hero Config={props.Config} />
@@ -124,11 +126,11 @@ function PageContent(props: PageContentProps) {
       return <>
         {props.Config.VideoPlayer.Selected.Getter != undefined && (
           <div className="grid min-h-0 h-[50vh] grid-cols-4">
-            <Typography kind="h2" className="col-span-4 text-center">{props.Config.VideoPlayer.Selected.Getter.filename}</Typography>
+            <Typography kind="h2" className="col-span-4 text-center">{typeof props.Config.VideoPlayer.Selected.Getter === 'string' ? '' : props.Config.VideoPlayer.Selected.Getter.filename}</Typography>
             <div></div>
             <Vp config={props.Config} className="col-span-2" />
 
-            {
+            {/* {
               false && (props.Config.Api.Data.Playlists.Getter ?? []).filter(p => (props.Config.VideoPlayer.Selected.Getter?.playlists ?? []).map(x => x.id).includes(p.id)).length > 0
                 ? <>
                   <ScrollArea className="min-h-0 border border-primary rounded-md px-4">
@@ -161,7 +163,7 @@ function PageContent(props: PageContentProps) {
                     <Typography kind="h3" className="mt-4 mb-2 text-center">Tags</Typography>
                     <div className="flex flex-col gap-2">
                       {
-                        (props.Config.Api.Data.Tags.Getter ?? []).filter(p => (props.Config.VideoPlayer.Selected.Getter?.tags ?? []).map(x => x.id).includes(p.id)).map(p => (
+                        (props.Config.Api.Data.Tags.Getter ?? []).filter(p => ((props.Config.VideoPlayer.Selected.Getter as ApiVideo | undefined)?.tags ?? []).map(x => x.id).includes(p.id)).map(p => (
                           <Attachment key={p.id} className="w-full">
                             <AttachmentMedia>
                               <Hash />
@@ -187,7 +189,7 @@ function PageContent(props: PageContentProps) {
                   </ScrollArea>
                 </>
                 : <div></div>
-            }
+            } */}
 
           </div>
         )}

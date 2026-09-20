@@ -1,7 +1,9 @@
 import { cn } from "@/lib/utils";
-import { Star } from "lucide-react";
+import { CloudUploadIcon, Star } from "lucide-react";
 import { Component, ComponentProps, JSX, ReactNode } from "react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Dropzone, DropZoneArea, DropzoneDescription, DropzoneFileList, DropzoneFileListItem, DropzoneMessage, DropzoneRemoveFile, DropzoneTrigger, useDropzone } from "./ui/dropzone";
+import { GlobalConfigType } from "@/lib/globals";
 
 
 type ShowIfProps = {
@@ -144,4 +146,55 @@ export function Description(props: DescriptionProps) {
       {props.text}
     </HoverCardContent>
   </HoverCard >
+}
+
+type UploadFileProps = {
+  Config: GlobalConfigType;
+  onSuccess: (url: URL) => void,
+  onFail: (error: any) => void
+}
+export function UploadFile(props: UploadFileProps) {
+  // https://shadcn-dropzone.vercel.app/docs
+  const dropzone = useDropzone({
+    async onDropFile(file: File) {
+      return {
+        status: 'success',
+        result: URL.createObjectURL(file),
+      }
+    },
+    onFileUploaded(result) {
+      try {
+        props.onSuccess(new URL(result));
+      } catch (err: any) {
+        props.onFail(err);
+      }
+    },
+    validation: {
+      accept: {
+        'video/*': ['.mp4'],
+      },
+      maxFiles: 1,
+    }
+  })
+  return <Dropzone {...dropzone}>
+    <div>
+      <div className="flex justify-between">
+        <DropzoneDescription>
+          Select a video file to play
+        </DropzoneDescription>
+        <DropzoneMessage />
+      </div>
+      <DropZoneArea className="p-0">
+        <DropzoneTrigger className="flex flex-col items-center gap-4 bg-transparent p-10 text-center text-sm w-full">
+          <CloudUploadIcon className="size-8" />
+          <div>
+            <p className="font-semibold">Select video</p>
+            <p className="text-sm text-muted-foreground">
+              Click or drag here a video to play it
+            </p>
+          </div>
+        </DropzoneTrigger>
+      </DropZoneArea>
+    </div>
+  </Dropzone>
 }

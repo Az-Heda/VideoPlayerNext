@@ -13,7 +13,7 @@ type AppSidebarProps = {
 export function AppSidebar(props: AppSidebarProps) {
   const pages = useMemo(() => {
     return props.Config.Pages.All.map(x => {
-      return { ...x, Disabled: x.Id != props.Config.Pages.Current.Getter };
+      return { ...x, Disabled: x.Id != props.Config.Pages.Current.Getter || (x.Id == 'homepage' && props.Config.Pages.Current.Getter === undefined)};
     })
   }, [
     props.Config.Pages.Current.Getter,
