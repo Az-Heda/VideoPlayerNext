@@ -8,7 +8,7 @@ import { ApiSystemLog } from "@/lib/api";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { cn } from "@/lib/utils";
+import { cn, displayDate } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { ButtonGroup, ButtonGroupSeparator } from "./ui/button-group";
@@ -90,7 +90,7 @@ export function SystemLogTable(props: SystemLogTableProps) {
       cell({ row }) {
         let value: ApiSystemLog['createdAt'] | Date = row.original.createdAt;
         if (typeof value === 'string') value = new Date(value);
-        if (value instanceof Date) return <span>{value.toISOString().replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, '$4:$5:$6 $3/$2/$1')}</span>
+        if (value instanceof Date) return <span>{displayDate(value)}</span>
         return <span></span>
       },
       sortFn(rowA, rowB, columnId) {

@@ -28,7 +28,7 @@ export function AppSidebar(props: AppSidebarProps) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <a href="#">
+              <a href="/">
                 {props.Config.Sidebar.Title.Icon}
                 <span className="text-base font-semibold">{props.Config.Sidebar.Title.Title}</span>
               </a>

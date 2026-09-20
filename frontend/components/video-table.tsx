@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, NotebookText, OctagonAlert, Regex, TextCursor, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn, HumanReadableBytes } from "@/lib/utils";
+import { cn, displayDate, HumanReadableBytes } from "@/lib/utils";
 import { Description, RatingStars, Typography } from "./utility";
 import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Label } from "@/components/ui/label";
@@ -225,7 +225,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
       cell({ row }) {
         let value: ApiVideoAttributes['lastFileChange'] | Date = row.original.attributes.lastFileChange;
         if (typeof value == 'string') value = new Date(value);
-        if (value instanceof Date) return <span>{value.toISOString().replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, '$4:$5:$6 $3/$2/$1')}</span>
+        if (value instanceof Date) return <span>{displayDate(value)}</span>
         else return <span></span>
       },
       sortFn: (rowA, rowB, columnId) => {

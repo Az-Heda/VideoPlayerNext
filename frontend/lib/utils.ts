@@ -45,3 +45,9 @@ export function isApiVideo(x: ApiVideo | string): x is ApiVideo {
     'folderId' in x ||
     'attributes' in x
 }
+
+export function displayDate(date: Date): string {
+  return new Date(date.getTime() - (new Date().getTimezoneOffset() * 60 * 1000))
+    .toISOString()
+    .replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, '$4:$5:$6 $3/$2/$1')
+}
