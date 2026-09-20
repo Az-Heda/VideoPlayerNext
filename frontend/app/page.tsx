@@ -3,16 +3,12 @@
 import { ErrorModal, ModalApplyAutomaticRules, ModalAudioContext, ModalImportFromFile, ModalImportFromUrl, ModalKeybinds, ModalSettings, ModalSyncData, ModalSyncVideos, ModalThemeSelector, PlaylistSelector, TagSelector } from "@/components/modals";
 import { Explore } from "@/components/explore";
 import { AppSidebar } from "@/components/sidebar";
-import { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentMedia, AttachmentTitle } from "@/components/ui/attachment";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Typography } from "@/components/utility";
 import { Vp } from "@/components/video-player";
-import { ApiRequest, ApiVideo } from "@/lib/api";
+import { ApiRequest } from "@/lib/api";
 import { GlobalConfig, GlobalConfigType } from "@/lib/globals";
-import { Film, Hash } from "lucide-react";
 import { useEffect } from "react";
 import { Hero } from "@/components/hero";
 import { SystemLogTable } from "@/components/systemlog-table";
@@ -28,34 +24,31 @@ export default function Page() {
         (folders) => config.Api.Data.Folders.Setter(folders),
         (error) => config.Errors.Setter(errs => [...errs, error]),
       );
-
     api.GetVideoList()
       .then(
-        (data) => {
-          config.Api.Data.Videos.Setter(data);
-          api.GetPlaylistList()
-            .then(
-              (playlists) => config.Api.Data.Playlists.Setter(playlists),
-              (error) => config.Errors.Setter(errs => [...errs, error]),
+        (data) => config.Api.Data.Videos.Setter(data),
+        (error) => config.Errors.Setter(errs => [...errs, error]),
+      );
+    api.GetPlaylistList()
+      .then(
+        (playlists) => config.Api.Data.Playlists.Setter(playlists),
+        (error) => config.Errors.Setter(errs => [...errs, error]),
 
-            );
-          api.GetTagList()
-            .then(
-              (tags) => config.Api.Data.Tags.Setter(tags),
-              (error) => config.Errors.Setter(errs => [...errs, error]),
+      );
+    api.GetTagList()
+      .then(
+        (tags) => config.Api.Data.Tags.Setter(tags),
+        (error) => config.Errors.Setter(errs => [...errs, error]),
 
-            );
-          api.GetRuleList()
-            .then(
-              (rules) => config.Api.Data.Rules.Setter(rules),
-              (error) => config.Errors.Setter(errs => [...errs, error]),
-            );
-          api.GetSystemLogList()
-            .then(
-              (systemLogs) => config.Api.Data.SystemLogs.Setter(systemLogs),
-              (error) => config.Errors.Setter(errs => [...errs, error]),
-            );
-        },
+      );
+    api.GetRuleList()
+      .then(
+        (rules) => config.Api.Data.Rules.Setter(rules),
+        (error) => config.Errors.Setter(errs => [...errs, error]),
+      );
+    api.GetSystemLogList()
+      .then(
+        (systemLogs) => config.Api.Data.SystemLogs.Setter(systemLogs),
         (error) => config.Errors.Setter(errs => [...errs, error]),
       );
   }, [])
