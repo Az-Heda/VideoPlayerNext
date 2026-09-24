@@ -175,27 +175,6 @@ export function ModalImportFromUrl(props: ModalImportFromUrlProps) {
 }
 
 export function ModalAudioContext(props: ModalAudioContextProps) {
-  const [doEnable, setDoEnable] = useState<boolean>(false);
-  useEffect(() => {
-    if (!doEnable) return;
-    if (props.Config.VideoPlayer.AudioContext.Enabled.Getter) return;
-    props.Config.VideoPlayer.AudioContext.Enabled.Setter(true);
-    console.log("Enabled")
-    const interval = setInterval(() => {
-      const video = document.querySelector<HTMLVideoElement>('video#video-stream');
-      if (video == null) return;
-
-      const ctx = new AudioContext();
-      const source = ctx.createMediaElementSource(video);
-      const gn = ctx.createGain();
-      source.connect(gn);
-
-      gn.connect(ctx.destination);
-      props.Config.VideoPlayer.AudioContext.GainNode.Setter(gn);
-      clearInterval(interval);
-    })
-  }, [doEnable])
-
   return <GeneralModal
     Config={props.Config}
     open={props.Config.Sidebar.Top.AudioContextModal.Getter}
@@ -206,7 +185,7 @@ export function ModalAudioContext(props: ModalAudioContextProps) {
     kind={props.Config.Settings.ModalKind.Getter}
     side={props.Config.Settings.ModalSide.Getter}
   >
-    {!props.Config.VideoPlayer.AudioContext.Enabled.Getter && <Button className="w-full" onClick={() => { setDoEnable(true) }}>Enable</Button>}
+    {!props.Config.VideoPlayer.AudioContext.Enabled.Getter && <Button className="w-full" onClick={() => { props.Config.VideoPlayer.AudioContext.Enabled.Setter(true) }}>Enable</Button>}
     {props.Config.VideoPlayer.AudioContext.Enabled.Getter && <Typography>
       Set the limits of the audio context.
       <ButtonGroup className="w-full grid grid-cols-6">

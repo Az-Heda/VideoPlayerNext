@@ -19,6 +19,10 @@ export default dynamic(() => Promise.resolve(Vp), { ssr: false })
 // https://www.kibo-ui.com/components/video-player
 
 export function Vp({ config, className }: Props) {
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+
   const refVideo = useRef<HTMLVideoElement>(null);
   const [currentVideoTitlteOpen, setCurrentVideoTitleOpen] = useState(false);
   const [previousVideoLabelOpen, setPreviousVideoLabelOpen] = useState(false);
@@ -78,6 +82,7 @@ export function Vp({ config, className }: Props) {
     })
 
     const handlerFunction = (evt: KeyboardEvent) => {
+      const REFOCUS = 50;
       const incr = 0.05;
       const forwardBackworsTime = 1; // Seconds
       switch (evt.key) {
@@ -97,11 +102,10 @@ export function Vp({ config, className }: Props) {
               video.currentTime = Math.max(Math.min(video.currentTime + forwardBackworsTime, video.duration), 0)
             }, HOLD_TIMER_BEFORE_MOVING));
           } else {
-            throw new Error("Not implemented");
-            // if (nextVideo !== undefined && commands.VideoPlayer.Setter !== undefined) {
-            //   commands.VideoPlayer.Setter(nextVideo);
-            //   setTimeout(() => video.focus(), REFOCUS);
-            // }
+            if (nextVideo) {
+              config.VideoPlayer.Selected.Setter(nextVideo);
+              setTimeout(() => video.focus(), REFOCUS);
+            }
           }
           break;
         case 'ArrowLeft':
@@ -112,11 +116,10 @@ export function Vp({ config, className }: Props) {
               video.currentTime = Math.max(Math.min(video.currentTime - forwardBackworsTime, video.duration), 0)
             }, HOLD_TIMER_BEFORE_MOVING));
           } else {
-            throw new Error("Not implemented");
-            // if (previousVideo !== undefined && commands.VideoPlayer.Setter !== undefined) {
-            //   commands.VideoPlayer.Setter!(previousVideo);
-            //   setTimeout(() => video.focus(), REFOCUS);
-            // }
+            if (previousVideo) {
+              config.VideoPlayer.Selected.Setter(previousVideo);
+              setTimeout(() => video.focus(), REFOCUS);
+            }
           }
 
           break;
@@ -175,6 +178,45 @@ export function Vp({ config, className }: Props) {
     video.addEventListener('keydown', handlerFunction);
     return () => video.removeEventListener('keydown', handlerFunction);
   }, [config.VideoPlayer.Selected.Getter]);
+
+  useEffect(() => {
+    if (!config.VideoPlayer.AudioContext.Enabled.Getter) return;
+    const video = refVideo.current;
+    if (!video) return;
+    if (sourceNodeRef.current) return;
+
+    const ctx = new AudioContext();
+    const source = ctx.createMediaElementSource(video);
+    const gain = ctx.createGain();
+
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.value = config.VideoPlayer.AudioContext.SelectedLimit.Getter / 100;
+
+    audioContextRef.current = ctx;
+    sourceNodeRef.current = source;
+    gainNodeRef.current = gain;
+
+    if (ctx.state === "suspended") ctx.resume();
+
+    return () => {
+      source.disconnect();
+      gain.disconnect();
+      ctx.close();
+
+      sourceNodeRef.current = null;
+      gainNodeRef.current = null;
+      audioContextRef.current = null;
+    };
+  }, [
+    config.VideoPlayer.AudioContext.Enabled.Getter,
+  ]);
+
+  useEffect(() => {
+    const gain = gainNodeRef.current;
+    if (!gain) return;
+    gain.gain.value = config.VideoPlayer.AudioContext.SelectedLimit.Getter / 100;
+  }, [config.VideoPlayer.AudioContext.SelectedLimit.Getter]);
 
   function TakeScreenshot(video: HTMLVideoElement) {
     if (!video.paused) video.pause();
