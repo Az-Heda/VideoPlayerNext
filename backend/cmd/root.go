@@ -32,18 +32,23 @@ func init() {
 	var availableDrivers = database.GetAvailableDrivers()
 	drivers, _ := json.Marshal(availableDrivers)
 
-	var sqliteDriver = "sqlite"
-	var defaualtDriver string
-	var defaultDsn string
+	var (
+		sqliteWithCGO    string = "sqlite"
+		sqliteWithoutCGO string = "sqlite_pure"
+		defaualtDriver   string
+		defaultDsn       string
+	)
 	switch {
 	case len(availableDrivers) == 1:
 		defaualtDriver = availableDrivers[0]
-	case len(availableDrivers) > 1 && !slices.Contains(availableDrivers, sqliteDriver):
+	case len(availableDrivers) > 1 && slices.Contains(availableDrivers, sqliteWithoutCGO):
+		defaualtDriver = sqliteWithoutCGO
+	case len(availableDrivers) > 1 && slices.Contains(availableDrivers, sqliteWithCGO):
+		defaualtDriver = sqliteWithCGO
+	case len(availableDrivers) > 1 && !slices.Contains(availableDrivers, sqliteWithCGO) && !slices.Contains(availableDrivers, sqliteWithoutCGO):
 		defaualtDriver = availableDrivers[0]
-	case len(availableDrivers) > 1 && slices.Contains(availableDrivers, sqliteDriver):
-		defaualtDriver = sqliteDriver
 	}
-	if defaualtDriver == sqliteDriver {
+	if slices.Contains([]string{sqliteWithCGO, sqliteWithoutCGO}, defaualtDriver) {
 		defaultDsn = ".sqlite3"
 		if executable, err := os.Executable(); err == nil {
 			defaultDsn = filepath.Join(filepath.Dir(executable), defaultDsn)
