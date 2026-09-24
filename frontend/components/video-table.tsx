@@ -1,13 +1,13 @@
 import { ApiVideo, ApiVideoAttributes } from "@/lib/api";
 import { GlobalConfigType } from "@/lib/globals";
 import { ComponentProps, Fragment, ReactNode, useEffect, useMemo, useState } from "react";
-import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable } from "@tanstack/react-table";
+import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, RowSelectionState, SortingState, useTable } from "@tanstack/react-table";
 import { features, DataTableFeatures } from "@/components/data-table-features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, NotebookText, OctagonAlert, Regex, TextCursor, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn, displayDate, HumanReadableBytes } from "@/lib/utils";
+import { cn, displayDate, HumanReadableBytes, isApiVideo } from "@/lib/utils";
 import { Description, RatingStars, Typography } from "./utility";
 import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [localWatched, setLocalWatched] = useState<string>();
 
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
     'col-rating': false,
     'col-size': false,
@@ -151,11 +152,9 @@ export function MainvideoTable(props: MainVideoTableProps) {
       size: 20,
       cell({ row }) {
         const codeRegex = /\.\d+x\d+\./;
-        if (codeRegex.test(row.original.filename)) {
-          return <span>{row.original.filename.replaceAll(/.*\.(\d+)x(\d\d)\..*/g, '$1 x $2')}</span>
-        } else {
-          return <div></div>
-        }
+        return codeRegex.test(row.original.filename)
+          ? <span>{row.original.filename.replaceAll(/.*\.(\d+)x(\d\d)\..*/g, '$1 x $2')}</span>
+          : <div></div>
       }
     }),
     columnHelper.accessor('filename', {
@@ -316,9 +315,11 @@ export function MainvideoTable(props: MainVideoTableProps) {
       sorting,
       columnFilters,
       columnVisibility,
+      rowSelection,
     },
 
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
   });
@@ -346,7 +347,22 @@ export function MainvideoTable(props: MainVideoTableProps) {
   }, [
     props.Config.Api.Data.Folders.Getter,
     props.Config.Api.Data.Videos.Getter,
-  ])
+  ]);
+
+  useEffect(() => {
+    if (props.Config.VideoPlayer.Selected.Getter === undefined) return;
+    if (typeof props.Config.VideoPlayer.Selected.Getter === 'string') return;
+    if (!isApiVideo(props.Config.VideoPlayer.Selected.Getter)) return;
+
+    const currentId = props.Config.VideoPlayer.Selected.Getter.id;
+    const idx = props.Config.VideoPlayer.List.findIndex(v => v.id == currentId);
+    if (idx === -1) return;
+
+    setRowSelection({ [idx]: true });
+  }, [
+    props.Config.VideoPlayer.Selected.Getter,
+    props.Config.VideoPlayer.List,
+  ]);
 
   return (<>
     {
