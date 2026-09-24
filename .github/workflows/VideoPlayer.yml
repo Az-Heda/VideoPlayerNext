@@ -20,7 +20,7 @@ jobs:
         with:
           version: 11.5.0
           runtime: node
-          node-version: "20"
+          node-version: "24"
           cache: true
           cache-dependency-path: frontend/pnpm-lock.yaml
 
