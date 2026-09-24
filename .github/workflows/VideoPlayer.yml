@@ -15,26 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
+      - name: Setup pnpm and Node
         uses: pnpm/setup@v1
         with:
           version: 11.5.0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
+          runtime: node
           node-version: "20"
-          cache: "pnpm"
+          cache: true
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
-
+      
       - name: Build with Next.js
         working-directory: frontend
-        run: |
-          pnpm run build
+        run: pnpm run build
 
       - name: Archive static website
         uses: actions/upload-artifact@v4
