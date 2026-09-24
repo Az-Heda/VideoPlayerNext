@@ -13,7 +13,6 @@ import { useEffect } from "react";
 import { Hero } from "@/components/hero";
 import { SystemLogTable } from "@/components/systemlog-table";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Button } from "@/components/ui/button";
 import { ThinkingOrb } from 'thinking-orbs';
 
 export default function Page() {

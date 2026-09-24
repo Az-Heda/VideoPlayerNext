@@ -1,4 +1,4 @@
-[data-theme="darkmatter"] {
+[data-theme="darkmatter"], [data-theme="system"] {
   --background: oklch(1.0000 0 0);
   --foreground: oklch(0.2101 0.0318 264.6645);
   --card: oklch(1.0000 0 0);

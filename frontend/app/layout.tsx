@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono, Outfit } from "next/font/google"
+import { Geist_Mono, Outfit } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -13,41 +13,14 @@ const fontMono = Geist_Mono({
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const validThemes: string[] = [
-    // 'default',
+    'cosmic-night',
+    'darkmatter',
+    'amethyst-haze',
 
-    ...[
-      // // 'blush-pink',
-      // // 'claude',
-      // // 'marshmallow',
-      // // 'material-design',
-      // // 'midnight-bloom',
-      // // 'slack',
-      // // 'seo-katana',
-      // 'caffeine',
-      // 'spotify',
-      // 'vs-code',
-    ],
-
-    ...[
-      'cosmic-night',
-      'darkmatter',
-      'amethyst-haze',
-      // 'northern-lights',
-      // 'supabase',
-      // 'violet-bloom',
-    ],
-
-    ...[
-      // // "sakura-blossom-neon",
-      // "sakura",
-      // "cyberpunk-2077",
-      // "twitter",
-    ],
-
-    ...[
-      "sage-garden",
-      "vikasana",
-    ],
+    "mint-signal",
+    "sage-garden",
+    "vikasana",
+    "violet-disco",
   ].sort()
   return (
     <html
