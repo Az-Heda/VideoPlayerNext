@@ -350,13 +350,13 @@ export function MainvideoTable(props: MainVideoTableProps) {
   ]);
 
   useEffect(() => {
-    if (props.Config.VideoPlayer.Selected.Getter === undefined) return;
-    if (typeof props.Config.VideoPlayer.Selected.Getter === 'string') return;
-    if (!isApiVideo(props.Config.VideoPlayer.Selected.Getter)) return;
+    if (props.Config.VideoPlayer.Selected.Getter === undefined) { setRowSelection({}); return; }
+    if (typeof props.Config.VideoPlayer.Selected.Getter === 'string') { setRowSelection({}); return; }
+    if (!isApiVideo(props.Config.VideoPlayer.Selected.Getter)) { setRowSelection({}); return; }
 
     const currentId = props.Config.VideoPlayer.Selected.Getter.id;
     const idx = props.Config.VideoPlayer.List.findIndex(v => v.id == currentId);
-    if (idx === -1) return;
+    if (idx === -1) { setRowSelection({}); return; }
 
     setRowSelection({ [idx]: true });
   }, [
