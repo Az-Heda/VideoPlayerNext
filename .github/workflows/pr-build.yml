@@ -1,0 +1,73 @@
+name: Build and Test (PR to main)
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: pr-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-next:
+    name: Build Next.js
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@v1
+        with:
+          version: 11.5.0
+          runtime: node
+          node-version: "24"
+          cache: true
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build with Next.js
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Archive static website
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-website
+          path: frontend/out
+
+  build-go:
+    name: Build Go
+    runs-on: ubuntu-latest
+    needs: build-next
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.5'
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: static-website
+          path: backend/libs/server/fe-build
+
+      - name: Build Binary
+        working-directory: backend
+        run: |
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 go build -tags "all" -o dist/video-player-linux-amd64 .
+          GOOS=windows GOARCH=amd64 go build -tags "all" -o dist/video-player-windows-amd64.exe .
