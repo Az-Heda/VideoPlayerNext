@@ -20,7 +20,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     "mint-signal",
     "sage-garden",
     "vikasana",
-    "violet-disco",
   ].sort()
   return (
     <html
