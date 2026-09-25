@@ -146,9 +146,7 @@ func (f *Folder) readFilesRecursive(startPath string, ch chan *Video, isRoot boo
 		if ev, ok := existingVideos[fullpath]; ok {
 			v.Attributes.Duration = ev.Attributes.Duration
 		} else {
-			if err := v.ReadDuration(); err != nil {
-				continue
-			}
+			v.ReadDuration()
 		}
 
 		if ch != nil {
