@@ -16,14 +16,14 @@
     --destructive: #c73e3a;
     --destructive-foreground: #ffffff;
     --border: #e8e6e1;
-    --input: #ffffff;
+    --input: #e8e6e1;
     --ring: #7c9082;
     --chart-1: #7c9082;
     --chart-2: #a0aa88;
     --chart-3: #8b9d83;
     --chart-4: #6b7280;
     --chart-5: #e8e6e1;
-    --radius: 0.35rem;
+    --radius: 0.375rem;
     --sidebar: #fafaf8;
     --sidebar-foreground: #1a1f2e;
     --sidebar-primary: #7c9082;
@@ -32,17 +32,14 @@
     --sidebar-accent-foreground: #1a1f2e;
     --sidebar-border: #e8e6e1;
     --sidebar-ring: #7c9082;
-    --font-sans: Antic, ui-sans-serif, sans-serif, system-ui;
-    --font-serif: Signifier, Georgia, serif;
-    --font-mono: JetBrains Mono, Courier New, monospace;
     --shadow-color: #1a1f2e;
-    --shadow-opacity: 0.04;
-    --shadow-blur: 2px;
+    --shadow-opacity: 0.1;
+    --shadow-blur: 8px;
     --shadow-spread: 0px;
     --shadow-offset-x: 0px;
-    --shadow-offset-y: 1px;
+    --shadow-offset-y: 4px;
     --letter-spacing: 0em;
-    --spacing: 0.23rem;
+    --spacing: 0.25rem;
 
     @media (prefers-color-scheme: dark) {
         --background: #0a0a0a;
@@ -78,9 +75,6 @@
         --sidebar-accent-foreground: #f5f5f5;
         --sidebar-border: #2a2a2a;
         --sidebar-ring: #7c9082;
-        --font-sans: ui-sans-serif, system-ui, sans-serif;
-        --font-serif: ui-serif, Georgia, serif;
-        --font-mono: ui-monospace, SFMono-Regular, monospace;
         --shadow-color: #000000;
         --shadow-opacity: 0.1;
         --shadow-blur: 8px;

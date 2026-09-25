@@ -3,8 +3,8 @@
     --ring: #51f0a8;
     --input: #ebebeb;
     --muted: #f5f5f5;
-    --accent: #f9fffc;
-    --border: #f4f6f8;
+    --accent: #c9f5dc;
+    --border: #dcdddf;
     --radius: 0.8rem;
     --chart-1: #51f0a8;
     --chart-2: #7efe8f;
@@ -15,9 +15,7 @@
     --primary: #51f0a8;
     --sidebar: #ffffff;
     --spacing: 0.27rem;
-    --font-mono: IBM Plex Mono, monospace;
-    --font-sans: Plus Jakarta Sans, sans-serif;
-    --secondary: #fcfdfd;
+    --secondary: #e1f8ec;
     --background: #fdfdfd;
     --font-serif: Lora, serif;
     --foreground: #000000;
@@ -35,11 +33,11 @@
     --shadow-offset-y: 1px;
     --sidebar-primary: #000000;
     --muted-foreground: #525252;
-    --accent-foreground: #0d9f5d;
+    --accent-foreground: #087a46;
     --popover-foreground: #000000;
     --primary-foreground: #000000;
     --sidebar-foreground: #000000;
-    --secondary-foreground: #080808;
+    --secondary-foreground: #087a46;
     --destructive-foreground: #ffffff;
     --sidebar-accent-foreground: #000000;
     --sidebar-primary-foreground: #ffffff;
@@ -50,7 +48,7 @@
         --input: #3b3b3b;
         --muted: #252527;
         --accent: #093723;
-        --border: #19191a;
+        --border: #303031;
         --radius: 0.8rem;
         --chart-1: #51f0a8;
         --chart-2: #9effa1;
@@ -61,8 +59,6 @@
         --primary: #51f0a8;
         --sidebar: #0a0a0a;
         --spacing: 0.25rem;
-        --font-mono: IBM Plex Mono, monospace;
-        --font-sans: Plus Jakarta Sans, sans-serif;
         --secondary: #216a49;
         --background: #000000;
         --font-serif: Lora, serif;
