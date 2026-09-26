@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { CloudUploadIcon, Star } from "lucide-react";
 import { Component, ComponentProps, JSX, ReactNode } from "react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Dropzone, DropZoneArea, DropzoneDescription, DropzoneFileList, DropzoneFileListItem, DropzoneMessage, DropzoneRemoveFile, DropzoneTrigger, useDropzone } from "./ui/dropzone";
+import { Dropzone, DropZoneArea, DropzoneDescription, DropzoneFileList, DropzoneFileListItem, DropzoneMessage, DropzoneRemoveFile, DropzoneTrigger, useDropzone } from "@/components/ui/dropzone";
 import { GlobalConfigType } from "@/lib/globals";
 
 

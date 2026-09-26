@@ -59,6 +59,8 @@ type GetTagListFilter = {
 }
 type GetRuleListFilder = {
   id?: ApiRule['id'] | ApiRule['id'][];
+  preloadPlaylist?: boolean;
+  preloadTags?: boolean;
 }
 type GetSystemLogListFilder = {
   id?: ApiSystemLog['id'] | ApiSystemLog['id'][];
@@ -70,6 +72,17 @@ type PatchSetWatchedFlagFilter = {
 export class ApiRequest {
   private baseUrl?: string;
   private globalConfigs?: GlobalConfigType;
+  private defaultContentType = { 'Content-Type': 'application/json' } as const;
+  private groups = {
+    docs: "/docs",
+    stream: "/stream",
+    folder: "/api/folder",
+    video: "/api/video",
+    playlist: "/api/playlist",
+    tag: "/api/tag",
+    rule: "/api/automatic-rule",
+    systemLog: "/api/system-log"
+  } as const;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl;
@@ -91,25 +104,23 @@ export class ApiRequest {
 
   public addGlobalConfigs(configs: GlobalConfigType) {
     this.globalConfigs = configs;
+    (window as any).ApiHandler = this;
   }
 
   //* =============================================[ Utility ]============================================= *//
 
   public GetStreamUrl(video: ApiVideo): string {
-    const url = new URL(this.ensureBaseUrl());
-    url.pathname = `/stream/${video.id}`;
+    const url = new URL(`${this.groups.stream}/${video.id}`, this.ensureBaseUrl());
     return url.toString();
   }
 
   public GetScalarUrl(): string {
-    const url = new URL(this.ensureBaseUrl());
-    url.pathname = "/docs";
+    const url = new URL(this.groups.docs, this.ensureBaseUrl());
     return url.toString();
   }
 
   public GetScanFolderStreamUrl(folder: ApiFolder): string {
-    const url = new URL(this.ensureBaseUrl());
-    url.pathname = `/api/folder/${folder.id}/stream`;
+    const url = new URL(`${this.groups.folder}/${folder.id}/stream`, this.ensureBaseUrl());
     return url.toString();
   }
 
@@ -165,12 +176,12 @@ export class ApiRequest {
     if (filter.path) queryData.name = filter.path;
     if (filter.preloadVideos) queryData.preloadVideos = "true";
 
-    return this.SendRequest<ApiFolder[]>('GET', '/api/folder/', { query: queryData });
+    return this.SendRequest<ApiFolder[]>('GET', `${this.groups.folder}/`, { query: queryData });
   }
 
   public PostFolderNew(folderPath: string): Thenable<ApiFolder> {
-    return this.SendRequest<ApiFolder>('POST', '/api/folder/', {
-      headers: { 'Content-Type': 'application/json' },
+    return this.SendRequest<ApiFolder>('POST', `${this.groups.folder}/`, {
+      headers: { ...this.defaultContentType },
       body: JSON.stringify({ path: folderPath }),
     });
   }
@@ -191,13 +202,13 @@ export class ApiRequest {
     if (filter.id) queryData.id = filter.id;
     if (filter.path) queryData.path = filter.path;
 
-    return this.SendRequest<ApiVideo[]>('GET', '/api/video/', { query: queryData });
+    return this.SendRequest<ApiVideo[]>('GET', `${this.groups.video}/`, { query: queryData });
   }
 
   public PatchSetWatchedFlag(video: ApiVideo, filter?: PatchSetWatchedFlagFilter): Thenable<ApiVideo> {
     if (filter == undefined) filter = {} as PatchSetWatchedFlagFilter;
     const queryData: RequestOptions['query'] = { attr: filter.attr ? 'true' : 'false' };
-    return this.SendRequest<ApiVideo>('PATCH', `/api/video/${video.id}/watched`, { query: queryData });
+    return this.SendRequest<ApiVideo>('PATCH', `${this.groups.video}/${video.id}/watched`, { query: queryData });
   }
 
 
@@ -211,25 +222,22 @@ export class ApiRequest {
     if (filter.preloadFolders) queryData.preloadFolders = "true";
     if (filter.preloadVideos) queryData.preloadVideos = "true";
 
-    return this.SendRequest<ApiPlaylist[]>('GET', '/api/playlist/', { query: queryData });;
+    return this.SendRequest<ApiPlaylist[]>('GET', `${this.groups.playlist}/`, { query: queryData });;
   }
 
   public PostPlaylistNew(name: string, videos: ApiVideo[]): Thenable<ApiPlaylist> {
-    return this.SendRequest<ApiPlaylist>('POST', '/api/playlist/', {
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: name,
-        ids: videos.map(v => v.id),
-      })
+    return this.SendRequest<ApiPlaylist>('POST', `${this.groups.playlist}/`, {
+      headers: { ...this.defaultContentType },
+      body: JSON.stringify({ name: name, ids: videos.map(v => v.id) }),
     });
   }
 
   public PatchPlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Thenable<ApiVideo> {
-    return this.SendRequest<ApiVideo>('PATCH', `/api/playlist/${playlist.id}/video/${video.id}`);
+    return this.SendRequest<ApiVideo>('PATCH', `${this.groups.playlist}/${playlist.id}/video/${video.id}`);
   }
 
   public DeletePlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Thenable<ApiVideo> {
-    return this.SendRequest<ApiVideo>('DELETE', `/api/playlist/${playlist.id}/video/${video.id}`);
+    return this.SendRequest<ApiVideo>('DELETE', `${this.groups.playlist}/${playlist.id}/video/${video.id}`);
   }
 
   //* =============================================[ Tags ]============================================= *//
@@ -242,12 +250,12 @@ export class ApiRequest {
     if (filter.name) queryData.name = filter.name;
     if (filter.preloadVideos) queryData.preloadVideos = "true";
 
-    return this.SendRequest<ApiTag[]>('GET', '/api/tag/', { query: queryData });
+    return this.SendRequest<ApiTag[]>('GET', `${this.groups.tag}/`, { query: queryData });
   }
 
   public PostTagNew(name: string, videos: ApiVideo[]): Thenable<ApiTag> {
-    return this.SendRequest<ApiTag>('POST', '/api/tag/', {
-      headers: { 'Content-Type': 'application/json' },
+    return this.SendRequest<ApiTag>('POST', `${this.groups.tag}/`, {
+      headers: { ...this.defaultContentType },
       body: JSON.stringify({
         name: name,
         ids: videos.map(v => v.id),
@@ -256,11 +264,11 @@ export class ApiRequest {
   }
 
   public PatchTagAddVideo(tag: ApiTag, video: ApiVideo): Thenable<ApiVideo> {
-    return this.SendRequest<ApiVideo>('PATCH', `/api/tag/${tag.id}/video/${video.id}`);
+    return this.SendRequest<ApiVideo>('PATCH', `${this.groups.tag}/${tag.id}/video/${video.id}`);
   }
 
   public DeleteTagAddVideo(tag: ApiTag, video: ApiVideo): Thenable<ApiVideo> {
-    return this.SendRequest<ApiVideo>('DELETE', `/api/tag/${tag.id}/video/${video.id}`);
+    return this.SendRequest<ApiVideo>('DELETE', `${this.groups.tag}/${tag.id}/video/${video.id}`);
   }
 
   //* =============================================[ Automatic Rules ]============================================= *//
@@ -270,12 +278,38 @@ export class ApiRequest {
 
     const queryData: RequestOptions['query'] = {};
     if (filter.id) queryData.id = filter.id;
+    if (filter.preloadPlaylist) queryData.preloadPlaylist = "true";
+    if (filter.preloadTags) queryData.preloadTags = "true";
 
-    return this.SendRequest<ApiRule[]>('GET', '/api/automatic-rule/', { query: queryData });
+    return this.SendRequest<ApiRule[]>('GET', `${this.groups.rule}/`, { query: queryData });
   }
 
   public ApplyAutomaticRule(...rules: ApiRule[]): Thenable<ApiVideo[]> {
-    return this.SendRequest<ApiVideo[]>('GET', '/api/automatic-rule/apply')
+    return this.SendRequest<ApiVideo[]>('GET', `${this.groups.rule}/apply`)
+  }
+
+  public ValidateRuleRegex(regex: string): Thenable<RuleValidation> {
+    return this.SendRequest<RuleValidation>('POST', `${this.groups.rule}/validate`, {
+      headers: { ...this.defaultContentType },
+      body: JSON.stringify({ regex }),
+    })
+  }
+
+  public PostCreateRule(regex: string, playlists: ApiPlaylist[], tags: ApiTag[]): Thenable<ApiRule> {
+    return this.SendRequest<ApiRule>('POST', `${this.groups.rule}/`, {
+      headers: { ...this.defaultContentType },
+      body: JSON.stringify({
+        regex: regex,
+        playlistIds: playlists.map(p => p.id),
+        tagIds: tags.map(t => t.id),
+      }),
+    })
+  }
+
+  public DeleteRule(rule: ApiRule): Thenable<ApiRule> {
+    return this.SendRequest('DELETE', `${this.groups.rule}/${rule.id}`, {
+      headers: { ...this.defaultContentType },
+    })
   }
 
   //* =============================================[ System Logs ]============================================= *//
@@ -286,10 +320,11 @@ export class ApiRequest {
     const queryData: RequestOptions['query'] = {};
     if (filter.id) queryData.id = typeof filter.id == 'number' ? filter.id.toString() : filter.id.map(x => x.toString());
 
-    return this.SendRequest<ApiSystemLog[]>('GET', '/api/system-log/', { query: queryData });
+    return this.SendRequest<ApiSystemLog[]>('GET', `${this.groups.systemLog}/`, { query: queryData });
   }
 }
 
+//* =============================================[ Api types ]============================================= *//
 
 type baseApiType = {
   id: string;
@@ -299,6 +334,8 @@ type baseApiType = {
 
 export type ApiRule = baseApiType & {
   regexRaw: string;
+  playlists?: ApiPlaylist[];
+  tags?: ApiTag[];
 };
 
 export type ApiVideo = baseApiType & {
@@ -343,4 +380,14 @@ export type ApiSystemLog = {
   message: string;
   errors?: string[] | null;
   createdAt?: string;
+}
+
+//* =============================================[ Additional types ]============================================= *//
+
+type RuleValidation = {
+  isValid: true;
+  error?: never;
+} | {
+  isValid: false;
+  error: string;
 }

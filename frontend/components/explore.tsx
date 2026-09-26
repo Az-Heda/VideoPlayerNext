@@ -1,7 +1,7 @@
 import { GlobalConfigType } from "@/lib/globals";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dispatch, SetStateAction, useMemo, useState } from "react";
-import { MainvideoTable } from "./video-table";
+import { MainvideoTable } from "./table-video";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Film, Hash, X } from "lucide-react";
 import { Attachment, AttachmentMedia, AttachmentContent, AttachmentTitle, AttachmentDescription, AttachmentActions, AttachmentAction } from "@/components/ui/attachment";

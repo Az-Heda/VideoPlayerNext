@@ -1,7 +1,7 @@
 import { GlobalConfigType, KeybindLS } from "@/lib/globals";
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, ApiFolder, ApiVideo, GenericError } from "@/lib/api";
-import { cn, isApiError, isError, isGeneric } from "@/lib/utils";
+import { cn, displayNumber, isApiError, isError, isGeneric } from "@/lib/utils";
 import { Check, CloudBackup, CloudUploadIcon, Edit2, Play, Plus, RefreshCcw, RefreshCw, Trash2, Trash2Icon, X } from "lucide-react";
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,10 +20,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { ScrollArea } from "./ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { EditKeyInput, KeyKeyboard } from "./commons";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EditKeyInput, KeyKeyboard } from "@/components/commons";
 
 type CommonProps = {
   Config: GlobalConfigType;
@@ -1070,7 +1070,7 @@ export function ModalSyncData(props: ModalSyncDataProps) {
             (error) => props.Config.Errors.Setter(errs => [...errs, error]));
         return;
       case 'Rules':
-        props.Config.Api.Instance.GetRuleList()
+        props.Config.Api.Instance.GetRuleList({ preloadPlaylist: true, preloadTags: true })
           .then(
             (data) => {
               props.Config.Api.Data.Rules.Setter(data);
@@ -1138,7 +1138,7 @@ export function ModalSyncData(props: ModalSyncDataProps) {
             <TableCell>{key}</TableCell>
             <TableCell>
               {props.Config.Api.Data[key].Getter !== undefined
-                ? props.Config.Api.Data[key].Getter.length.toLocaleString('it-IT', { useGrouping: 'always' })
+                ? displayNumber(props.Config.Api.Data[key].Getter.length)
                 : '-'
               }
             </TableCell>
