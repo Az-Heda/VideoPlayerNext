@@ -10,7 +10,6 @@ import (
 	. "vp/libs/definitions"
 	"vp/libs/models"
 
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -542,7 +541,6 @@ func (r registryRule) ApplyRuleStream(ctx context.Context, conn *gorm.DB, i *App
 		}
 		return true
 	})
-	log.Trace().Msgf("Found %d rules", len(rules))
 
 	var updatedVideos []models.Video
 	for _, vid := range videos {
