@@ -1,17 +1,20 @@
 import { GlobalConfigType } from "@/lib/globals";
 import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingState, useTable } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { DataTableFeatures, features } from "./data-table-features";
-import { ApiRule } from "@/lib/api";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { ButtonGroup } from "./ui/button-group";
-import { Input } from "./ui/input";
+import { ApiPlaylist, ApiRule, ApiTag } from "@/lib/api";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, SearchAlert, Trash2, X } from "lucide-react";
 import { cn, displayNumber } from "@/lib/utils";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { GeneralModal } from "./modals";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { GeneralModal } from "@/components/modals";
+import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from "@/components/ui/combobox";
+import { Label } from "@/components/ui/label";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 
 
 type AutomaticRulesTableProps = {
@@ -86,9 +89,44 @@ export function AutomaticRulesTable(props: AutomaticRulesTableProps) {
           <Button variant="secondary" size="icon">
             <SearchAlert />
           </Button>
-          <Button variant="secondary" size="icon">
-            <Trash2 />
-          </Button>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="secondary" size="icon">
+                <Trash2 />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete automatic rule</DialogTitle>
+                <DialogDescription>Are you sure you want to delete this rule?</DialogDescription>
+              </DialogHeader>
+              <ul>
+                <li>The selected rule has the following instruction</li>
+                <li className="text-muted-foreground">{row.original.regexRaw}</li>
+              </ul>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button onClick={() => {
+                    props.Config.Api.Instance.DeleteRule(row.original)
+                      .then(
+                        (deleted) => {
+                          let currentRules = props.Config.Api.Data.Rules.Getter?.filter(r => r.id != deleted.id);
+                          if (currentRules?.length === 0) currentRules = undefined;
+                          props.Config.Api.Data.Rules.Setter(currentRules);
+                        },
+                        (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+                      )
+                  }}>
+                    Confirm
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </ButtonGroup>
       }
     })
@@ -266,10 +304,50 @@ type CreateNewRuleProps = {
 }
 function CreateNewRule(props: CreateNewRuleProps) {
   const [open, setOpen] = useState<boolean>(false);
+  const [input, setInput] = useState<string>();
+  const [inputError, setInputError] = useState<string>();
+  const [selectedPlaylistsIds, setSelectedPlaylistsIds] = useState<string[]>([]);
+  const [selectedTagsIds, setSelectedTagsIds] = useState<string[]>([]);
+  const anchorPlaylists = useComboboxAnchor()
+  const anchorTags = useComboboxAnchor()
+
+  useEffect(() => {
+    if (!input) {
+      setInputError(undefined);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      props.Config.Api.Instance.ValidateRuleRegex(input)
+        .then(
+          (v) => { if (!v.isValid) { setInputError(v.error); } else { setInputError(undefined); } },
+          (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+        );
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [input]);
 
   function confirm() {
-    setOpen(false);
+    if (!input || !!inputError) return;
+    const playlists = (props.Config.Api.Data.Playlists.Getter ?? []).filter(p => selectedPlaylistsIds.includes(p.id));
+    const tags = (props.Config.Api.Data.Tags.Getter ?? []).filter(t => selectedTagsIds.includes(t.id));
+    props.Config.Api.Instance.PostCreateRule(input, playlists, tags)
+      .then(
+        (data) => {
+          props.Config.Api.Data.Rules.Setter(current => current === undefined ? [data] : [...current, data]);
+          setOpen(false);
+        },
+        (error) => props.Config.Errors.Setter(errs => [...errs, error]),
+      )
   }
+  const frameworks = [
+    "Next.js",
+    "SvelteKit",
+    "Nuxt.js",
+    "Remix",
+    "Astro",
+  ] as const
   return <>
     <GeneralModal
       Config={props.Config}
@@ -278,15 +356,86 @@ function CreateNewRule(props: CreateNewRuleProps) {
       title="Create a new rule"
       description="Here you can create a new automatic rule"
       cancelBtn={<Button variant="outline">Close</Button>}
-      confirmBtn={<Button onClick={() => confirm()}>Confirm</Button>}
+      confirmBtn={<Button onClick={() => confirm()} disabled={!input || !!inputError}>Confirm</Button>}
       kind={props.Config.Settings.ModalKind.Getter}
       side={props.Config.Settings.ModalSide.Getter}
     >
       <div className="w-full">
-        <ButtonGroup className="w-full">
-          <Input />
-        </ButtonGroup>
+        <Field data-invalid={!!inputError}>
+          <FieldLabel>{inputError}</FieldLabel>
+          <Input
+            value={input ?? ''}
+            onChange={(e) => setInput(e.target.value !== '' ? e.target.value : undefined)}
+            placeholder="Type the regex instruction"
+          />
+          <FieldDescription>The regex instruction must follow the rules for Go/Re2</FieldDescription>
+        </Field>
       </div>
+
+      <div className="grid grid-cols-4 gap-y-2 items-center">
+        <span>Playlists</span>
+        <div className="col-span-3">
+          <Combobox
+            items={props.Config.Api.Data.Playlists.Getter ?? []}
+            multiple
+            value={selectedPlaylistsIds}
+            onValueChange={setSelectedPlaylistsIds}
+          >
+            <div ref={anchorPlaylists} className="w-full">
+              <ComboboxChips>
+                <ComboboxValue>
+                  {selectedPlaylistsIds.map((item) => (
+                    <ComboboxChip key={item}>{props.Config.Api.Data.Playlists.Getter?.find(p => p.id === item)?.name ?? '<unknown>'}</ComboboxChip>
+                  ))}
+                </ComboboxValue>
+                <ComboboxChipsInput placeholder="Add playlists" />
+              </ComboboxChips>
+            </div>
+            <ComboboxContent anchor={anchorPlaylists} className="pointer-events-auto">
+              <ComboboxEmpty>No items found.</ComboboxEmpty>
+              <ComboboxList>
+                {(item: ApiPlaylist) => (
+                  <ComboboxItem key={item.id} value={item.id}>
+                    {item.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
+
+        <span>Tags</span>
+        <div className="col-span-3">
+          <Combobox
+            items={props.Config.Api.Data.Tags.Getter ?? []}
+            multiple
+            value={selectedTagsIds}
+            onValueChange={setSelectedTagsIds}
+          >
+            <div ref={anchorTags} className="w-full">
+              <ComboboxChips>
+                <ComboboxValue>
+                  {selectedTagsIds.map((item) => (
+                    <ComboboxChip key={item}>{props.Config.Api.Data.Tags.Getter?.find(t => t.id === item)?.name ?? '<unknown>'}</ComboboxChip>
+                  ))}
+                </ComboboxValue>
+                <ComboboxChipsInput placeholder="Add tags" />
+              </ComboboxChips>
+            </div>
+            <ComboboxContent anchor={anchorTags} className="pointer-events-auto">
+              <ComboboxEmpty>No items found.</ComboboxEmpty>
+              <ComboboxList>
+                {(item: ApiTag) => (
+                  <ComboboxItem key={item.id} value={item.id}>
+                    {item.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
+      </div>
+
     </GeneralModal>
     <Button className="w-full" onClick={() => setOpen(true)}>
       Create new

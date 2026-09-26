@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
+	"time"
 	"vp/libs/array"
 	. "vp/libs/definitions"
 	"vp/libs/models"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -87,6 +89,10 @@ type (
 		//
 		// 500 Internal Server Error
 		ApplyRuleStream(ctx context.Context, conn *gorm.DB, i *ApplyRuleRequest) ApiExchange[ApplyRuleResponse]
+		// 200 OK
+		//
+		// 400 Bad Request
+		ValidateRule(ctx context.Context, conn *gorm.DB, i *ValidateRuleRequest) ApiExchange[ValidateRuleResponse]
 	}
 
 	PreloadRule struct {
@@ -165,6 +171,18 @@ type (
 	}
 	ApplyRuleResponse struct {
 		Body []models.Video
+	}
+
+	ValidateRuleRequest struct {
+		Body struct {
+			Regex string `json:"regex"`
+		}
+	}
+	ValidateRuleResponse struct {
+		Body struct {
+			IsValid bool   `json:"isValid"`
+			Error   string `json:"error,omitempty"`
+		}
 	}
 )
 
@@ -330,7 +348,7 @@ func (r registryRule) AddPlaylistToRule(ctx context.Context, conn *gorm.DB, i *A
 	}
 
 	*rule.Playlists = append(*rule.Playlists, &playlist)
-	if tx := conn.WithContext(ctx).Save(&playlist); tx.Error != nil {
+	if tx := conn.WithContext(ctx).Save(&rule); tx.Error != nil {
 		return ApiExchangeDatabaseError[AddPlaylistToRuleResponse](tx.Error)
 	}
 
@@ -382,7 +400,7 @@ func (r registryRule) AddTagToRule(ctx context.Context, conn *gorm.DB, i *AddTag
 	}
 
 	*rule.Tags = append(*rule.Tags, &tag)
-	if tx := conn.WithContext(ctx).Save(&tag); tx.Error != nil {
+	if tx := conn.WithContext(ctx).Save(&rule); tx.Error != nil {
 		return ApiExchangeDatabaseError[AddTagToRuleResponse](tx.Error)
 	}
 
@@ -524,6 +542,7 @@ func (r registryRule) ApplyRuleStream(ctx context.Context, conn *gorm.DB, i *App
 		}
 		return true
 	})
+	log.Trace().Msgf("Found %d rules", len(rules))
 
 	var updatedVideos []models.Video
 	for _, vid := range videos {
@@ -571,5 +590,31 @@ func (r registryRule) ApplyRuleStream(ctx context.Context, conn *gorm.DB, i *App
 		StatusCode: http.StatusOK,
 		Value:      &ApplyRuleResponse{Body: make([]models.Video, 0)},
 	}
+}
 
+func (r registryRule) ValidateRule(ctx context.Context, conn *gorm.DB, i *ValidateRuleRequest) ApiExchange[ValidateRuleResponse] {
+	var (
+		out  ValidateRuleResponse
+		now  time.Time   = time.Now()
+		rule models.Rule = models.Rule{
+			RegexRaw:  i.Body.Regex,
+			CreatedAt: &now,
+			UpdatedAt: &now,
+		}
+	)
+
+	if _, err := regexp.Compile(rule.RegexRaw); err != nil {
+		out.Body.IsValid = false
+		out.Body.Error = err.Error()
+		return ApiExchange[ValidateRuleResponse]{
+			StatusCode: http.StatusOK,
+			Value:      &out,
+		}
+	}
+
+	out.Body.IsValid = true
+	return ApiExchange[ValidateRuleResponse]{
+		StatusCode: http.StatusOK,
+		Value:      &out,
+	}
 }

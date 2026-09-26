@@ -1,10 +1,10 @@
 import { ArrowRight } from "lucide-react"
-import { Badge } from "./ui/badge"
-import { Button } from "./ui/button"
-import { Separator } from "./ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import { GlobalConfigType } from "@/lib/globals"
 import { useMemo } from "react"
-import { Spinner } from "./ui/spinner"
+import { Spinner } from "@/components/ui/spinner"
 import { displayNumber } from "@/lib/utils"
 
 type KPI = {

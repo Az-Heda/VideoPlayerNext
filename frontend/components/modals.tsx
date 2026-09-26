@@ -20,10 +20,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { ScrollArea } from "./ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { EditKeyInput, KeyKeyboard } from "./commons";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EditKeyInput, KeyKeyboard } from "@/components/commons";
 
 type CommonProps = {
   Config: GlobalConfigType;
@@ -1070,7 +1070,7 @@ export function ModalSyncData(props: ModalSyncDataProps) {
             (error) => props.Config.Errors.Setter(errs => [...errs, error]));
         return;
       case 'Rules':
-        props.Config.Api.Instance.GetRuleList()
+        props.Config.Api.Instance.GetRuleList({ preloadPlaylist: true, preloadTags: true })
           .then(
             (data) => {
               props.Config.Api.Data.Rules.Setter(data);

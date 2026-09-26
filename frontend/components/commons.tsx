@@ -1,7 +1,7 @@
 import { KeybindLS } from "@/lib/globals";
 import { Fragment, JSX, useEffect, useMemo, useState } from "react";
 import { Kbd } from "@/components/ui/kbd";
-import { Input } from "./ui/input";
+import { Input } from "@/components/ui/input";
 
 export function KeyKeyboard(props: KeybindLS) {
 

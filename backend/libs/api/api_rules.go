@@ -219,6 +219,19 @@ func setupApiRules(g *huma.Group, conn *gorm.DB, ctx context.Context, r registry
 				},
 			},
 		},
+		&ApiDefinition[registry.ValidateRuleRequest, registry.ValidateRuleResponse]{
+			Callback: r.ValidateRule,
+			Operation: huma.Operation{
+				OperationID: "rule-validate",
+				Method:      http.MethodPost,
+				Path:        "/validate",
+				Summary:     "Validate an automatic rule",
+				Description: "Given the input rule, validate it (check if the regex can be used) and returns if it's valid and eventually the error",
+				Errors: []int{
+					http.StatusBadRequest,
+				},
+			},
+		},
 	}
 	var additionalTags map[string][]string = map[string][]string{}
 	var tags []string = []string{"Automatic rules"}

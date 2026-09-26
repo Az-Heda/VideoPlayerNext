@@ -5,14 +5,14 @@ import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, SortingS
 import { useMemo, useState } from "react";
 import { DataTableFeatures, features } from "./data-table-features";
 import { ApiSystemLog } from "@/lib/api";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn, displayDate } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ButtonGroup, ButtonGroupSeparator } from "./ui/button-group";
-import { Input } from "./ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
+import { Input } from "@/components/ui/input";
 
 type SystemLogTableProps = {
   Config: GlobalConfigType;
