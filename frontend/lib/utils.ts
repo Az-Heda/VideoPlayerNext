@@ -28,6 +28,10 @@ export function getKeybind(id: KeybindLS['Id'], key?: KeybindLS['Key'], ctrl?: K
 }
 
 
+export function displayNumber(n: number): string {
+  return n.toLocaleString('it-IT', { useGrouping: 'always' })
+}
+
 
 export function isGeneric(x: GenericError | ApiError | Error): x is GenericError {
   return 'source' in x && 'content' in x

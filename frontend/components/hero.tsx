@@ -5,6 +5,7 @@ import { Separator } from "./ui/separator"
 import { GlobalConfigType } from "@/lib/globals"
 import { useMemo } from "react"
 import { Spinner } from "./ui/spinner"
+import { displayNumber } from "@/lib/utils"
 
 type KPI = {
   Label: string;
@@ -81,7 +82,7 @@ export function Hero(props: HeroProps) {
                   <p className="mt-1 text-lg font-bold tabular-nums">
                     {
                       row.Value !== undefined
-                        ? row.Value.toLocaleString('it-IT', { useGrouping: 'always' })
+                        ? displayNumber(row.Value)
                         : <span className="flex items-center justify-start gap-2 text-xs"><Spinner /> Loading...</span>
                     }
                   </p>

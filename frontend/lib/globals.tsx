@@ -20,7 +20,7 @@ export type SidebarItem<T> = {
 } & GetterSetter<T>;
 
 
-type Page = 'homepage' | 'videos' | 'systemlogs';
+type Page = 'homepage' | 'videos' | 'rules' | 'systemlogs';
 type PageSidebar = {
   Id: Page,
   Label: string;
@@ -325,6 +325,7 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       All: [
         { Id: 'homepage', Label: 'Homepage', Icon: <House /> },
         { Id: 'videos', Label: 'Videos', Icon: <TvMinimalPlay /> },
+        { Id: 'rules', Label: 'Rules', Icon: <SquareFunction/> },
         { Id: 'systemlogs', Label: 'System logs', Icon: <Cctv /> },
       ],
     },

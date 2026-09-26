@@ -11,9 +11,10 @@ import { ApiRequest } from "@/lib/api";
 import { GlobalConfig, GlobalConfigType } from "@/lib/globals";
 import { useEffect } from "react";
 import { Hero } from "@/components/hero";
-import { SystemLogTable } from "@/components/systemlog-table";
+import { SystemLogTable } from "@/components/table-systemlog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ThinkingOrb } from 'thinking-orbs';
+import { AutomaticRulesTable } from "@/components/table-rule";
 
 export default function Page() {
   const api = new ApiRequest();
@@ -42,7 +43,7 @@ export default function Page() {
         (error) => config.Errors.Setter(errs => [...errs, error]),
 
       );
-    api.GetRuleList()
+    api.GetRuleList({ preloadPlaylist: true, preloadTags: true })
       .then(
         (rules) => config.Api.Data.Rules.Setter(rules),
         (error) => config.Errors.Setter(errs => [...errs, error]),
@@ -136,7 +137,7 @@ function PageContent(props: PageContentProps) {
                 />
                 <EmptyTitle>Loading videos</EmptyTitle>
                 <EmptyDescription>
-                  All videos are currently being loaded.<br/>
+                  All videos are currently being loaded.<br />
                   Please wait
                 </EmptyDescription>
               </EmptyHeader>
@@ -146,6 +147,10 @@ function PageContent(props: PageContentProps) {
     case 'systemlogs':
       return <>
         <SystemLogTable Config={props.Config} />
+      </>
+    case 'rules':
+      return <>
+        <AutomaticRulesTable Config={props.Config} />
       </>
     default:
       return <>Page not found</>

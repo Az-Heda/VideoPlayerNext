@@ -1,7 +1,7 @@
 import { GlobalConfigType, KeybindLS } from "@/lib/globals";
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, ApiFolder, ApiVideo, GenericError } from "@/lib/api";
-import { cn, isApiError, isError, isGeneric } from "@/lib/utils";
+import { cn, displayNumber, isApiError, isError, isGeneric } from "@/lib/utils";
 import { Check, CloudBackup, CloudUploadIcon, Edit2, Play, Plus, RefreshCcw, RefreshCw, Trash2, Trash2Icon, X } from "lucide-react";
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1138,7 +1138,7 @@ export function ModalSyncData(props: ModalSyncDataProps) {
             <TableCell>{key}</TableCell>
             <TableCell>
               {props.Config.Api.Data[key].Getter !== undefined
-                ? props.Config.Api.Data[key].Getter.length.toLocaleString('it-IT', { useGrouping: 'always' })
+                ? displayNumber(props.Config.Api.Data[key].Getter.length)
                 : '-'
               }
             </TableCell>

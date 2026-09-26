@@ -59,6 +59,8 @@ type GetTagListFilter = {
 }
 type GetRuleListFilder = {
   id?: ApiRule['id'] | ApiRule['id'][];
+  preloadPlaylist?: boolean;
+  preloadTags?: boolean;
 }
 type GetSystemLogListFilder = {
   id?: ApiSystemLog['id'] | ApiSystemLog['id'][];
@@ -270,6 +272,8 @@ export class ApiRequest {
 
     const queryData: RequestOptions['query'] = {};
     if (filter.id) queryData.id = filter.id;
+    if (filter.preloadPlaylist) queryData.preloadPlaylist = "true";
+    if (filter.preloadTags) queryData.preloadTags = "true";
 
     return this.SendRequest<ApiRule[]>('GET', '/api/automatic-rule/', { query: queryData });
   }
@@ -299,6 +303,8 @@ type baseApiType = {
 
 export type ApiRule = baseApiType & {
   regexRaw: string;
+  playlists?: ApiPlaylist[];
+  tags?: ApiTag[];
 };
 
 export type ApiVideo = baseApiType & {
