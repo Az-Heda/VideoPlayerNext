@@ -10,6 +10,8 @@ import { ButtonGroup } from "./ui/button-group";
 import { Input } from "./ui/input";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, SearchAlert, Trash2, X } from "lucide-react";
 import { cn, displayNumber } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { GeneralModal } from "./modals";
 
 
 type AutomaticRulesTableProps = {
@@ -179,9 +181,7 @@ export function AutomaticRulesTable(props: AutomaticRulesTableProps) {
                   </TableCell>
                 case 'col-actions':
                   return <TableCell key={header.id}>
-                    <Button className="w-full">
-                      Create new
-                    </Button>
+                    <CreateNewRule Config={props.Config} />
                   </TableCell>
                 default: return <TableCell key={header.id}></TableCell>
               }
@@ -258,4 +258,38 @@ export function AutomaticRulesTable(props: AutomaticRulesTableProps) {
     </div>
 
   </div >
+}
+
+
+type CreateNewRuleProps = {
+  Config: GlobalConfigType;
+}
+function CreateNewRule(props: CreateNewRuleProps) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  function confirm() {
+    setOpen(false);
+  }
+  return <>
+    <GeneralModal
+      Config={props.Config}
+      open={open}
+      setOpen={setOpen}
+      title="Create a new rule"
+      description="Here you can create a new automatic rule"
+      cancelBtn={<Button variant="outline">Close</Button>}
+      confirmBtn={<Button onClick={() => confirm()}>Confirm</Button>}
+      kind={props.Config.Settings.ModalKind.Getter}
+      side={props.Config.Settings.ModalSide.Getter}
+    >
+      <div className="w-full">
+        <ButtonGroup className="w-full">
+          <Input />
+        </ButtonGroup>
+      </div>
+    </GeneralModal>
+    <Button className="w-full" onClick={() => setOpen(true)}>
+      Create new
+    </Button>
+  </>
 }
