@@ -341,13 +341,7 @@ function CreateNewRule(props: CreateNewRuleProps) {
         (error) => props.Config.Errors.Setter(errs => [...errs, error]),
       )
   }
-  const frameworks = [
-    "Next.js",
-    "SvelteKit",
-    "Nuxt.js",
-    "Remix",
-    "Astro",
-  ] as const
+  
   return <>
     <GeneralModal
       Config={props.Config}
