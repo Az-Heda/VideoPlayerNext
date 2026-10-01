@@ -15,6 +15,7 @@ type (
 	IRegistrySystemLog interface {
 		ListSystemLog(ctx context.Context, conn *gorm.DB, i *ListSystemLogRequest) ApiExchange[ListSystemLogResponse]
 		GetSystemLog(ctx context.Context, conn *gorm.DB, i *GetSystemLogRequest) ApiExchange[GetSystemLogResponse]
+		ReadFilteredSystemLog(ctx context.Context, conn *gorm.DB, i *ReadFilteredRequest) ApiExchange[ReadFilteredResponse]
 	}
 
 	ListSystemLogRequest struct {
@@ -30,6 +31,13 @@ type (
 	}
 	GetSystemLogResponse struct {
 		Body models.SystemLog
+	}
+
+	ReadFilteredRequest struct {
+		Body models.FilterExpression[models.SystemLog]
+	}
+	ReadFilteredResponse struct {
+		Body []models.SystemLog
 	}
 )
 
@@ -77,5 +85,33 @@ func (r registrySystemLog) GetSystemLog(ctx context.Context, conn *gorm.DB, i *G
 		}
 	default:
 		return ApiExchange[GetSystemLogResponse]{StatusCode: http.StatusConflict}
+	}
+}
+
+func (r registrySystemLog) ReadFilteredSystemLog(ctx context.Context, conn *gorm.DB, i *ReadFilteredRequest) ApiExchange[ReadFilteredResponse] {
+	var data []models.SystemLog
+	var filters models.FilterExpression[models.SystemLog] = i.Body
+
+	// if err := json.Unmarshal([]byte(i.Body), &filters); err != nil {
+	// 	return ApiExchange[ReadFilteredResponse]{
+	// 		StatusCode: http.StatusBadRequest,
+	// 		Errors:     []error{err},
+	// 	}
+	// }
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[ReadFilteredResponse]{
+			StatusCode: http.StatusBadRequest,
+			Errors:     []error{err},
+		}
+	}
+
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[ReadFilteredResponse](tx.Error)
+	}
+
+	return ApiExchange[ReadFilteredResponse]{
+		Value:      &ReadFilteredResponse{Body: data},
+		StatusCode: http.StatusOK,
 	}
 }

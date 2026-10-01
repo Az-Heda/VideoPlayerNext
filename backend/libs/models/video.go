@@ -31,57 +31,59 @@ type Video struct {
 	UpdatedAt  *time.Time  `json:"updatedAt"`
 }
 
-func (f *Video) AfterCreate(tx *gorm.DB) error {
-	return f.Validate(After|Create, tx)
+func (v *Video) AfterCreate(tx *gorm.DB) error {
+	return v.Validate(After|Create, tx)
 }
 
-func (f *Video) AfterDelete(tx *gorm.DB) error {
-	return f.Validate(After|Delete, tx)
+func (v *Video) AfterDelete(tx *gorm.DB) error {
+	return v.Validate(After|Delete, tx)
 }
 
-func (f *Video) AfterFind(tx *gorm.DB) error {
-	return f.Validate(After|Find, tx)
+func (v *Video) AfterFind(tx *gorm.DB) error {
+	return v.Validate(After|Find, tx)
 }
 
-func (f *Video) AfterSave(tx *gorm.DB) error {
-	return f.Validate(After|Save, tx)
+func (v *Video) AfterSave(tx *gorm.DB) error {
+	return v.Validate(After|Save, tx)
 }
 
-func (f *Video) AfterUpdate(tx *gorm.DB) error {
-	return f.Validate(After|Update, tx)
+func (v *Video) AfterUpdate(tx *gorm.DB) error {
+	return v.Validate(After|Update, tx)
 }
 
-func (f *Video) BeforeCreate(tx *gorm.DB) error {
-	return f.Validate(Before|Create, tx)
+func (v *Video) BeforeCreate(tx *gorm.DB) error {
+	return v.Validate(Before|Create, tx)
 }
 
-func (f *Video) BeforeDelete(tx *gorm.DB) error {
-	return f.Validate(Before|Delete, tx)
+func (v *Video) BeforeDelete(tx *gorm.DB) error {
+	return v.Validate(Before|Delete, tx)
 }
 
-func (f *Video) BeforeSave(tx *gorm.DB) error {
-	return f.Validate(Before|Save, tx)
+func (v *Video) BeforeSave(tx *gorm.DB) error {
+	return v.Validate(Before|Save, tx)
 }
 
-func (f *Video) BeforeUpdate(tx *gorm.DB) error {
-	return f.Validate(Before|Update, tx)
+func (v *Video) BeforeUpdate(tx *gorm.DB) error {
+	return v.Validate(Before|Update, tx)
 }
 
-func (f *Video) Validate(op ValidationOP, tx *gorm.DB) error {
+func (v *Video) Validate(op ValidationOP, tx *gorm.DB) error {
 	var now = time.Now()
 	var errs []error = nil
 	switch op {
 	case After | Create:
 	case After | Delete:
 	case After | Find:
-		if stats, err := os.Stat(f.Fullpath); err == nil {
-			f.Attributes.LastFileChange = Ptr(stats.ModTime())
-			f.Attributes.Exists = Ptr(true)
+		if stats, err := os.Stat(v.Fullpath); err == nil {
+			v.Attributes.LastFileChange = Ptr(stats.ModTime())
+			v.Attributes.Exists = Ptr(true)
 		} else {
 			if errors.Is(err, os.ErrNotExist) {
-				f.Attributes.Exists = Ptr(false)
-				if tx2 := tx.Save(&f); tx2.Error != nil {
-					errs = append(errs, tx2.Error)
+				if v.Attributes.Exists == nil || *v.Attributes.Exists {
+					v.Attributes.Exists = Ptr(false)
+					if tx2 := tx.Save(&v); tx2.Error != nil {
+						errs = append(errs, tx2.Error)
+					}
 				}
 			} else {
 				log.Err(err).Send()
@@ -90,27 +92,27 @@ func (f *Video) Validate(op ValidationOP, tx *gorm.DB) error {
 	case After | Save:
 	case After | Update:
 	case Before | Create:
-		if f.Id == "" {
-			f.Id = NewId()
+		if v.Id == "" {
+			v.Id = NewId()
 		}
-		if f.CreatedAt == nil || f.CreatedAt.IsZero() {
-			f.CreatedAt = &now
+		if v.CreatedAt == nil || v.CreatedAt.IsZero() {
+			v.CreatedAt = &now
 		}
-		if f.Filename == "" {
-			f.Filename = filepath.Base(f.Fullpath)
+		if v.Filename == "" {
+			v.Filename = filepath.Base(v.Fullpath)
 		}
 	case Before | Delete:
 	case Before | Save:
-		if f.UpdatedAt == nil || f.UpdatedAt.IsZero() {
-			f.UpdatedAt = &now
+		if v.UpdatedAt == nil || v.UpdatedAt.IsZero() {
+			v.UpdatedAt = &now
 		}
-		if f.Attributes.Exists != nil && *f.Attributes.Exists {
-			if _, err := os.Stat(f.Fullpath); err == nil {
-				f.Attributes.Exists = Ptr(false)
+		if v.Attributes.Exists != nil && *v.Attributes.Exists {
+			if _, err := os.Stat(v.Fullpath); err == nil {
+				v.Attributes.Exists = Ptr(false)
 			}
 		}
-		if f.Attributes.Watched == nil {
-			f.Attributes.Watched = Ptr(false)
+		if v.Attributes.Watched == nil {
+			v.Attributes.Watched = Ptr(false)
 		}
 	case Before | Update:
 	}

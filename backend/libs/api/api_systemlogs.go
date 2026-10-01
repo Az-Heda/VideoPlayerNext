@@ -48,6 +48,16 @@ func setupApiSystemLog(g *huma.Group, conn *gorm.DB, ctx context.Context, r regi
 				},
 			},
 		},
+		&ApiDefinition[registry.ReadFilteredRequest, registry.ReadFilteredResponse]{
+			Callback: r.ReadFilteredSystemLog,
+			Operation: huma.Operation{
+				OperationID:      "systemlog-read-filtered",
+				Method:           http.MethodPost,
+				Path:             "/read-filtered",
+				Summary:          "Filter system logs",
+				SkipValidateBody: true,
+			},
+		},
 	}
 
 	var additionalTags map[string][]string = map[string][]string{}

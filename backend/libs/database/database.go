@@ -40,6 +40,7 @@ func Connect(driver string, dsn string, connOptions DatabaseConnectionOptions) (
 	for k, v := range registred {
 		if driver == k && k == v.Driver() {
 			dialector = v.Get(dsn)
+			break
 		}
 	}
 

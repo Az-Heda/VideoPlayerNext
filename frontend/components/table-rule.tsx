@@ -311,6 +311,17 @@ function CreateNewRule(props: CreateNewRuleProps) {
   const anchorPlaylists = useComboboxAnchor()
   const anchorTags = useComboboxAnchor()
 
+  function cancel() {
+    setInput(undefined);
+    setInputError(undefined);
+    setSelectedPlaylistsIds([]);
+    setSelectedTagsIds([]);
+  }
+
+  useEffect(() => {
+    cancel();
+  }, [open])
+
   useEffect(() => {
     if (!input) {
       setInputError(undefined);
@@ -336,12 +347,12 @@ function CreateNewRule(props: CreateNewRuleProps) {
       .then(
         (data) => {
           props.Config.Api.Data.Rules.Setter(current => current === undefined ? [data] : [...current, data]);
-          setOpen(false);
+          cancel();
         },
         (error) => props.Config.Errors.Setter(errs => [...errs, error]),
       )
   }
-  
+
   return <>
     <GeneralModal
       Config={props.Config}
@@ -349,7 +360,7 @@ function CreateNewRule(props: CreateNewRuleProps) {
       setOpen={setOpen}
       title="Create a new rule"
       description="Here you can create a new automatic rule"
-      cancelBtn={<Button variant="outline">Close</Button>}
+      cancelBtn={<Button variant="outline" onClick={() => cancel()}>Close</Button>}
       confirmBtn={<Button onClick={() => confirm()} disabled={!input || !!inputError}>Confirm</Button>}
       kind={props.Config.Settings.ModalKind.Getter}
       side={props.Config.Settings.ModalSide.Getter}

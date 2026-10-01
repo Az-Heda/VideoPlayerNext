@@ -69,5 +69,4 @@ jobs:
         working-directory: backend
         run: |
           mkdir -p dist
-          GOOS=linux GOARCH=amd64 go build -tags "all" -o dist/video-player-linux-amd64 .
-          GOOS=windows GOARCH=amd64 go build -tags "all" -o dist/video-player-windows-amd64.exe .
+          go build -tags "all" -o dist/video-player .
