@@ -15,6 +15,8 @@ import { SystemLogTable } from "@/components/table-systemlog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ThinkingOrb } from 'thinking-orbs';
 import { AutomaticRulesTable } from "@/components/table-rule";
+import { TagTable } from "@/components/table-tags";
+import { PlaylistTable } from "@/components/table-playlists";
 
 export default function Page() {
   const api = new ApiRequest();
@@ -145,14 +147,14 @@ function PageContent(props: PageContentProps) {
         }
       </>
     case 'systemlogs':
-      return <>
-        <SystemLogTable Config={props.Config} />
-      </>
+      return <SystemLogTable Config={props.Config} />
     case 'rules':
-      return <>
-        <AutomaticRulesTable Config={props.Config} />
-      </>
+      return <AutomaticRulesTable Config={props.Config} />
+    case 'playlists':
+      return <PlaylistTable Config={props.Config} />
+    case 'tags':
+      return <TagTable Config={props.Config} />
     default:
-      return <>Page not found</>
+      return <>Page {props.Config.Pages.Current.Getter} not found</>
   }
 }
