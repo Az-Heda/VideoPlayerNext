@@ -299,6 +299,13 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
     })))
   }
 
+  function empty(id: string) {
+    props.Config.Keybinds.Setter(current => Object.fromEntries(Object.entries(current).map(([k, v]) => {
+      if (k != id) return [k, v]
+      return [k, { ...v, Custom: { Id: id } }];
+    })))
+  }
+
   function reset(id: string) {
     props.Config.Keybinds.Setter(current => Object.fromEntries(Object.entries(current).map(([k, v]) => {
       if (k != id) return [k, v]
@@ -392,9 +399,15 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
                   </>
                 }
 
-                <Button variant="outline" disabled={editMode === k ? false : v.Custom == undefined} onClick={() => reset(k)}>
-                  <Trash2 />
-                </Button>
+                {
+                  v.Custom == undefined
+                    ? <Button variant="outline" disabled={false} onClick={() => empty(k)}>
+                      <Trash2 />
+                    </Button>
+                    : <Button variant="outline" disabled={false} onClick={() => reset(k)}>
+                      <RefreshCcw />
+                    </Button>
+                }
               </ButtonGroup>
             </TableCell>
           </TableRow>
