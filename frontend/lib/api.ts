@@ -232,6 +232,12 @@ export class ApiRequest {
     });
   }
 
+  public DeletePlaylist(rule: ApiPlaylist): Thenable<ApiPlaylist> {
+    return this.SendRequest('DELETE', `${this.groups.playlist}/${rule.id}`, {
+      headers: { ...this.defaultContentType },
+    })
+  }
+
   public PatchPlaylistAddVideo(playlist: ApiPlaylist, video: ApiVideo): Thenable<ApiVideo> {
     return this.SendRequest<ApiVideo>('PATCH', `${this.groups.playlist}/${playlist.id}/video/${video.id}`);
   }
@@ -261,6 +267,12 @@ export class ApiRequest {
         ids: videos.map(v => v.id),
       })
     });
+  }
+
+  public DeleteTag(rule: ApiTag): Thenable<ApiTag> {
+    return this.SendRequest('DELETE', `${this.groups.tag}/${rule.id}`, {
+      headers: { ...this.defaultContentType },
+    })
   }
 
   public PatchTagAddVideo(tag: ApiTag, video: ApiVideo): Thenable<ApiVideo> {

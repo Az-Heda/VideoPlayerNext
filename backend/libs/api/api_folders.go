@@ -130,6 +130,16 @@ func setupApiFolders(g *huma.Group, conn *gorm.DB, ctx context.Context, r regist
 				},
 			},
 		},
+		&ApiDefinition[registry.QueryFolderRequest, registry.QueryFolderResponse]{
+			Callback: r.Query,
+			Operation: huma.Operation{
+				OperationID:      "folder-query",
+				Method:           http.MethodPost,
+				Path:             "/query",
+				Summary:          "Query folders",
+				SkipValidateBody: true,
+			},
+		},
 	}
 
 	var additionalTags map[string][]string = map[string][]string{}

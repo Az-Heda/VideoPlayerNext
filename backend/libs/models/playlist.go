@@ -14,12 +14,12 @@ func init() {
 }
 
 type Playlist struct {
-	Id        string     `json:"id" gorm:"primaryKey"`
-	Name      string     `json:"name" gorm:"index"`
+	Id        string     `json:"id" gorm:"primaryKey;column:id"`
+	Name      string     `json:"name" gorm:"index;column:name"`
 	Videos    *[]*Video  `json:"videos,omitempty" gorm:"many2many:video_playlists"`
-	Thumbnail []byte     `json:"thumbnail,omitempty"`
-	CreatedAt *time.Time `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
+	Thumbnail []byte     `json:"thumbnail,omitempty" gorm:"column:thumbnail"`
+	CreatedAt *time.Time `json:"createdAt" gorm:"column:created_at"`
+	UpdatedAt *time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }
 
 func (p *Playlist) AfterCreate(tx *gorm.DB) error {
@@ -112,4 +112,14 @@ func (p Playlist) String() string {
 	}
 
 	return sb.String()
+}
+
+func (Playlist) ColumnMapper() map[string]string {
+	return map[string]string{
+		"id":        "id",
+		"name":      "name",
+		"thumbnail": "thumbnail",
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+	}
 }

@@ -30,6 +30,7 @@ type (
 		DeleteFolder(ctx context.Context, conn *gorm.DB, i *DeleteFolderRequest) ApiExchange[DeleteFolderResponse]
 		CleanupFolders(ctx context.Context, conn *gorm.DB, i *CleanupFolderRequest) ApiExchange[CleanupFolderResponse]
 		ScanFolderStream(ctx context.Context, conn *gorm.DB, i *GetFolderStreamingRequest) ApiExchange[huma.StreamResponse]
+		Query(ctx context.Context, conn *gorm.DB, i *QueryFolderRequest) ApiExchange[QueryFolderResponse]
 	}
 	PreloadFolder struct {
 		PreloadVideos bool `query:"preloadVideos"`
@@ -77,6 +78,12 @@ type (
 			Valid   []models.Folder `json:"valid"`
 			Invalid []models.Folder `json:"invalid"`
 		}
+	}
+	QueryFolderRequest struct {
+		Body models.FilterExpression[models.Folder]
+	}
+	QueryFolderResponse struct {
+		Body []models.Folder
 	}
 )
 
@@ -385,5 +392,28 @@ func (r registryFolder) ScanFolderStream(ctx context.Context, conn *gorm.DB, i *
 				}
 			},
 		},
+	}
+}
+
+func (r registryFolder) Query(ctx context.Context, conn *gorm.DB, i *QueryFolderRequest) ApiExchange[QueryFolderResponse] {
+	var data []models.Folder
+	var filters models.FilterExpression[models.Folder] = i.Body
+
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[QueryFolderResponse]{
+			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
+			Errors:     []error{err},
+		}
+	}
+
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[QueryFolderResponse](tx.Error)
+	}
+
+	return ApiExchange[QueryFolderResponse]{
+		Value:      &QueryFolderResponse{Body: data},
+		StatusCode: http.StatusOK,
 	}
 }

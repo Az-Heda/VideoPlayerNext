@@ -37,7 +37,7 @@ export function Hero(props: HeroProps) {
     <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-12 md:grid-cols-2 md:items-center md:gap-16">
       <div className="flex flex-col">
         <Badge variant="outline" className="w-fit">
-          Version 2.0
+          $GO:VERSION$
         </Badge>
 
         <h1 className="mt-6 font-heading text-4xl font-bold tracking-tight sm:text-5xl">

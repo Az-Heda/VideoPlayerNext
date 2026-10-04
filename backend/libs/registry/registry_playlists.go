@@ -25,6 +25,7 @@ type (
 		PatchPlaylist(ctx context.Context, conn *gorm.DB, i *UpdatePlaylistRequest) ApiExchange[UpdatePlaylistResponse]
 		AddVideoToPlaylist(ctx context.Context, conn *gorm.DB, i *AddVideoToPlaylistRequest) ApiExchange[AddVideoToPlaylistResponse]
 		DeleteVideoToPlaylist(ctx context.Context, conn *gorm.DB, i *DeleteVideoFromPlaylistRequest) ApiExchange[DeleteVideoFromPlaylistResponse]
+		Query(ctx context.Context, conn *gorm.DB, i *QueryPlaylistRequest) ApiExchange[QueryPlaylistResponse]
 	}
 	PreloadPlaylist struct {
 		PreloadVideos       bool `query:"preloadVideos"`
@@ -87,6 +88,12 @@ type (
 	}
 	DeleteVideoFromPlaylistResponse struct {
 		Body models.Video
+	}
+	QueryPlaylistRequest struct {
+		Body models.FilterExpression[models.Playlist]
+	}
+	QueryPlaylistResponse struct {
+		Body []models.Playlist
 	}
 )
 
@@ -392,6 +399,29 @@ func (r registryPlaylist) DeleteVideoToPlaylist(ctx context.Context, conn *gorm.
 
 	return ApiExchange[DeleteVideoFromPlaylistResponse]{
 		Value:      &DeleteVideoFromPlaylistResponse{Body: outVideo.Value.Body},
+		StatusCode: http.StatusOK,
+	}
+}
+
+func (r registryPlaylist) Query(ctx context.Context, conn *gorm.DB, i *QueryPlaylistRequest) ApiExchange[QueryPlaylistResponse] {
+	var data []models.Playlist
+	var filters models.FilterExpression[models.Playlist] = i.Body
+
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[QueryPlaylistResponse]{
+			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
+			Errors:     []error{err},
+		}
+	}
+
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[QueryPlaylistResponse](tx.Error)
+	}
+
+	return ApiExchange[QueryPlaylistResponse]{
+		Value:      &QueryPlaylistResponse{Body: data},
 		StatusCode: http.StatusOK,
 	}
 }

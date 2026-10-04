@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from "lucid
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
+import { Typography } from "./utility";
 
 type SystemLogTableProps = {
   Config: GlobalConfigType;
@@ -149,6 +150,7 @@ export function SystemLogTable(props: SystemLogTableProps) {
   });
 
   return <div className="overflow-hidden rounded-md border">
+    <Typography kind="h2" className="text-center border-0 pt-8!">System logs</Typography>
     <div className="flex items-center py-4 gap-10">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

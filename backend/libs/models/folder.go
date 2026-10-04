@@ -169,3 +169,12 @@ func (Folder) Preload(conn *gorm.DB, preloadVideos bool) *gorm.DB {
 	}
 	return newConn
 }
+
+func (r Folder) ColumnMapper() map[string]string {
+	return map[string]string{
+		"id":        "id",
+		"fullpath":  "fullpath",
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+	}
+}

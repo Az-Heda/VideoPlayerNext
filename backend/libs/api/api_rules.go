@@ -232,6 +232,16 @@ func setupApiRules(g *huma.Group, conn *gorm.DB, ctx context.Context, r registry
 				},
 			},
 		},
+		&ApiDefinition[registry.QueryRuleRequest, registry.QueryRuleResponse]{
+			Callback: r.Query,
+			Operation: huma.Operation{
+				OperationID:      "rule-query",
+				Method:           http.MethodPost,
+				Path:             "/query",
+				Summary:          "Query rules",
+				SkipValidateBody: true,
+			},
+		},
 	}
 	var additionalTags map[string][]string = map[string][]string{}
 	var tags []string = []string{"Automatic rules"}

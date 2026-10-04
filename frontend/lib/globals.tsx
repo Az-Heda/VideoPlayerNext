@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, Cctv, CloudBackup, FileVideo, Film, Globe, House, Keyboard, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, TvMinimalPlay, Waypoints, X } from "lucide-react";
+import { AudioLines, Cctv, CloudBackup, FileVideo, Film, Globe, House, Keyboard, ListMinus, Palette, RefreshCw, Settings, ShieldAlert, SquareFunction, Tag, TvMinimalPlay, Waypoints, X } from "lucide-react";
 import { ComponentProps, Dispatch, JSX, ReactNode, SetStateAction, useEffect, useMemo, useState } from "react";
 import { ApiError, ApiFolder, ApiPlaylist, ApiRequest, ApiRule, ApiSystemLog, ApiTag, ApiVideo, GenericError } from "@/lib/api";
 import { SheetContent } from "@/components/ui/sheet";
@@ -20,7 +20,7 @@ export type SidebarItem<T> = {
 } & GetterSetter<T>;
 
 
-type Page = 'homepage' | 'videos' | 'rules' | 'systemlogs';
+type Page = 'homepage' | 'videos' | 'playlists' | 'tags' | 'rules' | 'systemlogs';
 type PageSidebar = {
   Id: Page,
   Label: string;
@@ -325,7 +325,9 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       All: [
         { Id: 'homepage', Label: 'Homepage', Icon: <House /> },
         { Id: 'videos', Label: 'Videos', Icon: <TvMinimalPlay /> },
-        { Id: 'rules', Label: 'Rules', Icon: <SquareFunction/> },
+        { Id: 'rules', Label: 'Rules', Icon: <SquareFunction /> },
+        { Id: 'playlists', Label: 'Playlists', Icon: <ListMinus /> },
+        { Id: 'tags', Label: 'Tags', Icon: <Tag /> },
         { Id: 'systemlogs', Label: 'System logs', Icon: <Cctv /> },
       ],
     },

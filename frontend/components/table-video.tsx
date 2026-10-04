@@ -5,7 +5,7 @@ import { ColumnFiltersState, ColumnVisibilityState, createColumnHelper, RowSelec
 import { features, DataTableFeatures } from "@/components/data-table-features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, NotebookText, OctagonAlert, Regex, TextCursor, X } from "lucide-react";
+import { CaseSensitive, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, ListMinus, NotebookText, OctagonAlert, Regex, Tag, TextCursor, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, displayDate, HumanReadableBytes, isApiVideo } from "@/lib/utils";
 import { Description, RatingStars, Typography } from "./utility";
@@ -272,7 +272,7 @@ export function MainvideoTable(props: MainVideoTableProps) {
                 variant="secondary"
                 size="icon"
                 onClick={() => props.Config.Utility.Modals.EditTags.Setter(row.original)}>
-                <Hash />
+                <Tag />
               </Button>
             </Description>
           </ButtonGroup>

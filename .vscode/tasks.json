@@ -31,7 +31,7 @@
       "label": "[BE] Build",
       "detail": "Build the backend",
       "type": "shell",
-      "command": "go build -tags='all' .",
+      "command": "go build -ldflags \"-X vp/libs/version.VERSION=$(git describe --tags --always)\" -tags='all' .",
       "options": {
         "cwd": "${workspaceFolder}/backend"
       },
@@ -101,8 +101,10 @@
         "focus": false,
         "panel": "shared",
         "showReuseMessage": true,
-        "clear": true
+        "clear": true,
+        "close": true
       },
+      "promptOnClose": false,
       "runOptions": {
         "instanceLimit": 1,
         "instancePolicy": "terminateOldest"

@@ -25,6 +25,7 @@ type (
 		DeleteTag(ctx context.Context, conn *gorm.DB, i *DeleteTagRequest) ApiExchange[DeleteTagResponse]
 		AddVideoToTag(ctx context.Context, conn *gorm.DB, i *AddVideoToTagRequest) ApiExchange[AddVideoToTagResponse]
 		DeleteVideoToTag(ctx context.Context, conn *gorm.DB, i *DeleteVideoFromTagRequest) ApiExchange[DeleteVideoFromTagResponse]
+		Query(ctx context.Context, conn *gorm.DB, i *QueryTagRequest) ApiExchange[QueryTagResponse]
 	}
 	PreloadTags struct {
 		PreloadVideos bool `query:"preloadVideos"`
@@ -77,6 +78,13 @@ type (
 	}
 	DeleteVideoFromTagResponse struct {
 		Body models.Video
+	}
+
+	QueryTagRequest struct {
+		Body models.FilterExpression[models.Tag]
+	}
+	QueryTagResponse struct {
+		Body []models.Tag
 	}
 )
 
@@ -304,6 +312,29 @@ func (r registryTag) DeleteVideoToTag(ctx context.Context, conn *gorm.DB, i *Del
 
 	return ApiExchange[DeleteVideoFromTagResponse]{
 		Value:      &DeleteVideoFromTagResponse{Body: video},
+		StatusCode: http.StatusOK,
+	}
+}
+
+func (r registryTag) Query(ctx context.Context, conn *gorm.DB, i *QueryTagRequest) ApiExchange[QueryTagResponse] {
+	var data []models.Tag
+	var filters models.FilterExpression[models.Tag] = i.Body
+
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[QueryTagResponse]{
+			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
+			Errors:     []error{err},
+		}
+	}
+
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[QueryTagResponse](tx.Error)
+	}
+
+	return ApiExchange[QueryTagResponse]{
+		Value:      &QueryTagResponse{Body: data},
 		StatusCode: http.StatusOK,
 	}
 }

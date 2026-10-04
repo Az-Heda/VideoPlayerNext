@@ -92,6 +92,12 @@ type (
 		//
 		// 400 Bad Request
 		ValidateRule(ctx context.Context, conn *gorm.DB, i *ValidateRuleRequest) ApiExchange[ValidateRuleResponse]
+		// 200 OK
+		//
+		// 400 Bad Request
+		//
+		// 500 Internal Server Error
+		Query(ctx context.Context, conn *gorm.DB, i *QueryRuleRequest) ApiExchange[QueryRuleResponse]
 	}
 
 	PreloadRule struct {
@@ -182,6 +188,13 @@ type (
 			IsValid bool   `json:"isValid"`
 			Error   string `json:"error,omitempty"`
 		}
+	}
+
+	QueryRuleRequest struct {
+		Body models.FilterExpression[models.Rule]
+	}
+	QueryRuleResponse struct {
+		Body []models.Rule
 	}
 )
 
@@ -614,5 +627,28 @@ func (r registryRule) ValidateRule(ctx context.Context, conn *gorm.DB, i *Valida
 	return ApiExchange[ValidateRuleResponse]{
 		StatusCode: http.StatusOK,
 		Value:      &out,
+	}
+}
+
+func (r registryRule) Query(ctx context.Context, conn *gorm.DB, i *QueryRuleRequest) ApiExchange[QueryRuleResponse] {
+	var data []models.Rule
+	var filters models.FilterExpression[models.Rule] = i.Body
+
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[QueryRuleResponse]{
+			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
+			Errors:     []error{err},
+		}
+	}
+
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[QueryRuleResponse](tx.Error)
+	}
+
+	return ApiExchange[QueryRuleResponse]{
+		Value:      &QueryRuleResponse{Body: data},
+		StatusCode: http.StatusOK,
 	}
 }

@@ -27,6 +27,11 @@ export function getKeybind(id: KeybindLS['Id'], key?: KeybindLS['Key'], ctrl?: K
   return { Id: id, Key: key, Ctrl: ctrl, Alt: alt, Meta: meta, Shift: shift }
 }
 
+export function displayDate(date: Date, format = '$4:$5:$6 - $3/$2/$1'): string {
+  return new Date(date.getTime() - (new Date().getTimezoneOffset() * 60 * 1000))
+    .toISOString()
+    .replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, format)
+}
 
 export function displayNumber(n: number): string {
   return n.toLocaleString('it-IT', { useGrouping: 'always' })
@@ -48,10 +53,4 @@ export function isApiVideo(x: ApiVideo | string): x is ApiVideo {
     'filename' in x ||
     'folderId' in x ||
     'attributes' in x
-}
-
-export function displayDate(date: Date): string {
-  return new Date(date.getTime() - (new Date().getTimezoneOffset() * 60 * 1000))
-    .toISOString()
-    .replace(/(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d+)Z/g, '$4:$5:$6 $3/$2/$1')
 }

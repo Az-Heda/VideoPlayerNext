@@ -62,7 +62,9 @@ func Root(cmd *cobra.Command, args []string) {
 			Middleware: server.Skip(
 				server.MiddlewareRateLimit(rateLimitRps, rateLimitBurst),
 				func(r *http.Request) bool {
-					return strings.HasPrefix(r.URL.Path, "/stream/")
+					return false ||
+						strings.HasPrefix(r.URL.Path, "/stream/") ||
+						strings.HasPrefix(r.URL.Path, "/_next/")
 				},
 			),
 		},

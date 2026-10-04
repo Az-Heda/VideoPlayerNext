@@ -48,6 +48,16 @@ func setupApiSystemLog(g *huma.Group, conn *gorm.DB, ctx context.Context, r regi
 				},
 			},
 		},
+		&ApiDefinition[registry.QuerySystemLogRequest, registry.QuerySystemLogResponse]{
+			Callback: r.Query,
+			Operation: huma.Operation{
+				OperationID:      "systemlog-query",
+				Method:           http.MethodPost,
+				Path:             "/query",
+				Summary:          "Query system logs",
+				SkipValidateBody: true,
+			},
+		},
 	}
 
 	var additionalTags map[string][]string = map[string][]string{}

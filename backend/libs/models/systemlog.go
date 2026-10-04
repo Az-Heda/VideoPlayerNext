@@ -13,12 +13,12 @@ func init() {
 }
 
 type SystemLog struct {
-	Id             int        `json:"id" gorm:"primaryKey"`
-	StatusCode     int        `json:"statusCode"`
+	Id             int        `json:"id" gorm:"primaryKey;column:id"`
+	StatusCode     int        `json:"statusCode" gorm:"column:status_code"`
 	StatusCodeText string     `json:"statusCodeText" gorm:"-"`
-	Message        string     `json:"message"`
-	Errors         []string   `json:"errors" gorm:"serializer:json" `
-	CreatedAt      *time.Time `json:"createdAt"`
+	Message        string     `json:"message" gorm:"column:message"`
+	Errors         []string   `json:"errors" gorm:"serializer:json;column:errors"`
+	CreatedAt      *time.Time `json:"createdAt" gorm:"column:created_at"`
 }
 
 func (s *SystemLog) AfterCreate(tx *gorm.DB) error {
@@ -76,4 +76,14 @@ func (r *SystemLog) Validate(op ValidationOP, tx *gorm.DB) error {
 	case Before | Update:
 	}
 	return errors.Join(errs...)
+}
+
+func (r SystemLog) ColumnMapper() map[string]string {
+	return map[string]string{
+		"id":         "id",
+		"statusCode": "status_code",
+		"message":    "message",
+		"errors":     "errors",
+		"createdAt":  "created_at",
+	}
 }

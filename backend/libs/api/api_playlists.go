@@ -196,6 +196,16 @@ func setupApiPlaylists(g *huma.Group, conn *gorm.DB, ctx context.Context, r regi
 				},
 			},
 		},
+		&ApiDefinition[registry.QueryPlaylistRequest, registry.QueryPlaylistResponse]{
+			Callback: r.Query,
+			Operation: huma.Operation{
+				OperationID:      "playlist-query",
+				Method:           http.MethodPost,
+				Path:             "/query",
+				Summary:          "Query playlists",
+				SkipValidateBody: true,
+			},
+		},
 	}
 	var additionalTags map[string][]string = map[string][]string{}
 	var tags []string = []string{"Playlist"}

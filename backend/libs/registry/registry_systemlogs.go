@@ -15,6 +15,7 @@ type (
 	IRegistrySystemLog interface {
 		ListSystemLog(ctx context.Context, conn *gorm.DB, i *ListSystemLogRequest) ApiExchange[ListSystemLogResponse]
 		GetSystemLog(ctx context.Context, conn *gorm.DB, i *GetSystemLogRequest) ApiExchange[GetSystemLogResponse]
+		Query(ctx context.Context, conn *gorm.DB, i *QuerySystemLogRequest) ApiExchange[QuerySystemLogResponse]
 	}
 
 	ListSystemLogRequest struct {
@@ -30,6 +31,13 @@ type (
 	}
 	GetSystemLogResponse struct {
 		Body models.SystemLog
+	}
+
+	QuerySystemLogRequest struct {
+		Body models.FilterExpression[models.SystemLog]
+	}
+	QuerySystemLogResponse struct {
+		Body []models.SystemLog
 	}
 )
 
@@ -77,5 +85,28 @@ func (r registrySystemLog) GetSystemLog(ctx context.Context, conn *gorm.DB, i *G
 		}
 	default:
 		return ApiExchange[GetSystemLogResponse]{StatusCode: http.StatusConflict}
+	}
+}
+
+func (r registrySystemLog) Query(ctx context.Context, conn *gorm.DB, i *QuerySystemLogRequest) ApiExchange[QuerySystemLogResponse] {
+	var data []models.SystemLog
+	var filters models.FilterExpression[models.SystemLog] = i.Body
+
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[QuerySystemLogResponse]{
+			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
+			Errors:     []error{err},
+		}
+	}
+
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[QuerySystemLogResponse](tx.Error)
+	}
+
+	return ApiExchange[QuerySystemLogResponse]{
+		Value:      &QuerySystemLogResponse{Body: data},
+		StatusCode: http.StatusOK,
 	}
 }
