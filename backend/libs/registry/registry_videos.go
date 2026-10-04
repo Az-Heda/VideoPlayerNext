@@ -42,6 +42,13 @@ type (
 		//
 		// 500 Internal Server Error
 		AttrWatched(ctx context.Context, conn *gorm.DB, i *PatchVideoWatchedRequest) ApiExchange[PatchVideoWatchedResponse]
+
+		// 200 OK
+		//
+		// 400 Bad Request
+		//
+		// 500 Internal Server Error
+		Query(ctx context.Context, conn *gorm.DB, i *QueryVideoRequest) ApiExchange[QueryVideoResponse]
 	}
 
 	PreloadVideos struct {
@@ -74,6 +81,13 @@ type (
 	}
 	PatchVideoWatchedResponse struct {
 		Body models.Video
+	}
+
+	QueryVideoRequest struct {
+		Body models.FilterExpression[models.Video]
+	}
+	QueryVideoResponse struct {
+		Body []models.Video
 	}
 )
 
@@ -176,6 +190,27 @@ func (r registryVideo) AttrWatched(ctx context.Context, conn *gorm.DB, i *PatchV
 
 	return ApiExchange[PatchVideoWatchedResponse]{
 		Value:      &PatchVideoWatchedResponse{Body: video},
+		StatusCode: http.StatusOK,
+	}
+}
+
+func (r registryVideo) Query(ctx context.Context, conn *gorm.DB, i *QueryVideoRequest) ApiExchange[QueryVideoResponse] {
+	var data []models.Video
+	var filters models.FilterExpression[models.Video] = i.Body
+	scopes, err := BuildScope(filters)
+	if err != nil {
+		return ApiExchange[QueryVideoResponse]{
+			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
+			Errors:     []error{err},
+		}
+	}
+	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
+		return ApiExchangeDatabaseError[QueryVideoResponse](tx.Error)
+	}
+
+	return ApiExchange[QueryVideoResponse]{
+		Value:      &QueryVideoResponse{Body: data},
 		StatusCode: http.StatusOK,
 	}
 }

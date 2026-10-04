@@ -13,10 +13,10 @@ func init() {
 }
 
 type Rule struct {
-	Id        string       `json:"id" gorm:"primaryKey"`
-	RegexRaw  string       `json:"regexRaw"`
-	CreatedAt *time.Time   `json:"createdAt"`
-	UpdatedAt *time.Time   `json:"updatedAt"`
+	Id        string       `json:"id" gorm:"primaryKey;column:id"`
+	RegexRaw  string       `json:"regexRaw" gorm:"column:regex_raw"`
+	CreatedAt *time.Time   `json:"createdAt" gorm:"column:created_at"`
+	UpdatedAt *time.Time   `json:"updatedAt" gorm:"column:updated_at"`
 	Playlists *[]*Playlist `json:"playlists,omitempty" gorm:"many2many:rule_playlists"`
 	Tags      *[]*Tag      `json:"tags,omitempty" gorm:"many2many:rule_tags"`
 
@@ -95,4 +95,13 @@ func (Rule) Preload(conn *gorm.DB, preloadPlaylist, preloadTags bool) *gorm.DB {
 		newConn = newConn.Preload("Tags")
 	}
 	return newConn
+}
+
+func (Rule) ColumnMapper() map[string]string {
+	return map[string]string{
+		"id":        "id",
+		"regexRaw":  "regex_raw",
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+	}
 }

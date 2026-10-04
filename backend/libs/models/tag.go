@@ -12,11 +12,11 @@ func init() {
 }
 
 type Tag struct {
-	Id        string     `json:"id" gorm:"primaryKey"`
-	Name      string     `json:"name" gorm:"uniqueIndex"`
+	Id        string     `json:"id" gorm:"primaryKey;column:id"`
+	Name      string     `json:"name" gorm:"uniqueIndex;column:name"`
 	Videos    *[]*Video  `json:"videos,omitempty" gorm:"many2many:video_tags"`
-	CreatedAt *time.Time `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
+	CreatedAt *time.Time `json:"createdAt" gorm:"column:created_at"`
+	UpdatedAt *time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }
 
 func (t *Tag) AfterCreate(tx *gorm.DB) error {
@@ -87,4 +87,13 @@ func (Tag) Preload(conn *gorm.DB, preloadVideos bool) *gorm.DB {
 		newConn = newConn.Preload("Videos")
 	}
 	return newConn
+}
+
+func (Tag) ColumnMapper() map[string]string {
+	return map[string]string{
+		"id":        "id",
+		"name":      "name",
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+	}
 }

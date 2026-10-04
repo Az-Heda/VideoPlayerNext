@@ -146,6 +146,16 @@ func setupApiTags(g *huma.Group, conn *gorm.DB, ctx context.Context, r registry.
 				},
 			},
 		},
+		&ApiDefinition[registry.QueryTagRequest, registry.QueryTagResponse]{
+			Callback: r.Query,
+			Operation: huma.Operation{
+				OperationID:      "tag-query",
+				Method:           http.MethodPost,
+				Path:             "/query",
+				Summary:          "Query tags",
+				SkipValidateBody: true,
+			},
+		},
 	}
 	var additionalTags map[string][]string = map[string][]string{}
 	var tags []string = []string{"Tags"}

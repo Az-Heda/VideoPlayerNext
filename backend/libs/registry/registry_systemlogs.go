@@ -15,7 +15,7 @@ type (
 	IRegistrySystemLog interface {
 		ListSystemLog(ctx context.Context, conn *gorm.DB, i *ListSystemLogRequest) ApiExchange[ListSystemLogResponse]
 		GetSystemLog(ctx context.Context, conn *gorm.DB, i *GetSystemLogRequest) ApiExchange[GetSystemLogResponse]
-		ReadFilteredSystemLog(ctx context.Context, conn *gorm.DB, i *ReadFilteredRequest) ApiExchange[ReadFilteredResponse]
+		Query(ctx context.Context, conn *gorm.DB, i *QuerySystemLogRequest) ApiExchange[QuerySystemLogResponse]
 	}
 
 	ListSystemLogRequest struct {
@@ -33,10 +33,10 @@ type (
 		Body models.SystemLog
 	}
 
-	ReadFilteredRequest struct {
+	QuerySystemLogRequest struct {
 		Body models.FilterExpression[models.SystemLog]
 	}
-	ReadFilteredResponse struct {
+	QuerySystemLogResponse struct {
 		Body []models.SystemLog
 	}
 )
@@ -88,30 +88,25 @@ func (r registrySystemLog) GetSystemLog(ctx context.Context, conn *gorm.DB, i *G
 	}
 }
 
-func (r registrySystemLog) ReadFilteredSystemLog(ctx context.Context, conn *gorm.DB, i *ReadFilteredRequest) ApiExchange[ReadFilteredResponse] {
+func (r registrySystemLog) Query(ctx context.Context, conn *gorm.DB, i *QuerySystemLogRequest) ApiExchange[QuerySystemLogResponse] {
 	var data []models.SystemLog
 	var filters models.FilterExpression[models.SystemLog] = i.Body
 
-	// if err := json.Unmarshal([]byte(i.Body), &filters); err != nil {
-	// 	return ApiExchange[ReadFilteredResponse]{
-	// 		StatusCode: http.StatusBadRequest,
-	// 		Errors:     []error{err},
-	// 	}
-	// }
 	scopes, err := BuildScope(filters)
 	if err != nil {
-		return ApiExchange[ReadFilteredResponse]{
+		return ApiExchange[QuerySystemLogResponse]{
 			StatusCode: http.StatusBadRequest,
+			ErrorTitle: "Cannot build query scopes",
 			Errors:     []error{err},
 		}
 	}
 
 	if tx := conn.WithContext(ctx).Scopes(scopes).Find(&data); tx.Error != nil {
-		return ApiExchangeDatabaseError[ReadFilteredResponse](tx.Error)
+		return ApiExchangeDatabaseError[QuerySystemLogResponse](tx.Error)
 	}
 
-	return ApiExchange[ReadFilteredResponse]{
-		Value:      &ReadFilteredResponse{Body: data},
+	return ApiExchange[QuerySystemLogResponse]{
+		Value:      &QuerySystemLogResponse{Body: data},
 		StatusCode: http.StatusOK,
 	}
 }

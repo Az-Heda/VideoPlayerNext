@@ -15,7 +15,7 @@ var (
 	booleanOps = []string{"==", "<>"}
 )
 
-func fieldKind[T any](jsonName string) (reflect.Kind, bool) {
+func fieldKind[T models.IModelScope](jsonName string) (reflect.Kind, bool) {
 	var t T
 	rt := reflect.TypeOf(t)
 
@@ -26,7 +26,7 @@ func fieldKind[T any](jsonName string) (reflect.Kind, bool) {
 		if tag, ok := f.Tag.Lookup("json"); ok {
 			name = strings.Split(tag, ",")[0]
 		}
-		if strings.ToLower(strings.ReplaceAll(name, "_", "")) != strings.ToLower(strings.ReplaceAll(jsonName, "_", "")) {
+		if _, ok := t.ColumnMapper()[name]; !ok {
 			continue
 		}
 
@@ -39,7 +39,7 @@ func fieldKind[T any](jsonName string) (reflect.Kind, bool) {
 	return reflect.Invalid, false
 }
 
-func validateItem[T any](it *models.FilterItem[T]) error {
+func validateItem[T models.IModelScope](it *models.FilterItem[T]) error {
 	kind, ok := fieldKind[T](it.Property)
 	if !ok {
 		return fmt.Errorf("unknown or non-filterable property %q", it.Property)
@@ -70,12 +70,13 @@ func validateItem[T any](it *models.FilterItem[T]) error {
 	return fmt.Errorf("op %q not allowed for property %q", it.Op, it.Property)
 }
 
-func buildItemCondition[T any](it *models.FilterItem[T]) (string, []any, error) {
+func buildItemCondition[T models.IModelScope](it *models.FilterItem[T]) (string, []any, error) {
+	var t T
 	if err := validateItem(it); err != nil {
 		return "", nil, err
 	}
 
-	col := it.Property
+	col := t.ColumnMapper()[it.Property]
 
 	switch it.Op {
 	case "==":
@@ -129,7 +130,7 @@ func likeCond(col, _ string, negate bool, treatCase *string) string {
 
 func likeArg(v string, _ *string) string { return v }
 
-func BuildScope[T any](expr models.FilterExpression[T]) (func(*gorm.DB) *gorm.DB, error) {
+func BuildScope[T models.IModelScope](expr models.FilterExpression[T]) (func(*gorm.DB) *gorm.DB, error) {
 	if expr.Item != nil {
 		cond, args, err := buildItemCondition(expr.Item)
 		if err != nil {

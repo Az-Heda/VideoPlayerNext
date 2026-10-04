@@ -19,16 +19,16 @@ func init() {
 }
 
 type Video struct {
-	Id         string      `json:"id" gorm:"primaryKey"`
-	Fullpath   string      `json:"fullpath" gorm:"uniqueIndex"`
-	Filename   string      `json:"filename" gorm:"index"`
-	FolderId   string      `json:"folderId"`
+	Id         string      `json:"id" gorm:"primaryKey;column:id"`
+	Fullpath   string      `json:"fullpath" gorm:"uniqueIndex;column:fullpath"`
+	Filename   string      `json:"filename" gorm:"index;column:filename"`
+	FolderId   string      `json:"folderId" gorm:"column:folder_id"`
 	Attributes Attributes  `json:"attributes" gorm:"embedded;embeddedPrefix:attrib_"`
 	Playlists  []*Playlist `json:"playlists,omitempty" gorm:"many2many:video_playlists"`
 	Tags       []*Tag      `json:"tags,omitempty" gorm:"many2many:video_tags"`
 	Folder     *Folder     `json:"folder" gorm:"foreignKey:FolderId;references:Id"`
-	CreatedAt  *time.Time  `json:"createdAt"`
-	UpdatedAt  *time.Time  `json:"updatedAt"`
+	CreatedAt  *time.Time  `json:"createdAt" gorm:"column:created_at"`
+	UpdatedAt  *time.Time  `json:"updatedAt" gorm:"column:updated_at"`
 }
 
 func (v *Video) AfterCreate(tx *gorm.DB) error {
@@ -157,4 +157,19 @@ func (Video) Preload(conn *gorm.DB, preloadFolder, preloadPlaylist, preloadTags 
 		newConn = newConn.Preload("Tags")
 	}
 	return newConn
+}
+
+func (v Video) ColumnMapper() map[string]string {
+	var current map[string]string = map[string]string{
+		"id":        "column:id",
+		"fullpath":  "fullpath",
+		"filename":  "filename",
+		"folderId":  "folder_id",
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+	}
+	for k, v := range v.Attributes.ColumnMapper() {
+		current["attribute."+k] = "attrib_" + v
+	}
+	return current
 }

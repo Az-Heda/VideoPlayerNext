@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	FilterExpression[T any] struct {
+	FilterExpression[T IModelScope] struct {
 		Item  *FilterItem[T]
 		Group *FilterGroup[T]
 	}
@@ -26,7 +26,7 @@ type (
 		// Only used by string filters
 		TreatCase *string `json:"treatCase,omitempty"`
 	}
-	FilterGroup[T any] struct {
+	FilterGroup[T IModelScope] struct {
 		Operator string                `json:"operator"`
 		Filters  []FilterExpression[T] `json:"filters"`
 	}
