@@ -17,6 +17,7 @@ import { ThinkingOrb } from 'thinking-orbs';
 import { AutomaticRulesTable } from "@/components/table-rule";
 import { TagTable } from "@/components/table-tags";
 import { PlaylistTable } from "@/components/table-playlists";
+import { UnsavedChangesGuard } from "@/components/unsave-changes-guard";
 
 export default function Page() {
   const api = new ApiRequest();
@@ -82,6 +83,7 @@ export default function Page() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 md:gap-6 md:py-6">
+              <UnsavedChangesGuard hasUnsavedChanges={config.Settings.PreventReload.Getter}/>
               <PageContent Config={config} />
             </div>
 

@@ -90,10 +90,10 @@ export class ApiRequest {
 
   private ensureBaseUrl(): string {
     if (this.globalConfigs != undefined && (this.globalConfigs.Settings.DevelopmentMode.Getter && this.globalConfigs.Settings.ApiHostUrl.Getter != undefined)) return new URL(this.globalConfigs.Settings.ApiHostUrl.Getter).origin;
-    let lsSettings = window.localStorage.getItem("vp-settings");
+    let lsSettings = window.localStorage.getItem(this.globalConfigs?.Consts.LS_SettingsKey ?? '');
     if (lsSettings != null) {
       const obj: { [key: string]: any } = JSON.parse(lsSettings);
-      if (obj.localApiOrigin) return obj.localApiOrigin as string;
+      if (obj.ApiOrigin) return obj.ApiOrigin as string;
     }
     if (this.baseUrl != undefined) return this.baseUrl;
     const port = window.location.port;

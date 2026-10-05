@@ -67,7 +67,7 @@ export type GlobalConfigType = {
       FilenameMode: GetterSetter<'text' | 'regex'>;
       FolderMode: GetterSetter<'input' | 'select'>;
     }
-  }
+  };
   Sidebar: {
     Title: SidebarItem<string>;
     Top: {
@@ -102,7 +102,7 @@ export type GlobalConfigType = {
       EditPlaylists: GetterSetter<ApiVideo | undefined>;
       EditTags: GetterSetter<ApiVideo | undefined>;
     }
-  },
+  };
   Settings: {
     ModalKind: GetterSetter<'dialog' | 'drawer' | 'sheet'>;
     ModalSide: GetterSetter<ComponentProps<typeof SheetContent>['side'] | ComponentProps<typeof Drawer>['direction']>;
@@ -111,19 +111,25 @@ export type GlobalConfigType = {
     ApiHostUrl: GetterSetter<string | undefined>;
     ColoredWatchedStatus: GetterSetter<'none' | 'border' | 'full'>;
     DevelopmentMode: GetterSetter<boolean>;
-  },
+    PreventReload: GetterSetter<boolean>;
+  };
   Errors: GetterSetter<(ApiError | Error | GenericError)[]>;
   Keybinds: GetterSetter<{ [key: string]: Command }>;
   Pages: {
     Current: GetterSetter<Page | undefined>;
     All: PageSidebar[];
-  }
+  };
+  Consts: {
+    LS_SettingsKey: string;
+  };
 }
 
 export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
   const [currentPage, setCurrentPage] = useState<GlobalConfigType['Pages']['Current']['Getter']>();
   const [empty, setEmpty] = useState<undefined>();
   const [pageTitle, setPageTitle] = useState<string>('Video Player');
+  const [preventReload, setPreventReload] = useState(false);
+
   const [openSettings, setOpenSettings] = useState(false);
   const [openImportFromFile, setOpenFromFile] = useState(false);
   const [openImportFromUrl, setOpenFromUrl] = useState(false);
@@ -512,9 +518,13 @@ export function GlobalConfig(apiRequest: ApiRequest): GlobalConfigType {
       ColoredWatchedStatus: { Getter: settingsColoredWatchedStatus, Setter: setSettingsColoredWatchedStatus, },
       ApiHostUrl: { Getter: settingsApiUrl, Setter: setSettingsApiUrl, },
       DevelopmentMode: { Getter: settingsShowDevelopmentMode, Setter: setSettingsShowDevelopmentMode, },
+      PreventReload: { Getter: preventReload, Setter: setPreventReload, },
     },
     Errors: { Getter: errorHandler, Setter: setErrorHandler },
     Keybinds: { Getter: keybinds, Setter: setKeybinds },
+    Consts: {
+      LS_SettingsKey: "vp-settings",
+    }
   } as const;
 }
 
