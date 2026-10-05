@@ -419,7 +419,6 @@ export function ModalKeybinds(props: ModalKeybindsProps) {
 }
 
 export function ModalSettings(props: ModalSettingsProps) {
-  const LS_Key = "vp-settings"
   const [settingsModalKind, setSettingsModalKind] = useState<typeof props.Config.Settings.ModalKind.Getter>(props.Config.Settings.ModalKind.Getter);
   const [settingsModalSide, setSettingsModalSide] = useState<typeof props.Config.Settings.ModalSide.Getter>(props.Config.Settings.ModalSide.Getter);
   const [settingsVideoPrivacyMode, setSettingsVideoPrivacyMode] = useState<typeof props.Config.Settings.PrivacyVideoMode.Getter>(false);
@@ -427,16 +426,18 @@ export function ModalSettings(props: ModalSettingsProps) {
   const [coloredWatchedStatus, setColoredWatchedStatus] = useState<typeof props.Config.Settings.ColoredWatchedStatus.Getter>(props.Config.Settings.ColoredWatchedStatus.Getter)
   const [localApiOrigin, setLocalApiOrigin] = useState<typeof props.Config.Settings.ApiHostUrl.Getter>(props.Config.Settings.ApiHostUrl.Getter);
   const [localDevMode, setLocalDevMode] = useState<typeof props.Config.Settings.DevelopmentMode.Getter>(props.Config.Settings.DevelopmentMode.Getter);
+  const [localPreventReload, setLocalPreventReload] = useState<typeof props.Config.Settings.PreventReload.Getter>(props.Config.Settings.PreventReload.Getter);
 
   const allSettings = useMemo(() => {
     return {
-      settingsModalKind,
-      settingsModalSide,
-      settingsVideoPrivacyMode,
-      settingsShowScalarApi,
-      coloredWatchedStatus,
-      localApiOrigin,
-      localDevMode,
+      ModalKind: settingsModalKind,
+      ModalSide: settingsModalSide,
+      VideoPrivacyMode: settingsVideoPrivacyMode,
+      ShowScalarApi: settingsShowScalarApi,
+      ColoredWatchedStatus: coloredWatchedStatus,
+      ApiOrigin: localApiOrigin,
+      DevMode: localDevMode,
+      PreventReload: localPreventReload
     }
   }, [
     settingsModalKind,
@@ -446,27 +447,30 @@ export function ModalSettings(props: ModalSettingsProps) {
     coloredWatchedStatus,
     localApiOrigin,
     localDevMode,
+    localPreventReload
   ])
 
   function reset() {
-    const stored = window.localStorage.getItem(LS_Key);
+    const stored = window.localStorage.getItem(props.Config.Consts.LS_SettingsKey);
     if (typeof stored == 'string') {
       const settings = JSON.parse(stored) as typeof allSettings;
-      setSettingsModalKind(settings.settingsModalKind);
-      setSettingsModalSide(settings.settingsModalSide);
-      setSettingsVideoPrivacyMode(settings.settingsVideoPrivacyMode);
-      setSettingsShowScalarApi(settings.settingsShowScalarApi);
-      setColoredWatchedStatus(settings.coloredWatchedStatus);
-      setLocalApiOrigin(settings.localApiOrigin);
-      setLocalDevMode(settings.localDevMode);
+      setSettingsModalKind(settings.ModalKind);
+      setSettingsModalSide(settings.ModalSide);
+      setSettingsVideoPrivacyMode(settings.VideoPrivacyMode);
+      setSettingsShowScalarApi(settings.ShowScalarApi);
+      setColoredWatchedStatus(settings.ColoredWatchedStatus);
+      setLocalApiOrigin(settings.ApiOrigin);
+      setLocalDevMode(settings.DevMode);
+      setLocalPreventReload(settings.PreventReload)
 
-      props.Config.Settings.ModalKind.Setter(settings.settingsModalKind);
-      props.Config.Settings.ModalSide.Setter(settings.settingsModalSide);
-      props.Config.Settings.PrivacyVideoMode.Setter(settings.settingsVideoPrivacyMode);
-      props.Config.Settings.ShowScalarApi.Setter(settings.settingsShowScalarApi);
-      props.Config.Settings.ColoredWatchedStatus.Setter(settings.coloredWatchedStatus);
-      props.Config.Settings.ApiHostUrl.Setter(settings.localApiOrigin);
-      props.Config.Settings.DevelopmentMode.Setter(settings.localDevMode);
+      props.Config.Settings.ModalKind.Setter(settings.ModalKind);
+      props.Config.Settings.ModalSide.Setter(settings.ModalSide);
+      props.Config.Settings.PrivacyVideoMode.Setter(settings.VideoPrivacyMode);
+      props.Config.Settings.ShowScalarApi.Setter(settings.ShowScalarApi);
+      props.Config.Settings.ColoredWatchedStatus.Setter(settings.ColoredWatchedStatus);
+      props.Config.Settings.ApiHostUrl.Setter(settings.ApiOrigin);
+      props.Config.Settings.DevelopmentMode.Setter(settings.DevMode);
+      props.Config.Settings.PreventReload.Setter(settings.PreventReload);
     } else {
       setSettingsModalKind(props.Config.Settings.ModalKind.Getter);
       setSettingsModalSide(props.Config.Settings.ModalSide.Getter);
@@ -475,6 +479,7 @@ export function ModalSettings(props: ModalSettingsProps) {
       setColoredWatchedStatus(props.Config.Settings.ColoredWatchedStatus.Getter);
       setLocalApiOrigin(props.Config.Settings.ApiHostUrl.Getter);
       setLocalDevMode(props.Config.Settings.DevelopmentMode.Getter);
+      setLocalPreventReload(props.Config.Settings.PreventReload.Getter);
     }
   }
 
@@ -485,7 +490,7 @@ export function ModalSettings(props: ModalSettingsProps) {
   }
 
   function saveToLocalStorage() {
-    window.localStorage.setItem(LS_Key, JSON.stringify(allSettings))
+    window.localStorage.setItem(props.Config.Consts.LS_SettingsKey, JSON.stringify(allSettings))
   }
 
   useEffect(() => {
@@ -507,7 +512,7 @@ export function ModalSettings(props: ModalSettingsProps) {
     <div className="w-full grid grid-cols-2 justify-between gap-y-2">
 
       <Marker variant="separator" className="not-first:mt-4 pb-2 col-span-2">
-        <MarkerContent>Modals</MarkerContent>
+        <MarkerContent>General</MarkerContent>
       </Marker>
 
       <Label htmlFor="settings-kind">Kind</Label>
@@ -538,6 +543,12 @@ export function ModalSettings(props: ModalSettingsProps) {
           <SelectItem value="left">Left</SelectItem>
         </SelectContent>
       </Select>
+
+      <Label htmlFor="settings-prevent-reload">Prevent browser events</Label>
+      <span className="w-full flex gap-2">
+        <Switch checked={localPreventReload} onCheckedChange={setLocalPreventReload} />
+        {localPreventReload ? 'On' : 'Off'}
+      </span>
 
       <Marker variant="separator" className="not-first:mt-4 pb-2 col-span-2">
         <MarkerContent>Video table</MarkerContent>

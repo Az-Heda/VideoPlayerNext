@@ -1,0 +1,26 @@
+"use client";
+
+import { useEffect } from "react";
+
+type props = {
+  hasUnsavedChanges: boolean;
+}
+
+export function UnsavedChangesGuard({ hasUnsavedChanges }: props) {
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  return <></>;
+}
